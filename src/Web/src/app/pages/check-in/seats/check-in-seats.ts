@@ -7,6 +7,7 @@ import { OciFlightSegment, OciPassenger } from '../../../models/order.model';
 import { Seatmap, CabinSeatmap, SeatOffer, CabinCode } from '../../../models/flight.model';
 import { BasketSeatSelection } from '../../../models/order.model';
 import { CheckInSeatSelection } from '../../../services/check-in-state.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 interface SeatmapEntry {
   segment: OciFlightSegment;
@@ -30,7 +31,7 @@ interface SelectedSeat {
 @Component({
   selector: 'app-check-in-seats',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './check-in-seats.html',
   styleUrl: './check-in-seats.css'
 })

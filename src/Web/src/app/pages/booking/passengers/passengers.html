@@ -2,14 +2,14 @@
 
   <!-- Page Header -->
   <div class="page-header">
-    <a routerLink="/search" class="back-link">&#8249; Back to Search</a>
+    <a routerLink="/search" class="back-link"><lucide-icon name="chevron-left" [size]="16" /> Back to Search</a>
     <h1>Passenger Details</h1>
     <p class="step-label">Step 2 of 5</p>
   </div>
 
   <!-- Prefill notice -->
   <div class="prefill-banner" *ngIf="prefilled()">
-    <span class="prefill-icon">&#10003;</span>
+    <span class="prefill-icon"><lucide-icon name="check" [size]="14" /></span>
     Your details have been pre-filled from your loyalty account. Please check them before continuing.
   </div>
 

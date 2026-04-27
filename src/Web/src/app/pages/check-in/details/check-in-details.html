@@ -13,9 +13,9 @@
         <span class="ref-value">{{ o.bookingReference }}</span>
         <button class="copy-btn" [class.copied]="copiedText() === o.bookingReference" (click)="copyToClipboard(o.bookingReference)" [title]="copiedText() === o.bookingReference ? 'Copied!' : 'Copy booking reference'">
           @if (copiedText() === o.bookingReference) {
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <lucide-icon name="check" [size]="14" />
           } @else {
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <lucide-icon name="copy" [size]="14" />
           }
         </button>
       </span>
@@ -40,7 +40,7 @@
               <span class="route-code">{{ seg.origin }}</span>
               <span class="route-time">{{ formatDateTime(seg.departureDateTime) }}</span>
             </div>
-            <div class="route-arrow">&#8594;</div>
+            <div class="route-arrow"><lucide-icon name="arrow-right" [size]="14" /></div>
             <div class="route-point route-point--right">
               <span class="route-code">{{ seg.destination }}</span>
               <span class="route-time">{{ formatDateTime(seg.arrivalDateTime) }}</span>
@@ -62,7 +62,7 @@
           <div class="pax-check-header" (click)="togglePassenger(i)">
             <div class="checkbox-wrap">
               <div class="checkbox" [class.checkbox--checked]="state.selected">
-                @if (state.selected) { <span class="check-mark">&#10003;</span> }
+                @if (state.selected) { <span class="check-mark"><lucide-icon name="check" [size]="14" /></span> }
               </div>
             </div>
             <div class="pax-check-info">
@@ -191,7 +191,7 @@
     <!-- Save error -->
     @if (saveError()) {
       <div class="error-banner">
-        <span>&#9888;</span>
+        <span><lucide-icon name="triangle-alert" [size]="14" /></span>
         {{ saveError() }}
       </div>
     }
@@ -210,11 +210,11 @@
         @if (saving()) {
           <span class="spinner"></span> Saving&hellip;
         } @else {
-          Continue to Seat Selection &#8594;
+          Continue to Seat Selection <lucide-icon name="arrow-right" [size]="14" />
         }
       </button>
     </div>
 
-    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+    <a routerLink="/check-in" class="back-link"><lucide-icon name="arrow-left" [size]="14" /> Back to Check-In</a>
   }
 </div>

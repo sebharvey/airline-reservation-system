@@ -11,10 +11,10 @@
   <!-- Error -->
   @if (errorMessage() && !loading()) {
     <div class="error-banner">
-      <span>&#9888;</span>
+      <span><lucide-icon name="triangle-alert" [size]="14" /></span>
       {{ errorMessage() }}
     </div>
-    <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+    <a routerLink="/check-in" class="back-link"><lucide-icon name="arrow-left" [size]="14" /> Back to Check-In</a>
   }
 
   <!-- Boarding passes -->
@@ -26,7 +26,7 @@
 
         <!-- BP Header -->
         <div class="bp-header">
-          <div class="bp-airline">&#9992; Apex Air</div>
+          <div class="bp-airline"><lucide-icon name="plane" [size]="16" /> Apex Air</div>
           <div class="bp-label">BOARDING PASS</div>
         </div>
 
@@ -47,7 +47,7 @@
             </div>
             <div class="bp-route-line">
               <div class="bp-route-dash"></div>
-              <span class="bp-plane-icon">&#9992;</span>
+              <span class="bp-plane-icon"><lucide-icon name="plane" [size]="28" /></span>
               <div class="bp-route-dash"></div>
             </div>
             <div class="bp-airport bp-airport--right">
@@ -113,9 +113,9 @@
                 <span class="eticket-num">{{ bp.eTicketNumber }}</span>
                 <button class="copy-btn" [class.copied]="copiedText() === bp.eTicketNumber" (click)="copyToClipboard(bp.eTicketNumber)" [title]="copiedText() === bp.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
                   @if (copiedText() === bp.eTicketNumber) {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <lucide-icon name="check" [size]="13" />
                   } @else {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <lucide-icon name="copy" [size]="13" />
                   }
                 </button>
               </span>
@@ -133,7 +133,7 @@
           <div class="carousel-slide">
             <div class="slide-header">
               <div class="slide-header-title">
-                <span class="slide-airline">&#9992; Apex Air</span>
+                <span class="slide-airline"><lucide-icon name="plane" [size]="14" /> Apex Air</span>
                 <span class="slide-counter">Pass {{ i + 1 }} of {{ boardingPasses().length }}</span>
               </div>
               <a routerLink="/" class="slide-done-btn">Done</a>
@@ -157,7 +157,7 @@
               (click)="prevPass()"
               [disabled]="activeIndex() === 0"
               aria-label="Previous boarding pass"
-            >&#8249;</button>
+            ><lucide-icon name="chevron-left" [size]="18" /></button>
             <div class="carousel-dots">
               @for (bp of boardingPasses(); track bp.sequenceNumber; let i = $index) {
                 <button
@@ -173,7 +173,7 @@
               (click)="nextPass()"
               [disabled]="activeIndex() === boardingPasses().length - 1"
               aria-label="Next boarding pass"
-            >&#8250;</button>
+            ><lucide-icon name="chevron-right" [size]="18" /></button>
           </div>
         }
         <a routerLink="/" class="btn-primary carousel-done">Done &mdash; Return to Home</a>

@@ -5,6 +5,7 @@ import { RetailApiService } from '../../../services/retail-api.service';
 import { ManageBookingStateService, ManageBookingBagSelection } from '../../../services/manage-booking-state.service';
 import { Order } from '../../../models/order.model';
 import { BagOffer, BagPolicy } from '../../../models/flight.model';
+import { LucideAngularModule } from 'lucide-angular';
 
 interface SegmentBagData {
   segmentId: string;
@@ -30,7 +31,7 @@ interface PassengerBagState {
 @Component({
   selector: 'app-manage-bags',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './manage-bags.html',
   styleUrl: './manage-bags.css'
 })

@@ -20,9 +20,9 @@
             Loyalty No. {{ customer()!.loyaltyNumber }}
             <button class="copy-btn" [class.copied]="copiedText() === customer()!.loyaltyNumber" (click)="copyToClipboard(customer()!.loyaltyNumber)" [title]="copiedText() === customer()!.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
               @if (copiedText() === customer()!.loyaltyNumber) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <lucide-icon name="check" [size]="14" />
               } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <lucide-icon name="copy" [size]="14" />
               }
             </button>
           </p>
@@ -115,7 +115,7 @@
           <span class="stat-label">Points Balance</span>
         </div>
         <div class="stat-card">
-          <span class="stat-icon" style="color: var(--grad-start)">&#9992;</span>
+          <span class="stat-icon" style="color: var(--grad-start)"><lucide-icon name="plane" [size]="18" /></span>
           <span class="stat-value">{{ customer()!.transactions.length }}</span>
           <span class="stat-label">Transactions</span>
         </div>
@@ -134,7 +134,7 @@
         <ul class="benefits-list">
           @for (benefit of getTierBenefitsForCurrentTier(); track benefit) {
             <li class="benefit-item">
-              <span class="benefit-check" [style.color]="tierInfo()!.color">&#10004;</span>
+              <span class="benefit-check" [style.color]="tierInfo()!.color"><lucide-icon name="check" [size]="14" /></span>
               {{ benefit }}
             </li>
           }
@@ -279,7 +279,7 @@
 
         } @else {
           <div class="transfer-result">
-            <div class="transfer-result-icon">&#10003;</div>
+            <div class="transfer-result-icon"><lucide-icon name="check" [size]="24" /></div>
             <p class="transfer-result-title">Transfer Successful</p>
             <div class="transfer-result-rows">
               <div class="transfer-result-row">
@@ -635,9 +635,9 @@
                       {{ order.bookingReference }}
                       <button class="copy-btn" [class.copied]="copiedText() === order.bookingReference" (click)="copyToClipboard(order.bookingReference); $event.stopPropagation()" [title]="copiedText() === order.bookingReference ? 'Copied!' : 'Copy booking reference'">
                         @if (copiedText() === order.bookingReference) {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          <lucide-icon name="check" [size]="13" />
                         } @else {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                          <lucide-icon name="copy" [size]="13" />
                         }
                       </button>
                     </span>

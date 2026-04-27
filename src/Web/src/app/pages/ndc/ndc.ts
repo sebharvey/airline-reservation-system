@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LucideAngularModule } from 'lucide-angular';
 
 interface NdcEndpoint {
   name: string;
@@ -62,7 +63,7 @@ const NDC_ENDPOINTS: NdcEndpoint[] = [
 @Component({
   selector: 'app-ndc',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './ndc.html',
   styleUrl: './ndc.css'
 })

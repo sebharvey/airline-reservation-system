@@ -3,11 +3,12 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-manage-booking',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './manage-booking.html',
   styleUrl: './manage-booking.css'
 })

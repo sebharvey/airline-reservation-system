@@ -2,13 +2,14 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { LoyaltyApiService } from '../../../services/loyalty-api.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 export type ResetStep = 'request' | 'check-email' | 'reset' | 'done';
 
 @Component({
   selector: 'app-password-reset',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './password-reset.html',
   styleUrl: './password-reset.css'
 })

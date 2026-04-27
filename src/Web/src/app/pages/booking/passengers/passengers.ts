@@ -8,6 +8,7 @@ import { BookingStateService } from '../../../services/booking-state.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Passenger, BasketSsrSelection } from '../../../models/order.model';
+import { LucideAngularModule } from 'lucide-angular';
 
 interface PassengerForm {
   passengerId: string;
@@ -26,7 +27,7 @@ interface PassengerForm {
 @Component({
   selector: 'app-passengers',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule],
   templateUrl: './passengers.html',
   styleUrl: './passengers.css'
 })

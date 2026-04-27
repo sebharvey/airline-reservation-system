@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { BasketSummary, SummaryFlight, SummaryTaxLine } from '../../../models/order.model';
+import { LucideAngularModule } from 'lucide-angular';
 
 const CABIN_NAMES: Record<string, string> = {
   F: 'First Class',
@@ -30,7 +31,7 @@ export interface TaxSegmentGroup {
 @Component({
   selector: 'app-flight-summary',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './flight-summary.html',
   styleUrl: './flight-summary.css'
 })

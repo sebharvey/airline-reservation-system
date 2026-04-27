@@ -2,10 +2,10 @@
 
   <!-- Header -->
   <div class="results-header">
-    <a routerLink="/" class="back-link">&#8249; New Search</a>
+    <a routerLink="/" class="back-link"><lucide-icon name="chevron-left" [size]="16" /> New Search</a>
     <h1>
       {{ getCityName(origin()) }}
-      <span class="route-arrow">&#8594;</span>
+      <span class="route-arrow"><lucide-icon name="arrow-right" [size]="14" /></span>
       {{ getCityName(destination()) }}
     </h1>
     <div class="search-summary">
@@ -38,7 +38,7 @@
 
     <!-- No results -->
     <div class="empty-card" *ngIf="!outboundLoading() && !outboundError() && outboundOffers().length === 0">
-      <div class="empty-icon">&#9992;</div>
+      <div class="empty-icon"><lucide-icon name="plane" [size]="32" /></div>
       <p>No flights found for this route and date. Try a different date or route.</p>
       <a routerLink="/" class="btn-primary">Modify Search</a>
     </div>
@@ -61,7 +61,7 @@
                 <div class="flight-num">{{ row.flightNumber }}</div>
                 <div class="flight-times-inline">
                   <span class="time">{{ formatTime(row.departureDateTime) }}</span>
-                  <span class="times-sep">&#8594;</span>
+                  <span class="times-sep"><lucide-icon name="arrow-right" [size]="14" /></span>
                   <span class="time">{{ formatTime(row.arrivalDateTime) }}</span>
                 </div>
                 <div class="flight-meta">
@@ -141,7 +141,7 @@
 
     <!-- No results -->
     <div class="empty-card" *ngIf="!returnLoading() && !returnError() && returnOffers().length === 0">
-      <div class="empty-icon">&#9992;</div>
+      <div class="empty-icon"><lucide-icon name="plane" [size]="32" /></div>
       <p>No return flights found. Try a different date.</p>
       <a routerLink="/" class="btn-primary">Modify Search</a>
     </div>
@@ -164,7 +164,7 @@
                 <div class="flight-num">{{ row.flightNumber }}</div>
                 <div class="flight-times-inline">
                   <span class="time">{{ formatTime(row.departureDateTime) }}</span>
-                  <span class="times-sep">&#8594;</span>
+                  <span class="times-sep"><lucide-icon name="arrow-right" [size]="14" /></span>
                   <span class="time">{{ formatTime(row.arrivalDateTime) }}</span>
                 </div>
                 <div class="flight-meta">
@@ -222,7 +222,7 @@
   <!-- Basket creation error -->
   <div class="error-banner" *ngIf="basketError()">
     <span>{{ basketError() }}</span>
-    <button class="error-dismiss" (click)="basketError.set('')">&#10005;</button>
+    <button class="error-dismiss" (click)="basketError.set('')"><lucide-icon name="x" [size]="14" /></button>
   </div>
 
   <div class="fare-overlay" *ngIf="farePopup()" (click)="closeFarePopup()">
@@ -236,7 +236,7 @@
             &nbsp;&middot;&nbsp; {{ farePopup()!.offers[0].cabinName }}
           </p>
         </div>
-        <button class="fare-popup-close" (click)="closeFarePopup()" aria-label="Close">&#10005;</button>
+        <button class="fare-popup-close" (click)="closeFarePopup()" aria-label="Close"><lucide-icon name="x" [size]="14" /></button>
       </div>
 
       <div class="fare-popup-body">
@@ -256,11 +256,11 @@
             </div>
             <div class="fare-option-features">
               <div class="feature-row" [class.feature-yes]="offer.isRefundable" [class.feature-no]="!offer.isRefundable">
-                <span class="feature-icon">{{ offer.isRefundable ? '✓' : '✗' }}</span>
+                <span class="feature-icon">@if (offer.isRefundable) {<lucide-icon name="check" [size]="12" />} @else {<lucide-icon name="x" [size]="12" />}</span>
                 <span>Refundable</span>
               </div>
               <div class="feature-row" [class.feature-yes]="offer.isChangeable" [class.feature-no]="!offer.isChangeable">
-                <span class="feature-icon">{{ offer.isChangeable ? '✓' : '✗' }}</span>
+                <span class="feature-icon">@if (offer.isChangeable) {<lucide-icon name="check" [size]="12" />} @else {<lucide-icon name="x" [size]="12" />}</span>
                 <span>Changeable</span>
               </div>
             </div>

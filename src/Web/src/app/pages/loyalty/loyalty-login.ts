@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { LoyaltyApiService } from '../../services/loyalty-api.service';
 import { LoyaltyStateService } from '../../services/loyalty-state.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-loyalty-login',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './loyalty-login.html',
   styleUrl: './loyalty-login.css'
 })

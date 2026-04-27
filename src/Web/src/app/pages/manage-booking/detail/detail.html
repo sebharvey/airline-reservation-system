@@ -11,10 +11,10 @@
   <!-- Error -->
   @if (errorMessage() && !loading()) {
     <div class="error-banner">
-      <span class="error-icon">&#9888;</span>
+      <span class="error-icon"><lucide-icon name="triangle-alert" [size]="14" /></span>
       {{ errorMessage() }}
     </div>
-    <a routerLink="/manage-booking" class="back-link">&#8592; Back to Manage Booking</a>
+    <a routerLink="/manage-booking" class="back-link"><lucide-icon name="arrow-left" [size]="14" /> Back to Manage Booking</a>
   }
 
   <!-- Order loaded -->
@@ -30,9 +30,9 @@
               {{ o.bookingReference }}
               <button class="copy-btn" [class.copied]="copiedText() === o.bookingReference" (click)="copyToClipboard(o.bookingReference)" [title]="copiedText() === o.bookingReference ? 'Copied!' : 'Copy booking reference'">
                 @if (copiedText() === o.bookingReference) {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <lucide-icon name="check" [size]="14" />
                 } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <lucide-icon name="copy" [size]="14" />
                 }
               </button>
             </span>
@@ -73,7 +73,7 @@
       }
       @if (canChangeFlight()) {
         <button type="button" class="action-card" (click)="navigateToChangeFlight()">
-          <span class="action-icon">&#9992;</span>
+          <span class="action-icon"><lucide-icon name="plane" [size]="18" /></span>
           <div class="action-body">
             <span class="action-title">Change Flight</span>
             <span class="action-desc">Move to a different departure date</span>
@@ -83,7 +83,7 @@
       }
       @if (canCancel()) {
         <button type="button" class="action-card action-card--danger" (click)="navigateToCancel()">
-          <span class="action-icon">&#10006;</span>
+          <span class="action-icon"><lucide-icon name="x" [size]="16" /></span>
           <div class="action-body">
             <span class="action-title">Cancel Booking</span>
             <span class="action-desc">Request a refund and cancel your reservation</span>
@@ -107,7 +107,7 @@
             </span>
             @if (sd.checkedInCount > 0) {
               <span class="segment-status-badge segment-checked-in">
-                &#10003; {{ sd.checkedInCount }}/{{ sd.passengerSeats.length }} Checked In
+                <lucide-icon name="check" [size]="12" /> {{ sd.checkedInCount }}/{{ sd.passengerSeats.length }} Checked In
               </span>
             }
             <span class="aircraft-type">{{ sd.segment.aircraftType }}</span>
@@ -117,7 +117,7 @@
               <span class="route-code">{{ sd.segment.origin }}</span>
               <span class="route-time">{{ formatDateTime(sd.segment.departureDateTime) }}</span>
             </div>
-            <div class="route-arrow">&#9992;</div>
+            <div class="route-arrow"><lucide-icon name="plane" [size]="20" /></div>
             <div class="route-point route-point--right">
               <span class="route-code">{{ sd.segment.destination }}</span>
               <span class="route-time">{{ formatDateTime(sd.segment.arrivalDateTime) }}</span>
@@ -143,9 +143,9 @@
                   @if (ps.eTicketNumber) {
                     <button class="copy-btn" [class.copied]="copiedText() === ps.eTicketNumber" (click)="copyToClipboard(ps.eTicketNumber)" [title]="copiedText() === ps.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
                       @if (copiedText() === ps.eTicketNumber) {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <lucide-icon name="check" [size]="12" />
                       } @else {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <lucide-icon name="copy" [size]="12" />
                       }
                     </button>
                   }
@@ -153,7 +153,7 @@
                 <span class="pax-fare">{{ ps.fareAmount != null ? formatCurrency(ps.fareAmount, o.currency) : '&ndash;' }}</span>
                 <span class="pax-total">{{ ps.totalAmount != null ? formatCurrency(ps.totalAmount, o.currency) : '&ndash;' }}</span>
                 <span class="pax-checkin" [ngClass]="ps.isCheckedIn ? 'pax-checkin--done' : 'pax-checkin--pending'">
-                  {{ ps.isCheckedIn ? '&#10003; Done' : '&ndash;' }}
+                  @if (ps.isCheckedIn) { <lucide-icon name="check" [size]="12" /> Done } @else { &ndash; }
                 </span>
               </div>
             }
@@ -183,9 +183,9 @@
                   {{ pax.loyaltyNumber }}
                   <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyToClipboard(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
                     @if (copiedText() === pax.loyaltyNumber) {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      <lucide-icon name="check" [size]="12" />
                     } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      <lucide-icon name="copy" [size]="12" />
                     }
                   </button>
                 </span>
@@ -276,6 +276,6 @@
     </div>
 
     <!-- Back link -->
-    <a routerLink="/manage-booking" class="back-link">&#8592; Back to Manage Booking</a>
+    <a routerLink="/manage-booking" class="back-link"><lucide-icon name="arrow-left" [size]="14" /> Back to Manage Booking</a>
   }
 </div>

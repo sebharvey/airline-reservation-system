@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Order, FlightSegment } from '../../../models/order.model';
 import { FlightOffer } from '../../../models/flight.model';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-change-flight',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule],
   templateUrl: './change-flight.html',
   styleUrl: './change-flight.css'
 })

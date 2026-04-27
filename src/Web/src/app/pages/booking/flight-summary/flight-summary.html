@@ -2,7 +2,7 @@
 
   <!-- Page Header -->
   <div class="page-header">
-    <a routerLink="/search" class="back-link">&#8249; Back to Search</a>
+    <a routerLink="/search" class="back-link"><lucide-icon name="chevron-left" [size]="16" /> Back to Search</a>
     <h1>Your Flight Summary</h1>
     <p class="step-label">Step 1 of 5</p>
   </div>
@@ -42,7 +42,7 @@
           <span class="time-value">{{ flight.departureTime }}</span>
           <span class="time-date">{{ formatDepartureDate(flight) }}</span>
         </div>
-        <div class="time-divider">&#8594;</div>
+        <div class="time-divider"><lucide-icon name="arrow-right" [size]="14" /></div>
         <div class="time-block">
           <span class="time-label">Arrives</span>
           <span class="time-value">{{ flight.arrivalTime }}</span>
@@ -62,7 +62,7 @@
       <button class="pricing-row tax-row" (click)="openTaxModal()">
         <span class="pricing-label">
           Taxes &amp; charges
-          <span class="tax-info-icon">&#9432;</span>
+          <span class="tax-info-icon"><lucide-icon name="circle-alert" [size]="14" /></span>
         </span>
         <span class="pricing-amount">{{ formatCurrency(totalTaxAmount(), s.currency) }}</span>
       </button>
@@ -88,7 +88,7 @@
     <div class="actions">
       <a routerLink="/search" class="btn-secondary">Cancel</a>
       <button class="btn-primary" (click)="onContinue()">
-        Continue to Passenger Details &#8250;
+        Continue to Passenger Details <lucide-icon name="chevron-right" [size]="16" />
       </button>
     </div>
 
