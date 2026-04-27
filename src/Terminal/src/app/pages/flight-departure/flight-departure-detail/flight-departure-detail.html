@@ -226,8 +226,8 @@
                       }
                       <span
                         class="seat-cell"
-                        [class]="cell.cssClass"
-                        [title]="cell.tooltip"
+                        [class]="seatClass(cell.seat)"
+                        [title]="seatTooltip(cell.seat)"
                         (click)="cell.seat && selectSeatFromMap(cell.seat)">
                         @if (cell.seat) {
                           <span class="seat-inner"></span>
