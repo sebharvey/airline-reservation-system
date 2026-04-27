@@ -3,7 +3,6 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { Order, FlightSegment, Passenger, OrderItem, ETicket } from '../../../models/order.model';
-import { LucideAngularModule } from 'lucide-angular';
 
 export interface ItinerarySegment {
   segment: FlightSegment;
@@ -17,7 +16,7 @@ export interface ItinerarySegment {
 @Component({
   selector: 'app-booking-confirmation',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './confirmation.html',
   styleUrl: './confirmation.css'
 })

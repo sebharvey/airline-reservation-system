@@ -5,7 +5,6 @@ import { BookingStateService } from '../../../services/booking-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { BasketFlightOffer, BasketBagSelection } from '../../../models/order.model';
 import { BagPolicyResponse, BagOffer } from '../../../models/flight.model';
-import { LucideAngularModule } from 'lucide-angular';
 
 interface FlightBagData {
   flightOffer: BasketFlightOffer;
@@ -25,7 +24,7 @@ interface PassengerBagSelection {
 @Component({
   selector: 'app-bags',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './bags.html',
   styleUrl: './bags.css'
 })

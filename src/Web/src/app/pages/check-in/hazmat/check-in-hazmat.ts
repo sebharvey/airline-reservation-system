@@ -3,12 +3,11 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CheckInStateService } from '../../../services/check-in-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-check-in-hazmat',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule],
   templateUrl: './check-in-hazmat.html',
   styleUrl: './check-in-hazmat.css'
 })

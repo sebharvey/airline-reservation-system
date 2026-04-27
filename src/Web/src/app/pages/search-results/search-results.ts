@@ -8,7 +8,6 @@ import { FlightOffer, CabinCode } from '../../models/flight.model';
 import { BookingType } from '../../models/order.model';
 import { AIRPORTS } from '../../data/airports';
 import { LoyaltyStateService } from '../../services/loyalty-state.service';
-import { LucideAngularModule } from 'lucide-angular';
 
 interface FlightRow {
   flightNumber: string;
@@ -26,7 +25,7 @@ interface FlightRow {
 @Component({
   selector: 'app-search-results',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './search-results.html',
   styleUrl: './search-results.css'
 })

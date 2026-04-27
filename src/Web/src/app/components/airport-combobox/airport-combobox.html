@@ -12,7 +12,7 @@
       (focus)="isOpen = true"
     />
     <button type="button" class="combobox-toggle" (click)="toggle()" tabindex="-1" aria-label="Show airports">
-      <span class="chevron" [class.up]="isOpen"><lucide-icon name="chevron-right" [size]="12" /></span>
+      <span class="chevron" [class.up]="isOpen">&#x2303;</span>
     </button>
   </div>
   <ul class="combobox-list" *ngIf="isOpen">

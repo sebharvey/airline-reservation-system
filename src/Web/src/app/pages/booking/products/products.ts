@@ -5,7 +5,6 @@ import { BookingStateService } from '../../../services/booking-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Product, ProductGroup } from '../../../models/flight.model';
 import { BasketProductSelection } from '../../../models/order.model';
-import { LucideAngularModule } from 'lucide-angular';
 
 interface PaxSegmentEntry {
   basketItemId: string;
@@ -25,7 +24,7 @@ interface PaxModalEntry {
 @Component({
   selector: 'app-products',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './products.html',
   styleUrl: './products.css'
 })

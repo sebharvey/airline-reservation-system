@@ -5,12 +5,11 @@ import { RetailApiService } from '../../../services/retail-api.service';
 import { ManageBookingStateService } from '../../../services/manage-booking-state.service';
 import { Order, CardDetails } from '../../../models/order.model';
 import { PaymentFormComponent } from '../../../components/payment-form/payment-form';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-manage-bags-payment',
   standalone: true,
-  imports: [CommonModule, PaymentFormComponent, LucideAngularModule],
+  imports: [CommonModule, PaymentFormComponent],
   templateUrl: './manage-bags-payment.html',
   styleUrl: './manage-bags-payment.css'
 })

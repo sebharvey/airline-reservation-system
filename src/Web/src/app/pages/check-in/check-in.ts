@@ -8,12 +8,11 @@ import { RetailApiService } from '../../services/retail-api.service';
 import { CheckInStateService } from '../../services/check-in-state.service';
 import { OciFlightSegment } from '../../models/order.model';
 import { AirportComboboxComponent } from '../../components/airport-combobox/airport-combobox';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-check-in',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink, AirportComboboxComponent, LucideAngularModule],
+  imports: [FormsModule, CommonModule, RouterLink, AirportComboboxComponent],
   templateUrl: './check-in.html',
   styleUrl: './check-in.css'
 })

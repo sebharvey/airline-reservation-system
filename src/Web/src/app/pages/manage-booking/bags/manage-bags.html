@@ -15,10 +15,10 @@
   <!-- Error -->
   @if (errorMessage() && !loading()) {
     <div class="error-banner">
-      <span><lucide-icon name="triangle-alert" [size]="14" /></span>
+      <span>&#9888;</span>
       {{ errorMessage() }}
     </div>
-    <button type="button" class="back-link" (click)="onBack()"><lucide-icon name="arrow-left" [size]="14" /> Back to Booking</button>
+    <button type="button" class="back-link" (click)="onBack()">&#8592; Back to Booking</button>
   }
 
   <!-- Main content -->
@@ -43,13 +43,13 @@
               <!-- Current allowance -->
               <div class="allowance-row">
                 <div class="allowance-item">
-                  <span class="allowance-icon"><lucide-icon name="check" [size]="16" /></span>
+                  <span class="allowance-icon">&#10003;</span>
                   <span>{{ segData.policy.freeBagsIncluded }} bag{{ segData.policy.freeBagsIncluded !== 1 ? 's' : '' }} included ({{ cabinLabel(segData.cabinCode) }})</span>
                   <span class="allowance-detail">Max {{ segData.policy.maxWeightKgPerBag }}kg each</span>
                 </div>
                 @if (state.alreadyPurchased > 0) {
                   <div class="allowance-item allowance-item--purchased">
-                    <span class="allowance-icon"><lucide-icon name="check" [size]="16" /></span>
+                    <span class="allowance-icon">&#10003;</span>
                     <span>{{ state.alreadyPurchased }} additional bag{{ state.alreadyPurchased !== 1 ? 's' : '' }} already purchased</span>
                   </div>
                 }
@@ -105,6 +105,6 @@
       </button>
     </div>
 
-    <button type="button" class="back-link" (click)="onBack()"><lucide-icon name="arrow-left" [size]="14" /> Back to Booking</button>
+    <button type="button" class="back-link" (click)="onBack()">&#8592; Back to Booking</button>
   }
 </div>

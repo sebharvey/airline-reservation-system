@@ -1,6 +1,6 @@
 <div class="payment-card">
   <div class="payment-title">
-    <span class="lock-icon"><lucide-icon name="lock" [size]="16" /></span>
+    <span class="lock-icon">&#128274;</span>
     Secure Payment
   </div>
 
@@ -87,7 +87,7 @@
   </button>
 
   <p class="security-note">
-    <lucide-icon name="lock" [size]="14" /> Your payment is encrypted and secure. We do not store your card details.
+    &#128274; Your payment is encrypted and secure. We do not store your card details.
   </p>
 </div>
 
@@ -95,7 +95,7 @@
 @if (paymentError()) {
   <div class="error-modal-backdrop" (click)="dismissErrorModal()" role="dialog" aria-modal="true" aria-labelledby="payment-form-error-title">
     <div class="error-modal-card" (click)="$event.stopPropagation()">
-      <div class="error-modal-icon"><lucide-icon name="triangle-alert" [size]="24" /></div>
+      <div class="error-modal-icon">&#9888;</div>
       <div class="error-modal-title" id="payment-form-error-title">Payment unsuccessful</div>
       <div class="error-modal-message">{{ paymentError() }}</div>
       <button class="error-modal-btn" (click)="dismissErrorModal()">Try again</button>

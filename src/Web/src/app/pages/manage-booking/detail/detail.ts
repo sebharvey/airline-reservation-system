@@ -3,7 +3,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Order, OrderItem, Passenger, FlightSegment, BoardingPass } from '../../../models/order.model';
-import { LucideAngularModule } from 'lucide-angular';
 
 interface PassengerSeatInfo {
   passenger: Passenger;
@@ -24,7 +23,7 @@ interface SegmentDisplay {
 @Component({
   selector: 'app-manage-booking-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './detail.html',
   styleUrl: './detail.css'
 })
