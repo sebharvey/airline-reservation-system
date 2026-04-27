@@ -256,11 +256,11 @@
             </div>
             <div class="fare-option-features">
               <div class="feature-row" [class.feature-yes]="offer.isRefundable" [class.feature-no]="!offer.isRefundable">
-                <span class="feature-icon">{{ offer.isRefundable ? '✓' : '✗' }}</span>
+                <span class="feature-icon">@if (offer.isRefundable) {<lucide-icon name="check" [size]="12" />} @else {<lucide-icon name="x" [size]="12" />}</span>
                 <span>Refundable</span>
               </div>
               <div class="feature-row" [class.feature-yes]="offer.isChangeable" [class.feature-no]="!offer.isChangeable">
-                <span class="feature-icon">{{ offer.isChangeable ? '✓' : '✗' }}</span>
+                <span class="feature-icon">@if (offer.isChangeable) {<lucide-icon name="check" [size]="12" />} @else {<lucide-icon name="x" [size]="12" />}</span>
                 <span>Changeable</span>
               </div>
             </div>
