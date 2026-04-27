@@ -590,6 +590,9 @@ public sealed class AdminManifestEntry
     [JsonPropertyName("bookingType")]      public string BookingType      { get; init; } = string.Empty;
     [JsonPropertyName("checkedIn")]        public bool CheckedIn          { get; init; }
     [JsonPropertyName("ssrCodes")]         public List<string> SsrCodes   { get; init; } = [];
+    [JsonPropertyName("gender")]           public string? Gender          { get; init; }
+    [JsonPropertyName("dateOfBirth")]      public DateOnly? DateOfBirth   { get; init; }
+    [JsonPropertyName("ptcCode")]          public string PtcCode          { get; init; } = "ADT";
 }
 
 public sealed class ManifestPassengerEntry

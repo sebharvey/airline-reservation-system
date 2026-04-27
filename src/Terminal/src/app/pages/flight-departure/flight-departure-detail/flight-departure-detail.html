@@ -113,6 +113,9 @@
                   <th>Cabin</th>
                   <th>Given Name</th>
                   <th>Surname</th>
+                  <th>DOB</th>
+                  <th>Gender</th>
+                  <th>PTC</th>
                   <th>E-Ticket</th>
                   <th>SSR</th>
                   <th>CI</th>
@@ -121,7 +124,7 @@
               <tbody>
                 @for (group of groupedEntries(); track group.bookingReference) {
                   <tr class="booking-group-header">
-                    <td colspan="7">
+                    <td colspan="10">
                       <a class="booking-ref-link mono" [routerLink]="['/order', group.bookingReference]">
                         {{ group.bookingReference }}
                       </a>
@@ -145,6 +148,9 @@
                       </td>
                       <td class="pax-name">{{ entry.givenName }}</td>
                       <td class="pax-name">{{ entry.surname }}</td>
+                      <td class="mono muted">{{ entry.dateOfBirth ?? '—' }}</td>
+                      <td>{{ entry.gender ?? '—' }}</td>
+                      <td><span class="ptc-badge">{{ entry.ptcCode }}</span></td>
                       <td class="mono muted">{{ entry.eTicketNumber }}</td>
                       <td>
                         @if (entry.ssrCodes.length > 0) {
