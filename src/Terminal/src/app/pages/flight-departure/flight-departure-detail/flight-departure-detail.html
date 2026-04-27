@@ -58,30 +58,55 @@
         }
 
         @if (manifest() && manifest()!.entries.length > 0) {
-          <div class="pax-list">
-            @for (entry of manifest()!.entries; track entry.eTicketNumber) {
-              <div class="pax-row" [class.pax-checked-in]="entry.checkedIn">
-                <div class="pax-seat-badge" [class]="'cabin-' + entry.cabinCode.toLowerCase()">
-                  {{ entry.seatNumber ?? '—' }}
-                </div>
-                <div class="pax-info">
-                  <span class="pax-name">{{ entry.surname }}, {{ entry.givenName }}</span>
-                  <span class="pax-ref mono muted">{{ entry.bookingReference }}</span>
-                </div>
-                <div class="pax-status">
-                  @if (entry.checkedIn) {
-                    <span class="ci-badge">CI</span>
-                  }
-                  @if (entry.ssrCodes.length > 0) {
-                    <span class="ssr-badges">
-                      @for (ssr of entry.ssrCodes; track ssr) {
-                        <span class="ssr-tag" [title]="ssr">{{ ssr }}</span>
+          <div class="pax-table-wrap">
+            <table class="pax-table">
+              <thead>
+                <tr>
+                  <th>Seat</th>
+                  <th>Cabin</th>
+                  <th>Given Name</th>
+                  <th>Surname</th>
+                  <th>Booking Ref</th>
+                  <th>E-Ticket</th>
+                  <th>Pax ID</th>
+                  <th>SSR</th>
+                  <th>CI</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of manifest()!.entries; track entry.eTicketNumber) {
+                  <tr [class.pax-checked-in]="entry.checkedIn">
+                    <td>
+                      <span class="pax-seat-badge" [class]="'cabin-' + entry.cabinCode.toLowerCase()">
+                        {{ entry.seatNumber ?? '—' }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="cabin-code-badge cabin-{{ entry.cabinCode.toLowerCase() }}">{{ entry.cabinCode }}</span>
+                    </td>
+                    <td class="pax-name">{{ entry.givenName }}</td>
+                    <td class="pax-name">{{ entry.surname }}</td>
+                    <td class="mono muted">{{ entry.bookingReference }}</td>
+                    <td class="mono muted">{{ entry.eTicketNumber }}</td>
+                    <td class="mono muted">{{ entry.passengerId }}</td>
+                    <td>
+                      @if (entry.ssrCodes.length > 0) {
+                        <span class="ssr-badges">
+                          @for (ssr of entry.ssrCodes; track ssr) {
+                            <span class="ssr-tag" [title]="ssr">{{ ssr }}</span>
+                          }
+                        </span>
                       }
-                    </span>
-                  }
-                </div>
-              </div>
-            }
+                    </td>
+                    <td>
+                      @if (entry.checkedIn) {
+                        <span class="ci-badge">CI</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
         }
       </div>
