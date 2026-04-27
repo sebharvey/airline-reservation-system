@@ -209,7 +209,7 @@
                 <div class="seat-row seat-row-header">
                   <span class="row-num-col"></span>
                   @for (col of cabin.columns; track col) {
-                    @if (isAisle(col, cabin.columns)) {
+                    @if (isAisle(col, cabin.columns, cabin.layout)) {
                       <span class="aisle-gap"></span>
                     }
                     <span class="col-header">{{ col }}</span>
@@ -221,16 +221,16 @@
                   <div class="seat-row">
                     <span class="row-num-col mono muted">{{ row.rowNumber }}</span>
                     @for (seat of row.seats; track $index; let i = $index) {
-                      @if (seat && isAisle(seat.column, cabin.columns)) {
+                      @if (seat && isAisle(seat.column, cabin.columns, cabin.layout)) {
                         <span class="aisle-gap"></span>
                       }
-                      @if (!seat && i > 0 && cabin.columns[i] && isAisle(cabin.columns[i], cabin.columns)) {
+                      @if (!seat && i > 0 && cabin.columns[i] && isAisle(cabin.columns[i], cabin.columns, cabin.layout)) {
                         <span class="aisle-gap"></span>
                       }
                       <span
                         class="seat-cell"
-                        [class]="seatClass(seat, manifest())"
-                        [title]="seatTooltip(seat, manifest())"
+                        [class]="seatClass(seat, manifest(), selectedEntry(), pendingSeat())"
+                        [title]="seatTooltip(seat, manifest(), pendingSeat())"
                         (click)="seat && selectSeatFromMap(seat)">
                         @if (seat) {
                           <span class="seat-inner"></span>
