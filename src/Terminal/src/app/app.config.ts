@@ -6,7 +6,7 @@ import {
   Accessibility, Armchair, ArrowLeft, ArrowLeftRight, Ban, Banknote, Briefcase,
   Calendar, Check, ChevronLeft, ChevronRight, CircleAlert, CircleArrowUp,
   CircleCheck, CircleDollarSign, CircleX, ClipboardList, Clock, Copy,
-  CreditCard, FileText, Inbox, Lock, LogOut, Luggage, Moon, Package,
+  CreditCard, FileText, Inbox, Lock, LogOut, Luggage, MapPin, Moon, Package,
   Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShoppingBag,
   ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
 } from 'lucide-angular';
@@ -36,7 +36,7 @@ export const appConfig: ApplicationConfig = {
         Accessibility, Armchair, ArrowLeft, ArrowLeftRight, Ban, Banknote, Briefcase,
         Calendar, Check, ChevronLeft, ChevronRight, CircleAlert, CircleArrowUp,
         CircleCheck, CircleDollarSign, CircleX, ClipboardList, Clock, Copy,
-        CreditCard, FileText, Inbox, Lock, LogOut, Luggage, Moon, Package,
+        CreditCard, FileText, Inbox, Lock, LogOut, Luggage, MapPin, Moon, Package,
         Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShoppingBag,
         ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
       }),

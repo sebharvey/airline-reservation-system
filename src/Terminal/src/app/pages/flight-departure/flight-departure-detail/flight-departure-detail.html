@@ -23,7 +23,7 @@
     }
 
     <button class="refresh-btn" [class.refresh-btn-spinning]="loading()" [disabled]="loading()" (click)="refresh()" title="Reload flight data">
-      <lucide-icon name="refresh-cw" [size]="14" />
+      <lucide-icon name="rotate-ccw" [size]="14" />
       Refresh
     </button>
   </div>
@@ -257,7 +257,7 @@
                 @if (seatOpLoading()) {
                   <span class="btn-spinner"></span>
                 } @else {
-                  <lucide-icon name="x-circle" [size]="14" />
+                  <lucide-icon name="circle-x" [size]="14" />
                 }
                 Release Seat
               </button>
@@ -268,7 +268,7 @@
                 @if (seatOpLoading()) {
                   <span class="btn-spinner"></span>
                 } @else {
-                  <lucide-icon name="check-circle" [size]="14" />
+                  <lucide-icon name="circle-check" [size]="14" />
                 }
                 Confirm Seat
               </button>
