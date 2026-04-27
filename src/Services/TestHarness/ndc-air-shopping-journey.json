@@ -1,7 +1,7 @@
 {
   "journey": {
-    "name": "NDC — AirShopping + OfferPrice (IATA NDC 21.3)",
-    "description": "Validates the IATA NDC 21.3 AirShopping and OfferPrice endpoints on the Retail API. Steps 1–6 cover AirShopping: well-formed requests with single and multiple passenger types, a past-date search returning an empty OffersGroup, and negative cases. Steps 7–11 cover OfferPrice: the OfferID captured in step 1 is forwarded to price the offer, including a traveler-typed request, then negative cases for an unknown ID, missing SelectedOffer, and empty body.",
+    "name": "NDC — AirShopping + OfferPrice + ServiceList (IATA NDC 21.3)",
+    "description": "Validates the IATA NDC 21.3 AirShopping, OfferPrice, and ServiceList endpoints on the Retail API. Steps 1–6 cover AirShopping: well-formed requests with single and multiple passenger types, a past-date search returning an empty OffersGroup, and negative cases. Steps 7–11 cover OfferPrice: the OfferID captured in step 1 is forwarded to price the offer, including a traveler-typed request, then negative cases for an unknown ID, missing SelectedOffer, and empty body. Steps 12–16 cover ServiceList just before order creation: the happy path exercises all SSRs with no context filter, offer-scoped SSRs using the OfferID from step 1, and cabin-filtered SSRs; negative cases cover invalid XML and empty body.",
     "domain": "Retail",
     "baseUrls": [
       {
@@ -43,7 +43,7 @@
           "field": "OfferID",
           "as": "ndcOfferId",
           "xmlRegex": "<OfferID>([^<]+)</OfferID>",
-          "usedInSteps": [7, 8]
+          "usedInSteps": [7, 8, 13]
         }
       ]
     },
@@ -331,6 +331,149 @@
         "description": "Returns 400 when the request body is empty.",
         "keyFields": [],
         "validationNotes": "The response must use the IATA_OfferPriceRS namespace, not IATA_AirShoppingRS. Code must be ERR_EMPTY_BODY."
+      }
+    },
+    {
+      "step": 12,
+      "name": "ServiceList — all SSRs (no offer context)",
+      "description": "Posts a minimal IATA_ServiceListRQ with no OfferRefID or cabin filter. The SSR Catalogue returns all active services. Expects a 200 IATA_ServiceListRS with Response/ServiceList/ALaCarteOffer (Owner=AX, at least one ALaCarteOfferItem) and Response/DataLists/ServiceDefinitionList.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <Query />\n</IATA_ServiceListRQ>"
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <ServiceList>\n      <ALaCarteOffer>\n        <Owner>AX</Owner>\n        <ALaCarteOfferItem>\n          <OfferItemID>SLI-...</OfferItemID>\n          <Eligibility>...</Eligibility>\n          <Service><ServiceID>SVC-...</ServiceID><ServiceCode><Code>...</Code></ServiceCode></Service>\n          <UnitPriceDetail><TotalAmount><SimpleCurrencyPrice CurCode=\"GBP\">0.00</SimpleCurrencyPrice></TotalAmount></UnitPriceDetail>\n        </ALaCarteOfferItem>\n      </ALaCarteOffer>\n    </ServiceList>\n    <DataLists>\n      <ServiceDefinitionList>\n        <ServiceDefinition>\n          <ServiceDefinitionID>SD-...</ServiceDefinitionID>\n          <Name>...</Name>\n          <ServiceCode><Code>...</Code></ServiceCode>\n        </ServiceDefinition>\n      </ServiceDefinitionList>\n    </DataLists>\n  </Response>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with IATA_ServiceListRS. ALaCarteOffer/Owner must be AX. Each ALaCarteOfferItem has OfferItemID prefixed SLI-, a ServiceCode, and UnitPriceDetail with an indicative price of 0.00 GBP. DataLists/ServiceDefinitionList contains a corresponding ServiceDefinition per SSR.",
+        "keyFields": [],
+        "validationNotes": "Response Content-Type must be application/xml. Document/ReferenceVersion must be 21.3. ServiceDefinitionID must be prefixed SD-."
+      }
+    },
+    {
+      "step": 13,
+      "name": "ServiceList — filtered by OfferID from step 1",
+      "description": "Posts an IATA_ServiceListRQ with the OfferRefID captured from step 1. The handler resolves the stored offer to derive the operating cabin class and flight number and passes them as filters to the SSR Catalogue. Expects a 200 IATA_ServiceListRS with contextually relevant services.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail",
+        "note": "OfferRefID chained from step 1"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <Query>\n    <SelectionCriteria>\n      <OfferRef>\n        <OfferRefID>__CHAIN_ndcOfferId__</OfferRefID>\n      </OfferRef>\n    </SelectionCriteria>\n  </Query>\n</IATA_ServiceListRQ>",
+        "dataChain": [
+          {
+            "field": "OfferRefID",
+            "from": "ndcOfferId",
+            "source": "Step 1 → AirShoppingRS first OfferID"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <ServiceList>\n      <ALaCarteOffer><Owner>AX</Owner><ALaCarteOfferItem>...</ALaCarteOfferItem></ALaCarteOffer>\n    </ServiceList>\n    <DataLists><ServiceDefinitionList>...</ServiceDefinitionList></DataLists>\n  </Response>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with IATA_ServiceListRS. Services are filtered by the cabin class and flight number derived from the stored offer referenced by OfferRefID.",
+        "keyFields": [],
+        "validationNotes": "Depends on step 1 returning a valid OfferID. If the offer has already expired this step will still return 200 with an unfiltered catalogue."
+      }
+    },
+    {
+      "step": 14,
+      "name": "ServiceList — cabin code filter (Economy)",
+      "description": "Posts an IATA_ServiceListRQ with CabinPreferences/CabinType/CabinTypeCode/Code set to M (NDC Economy, maps to internal cabin Y). The SSR Catalogue is queried with the derived cabin filter. Expects a 200 IATA_ServiceListRS.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <Query>\n    <CabinPreferences>\n      <CabinType>\n        <CabinTypeCode>\n          <Code>M</Code>\n        </CabinTypeCode>\n      </CabinType>\n    </CabinPreferences>\n  </Query>\n</IATA_ServiceListRQ>"
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <ServiceList><ALaCarteOffer><Owner>AX</Owner></ALaCarteOffer></ServiceList>\n    <DataLists><ServiceDefinitionList>...</ServiceDefinitionList></DataLists>\n  </Response>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with IATA_ServiceListRS. NDC cabin code M is mapped to internal cabin Y (Economy) before the SSR Catalogue query.",
+        "keyFields": [],
+        "validationNotes": "NDC cabin code mapping: M=Economy(Y), W=PremiumEconomy(W), C=Business(J), F=First(F)."
+      }
+    },
+    {
+      "step": 15,
+      "name": "ServiceList — invalid XML → 400",
+      "description": "Posts a body that is not valid XML. The endpoint must return 400 with an IATA_ServiceListRS Errors element containing Code ERR_PARSE.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "this is not xml << >"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_PARSE</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 with an IATA_ServiceListRS Errors/Error element with Code ERR_PARSE.",
+        "keyFields": [],
+        "validationNotes": "Error envelope must use the IATA_ServiceListRS namespace, not IATA_AirShoppingRS."
+      }
+    },
+    {
+      "step": 16,
+      "name": "ServiceList — empty body → 400",
+      "description": "Posts an empty body to the ServiceList endpoint. Must return 400 with an IATA_ServiceListRS Errors element containing Code ERR_EMPTY_BODY.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/ServiceList",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": null
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_ServiceListRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_EMPTY_BODY</Code>\n      <DescText>Request body must not be empty.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_ServiceListRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body is empty.",
+        "keyFields": [],
+        "validationNotes": "Code must be ERR_EMPTY_BODY. Namespace must be IATA_ServiceListRS."
       }
     }
   ]
