@@ -38,6 +38,39 @@
     </div>
   }
 
+  <!-- Stats bar -->
+  @if (!loading() && !error()) {
+    <div class="departure-stats">
+      @if (manifestStats()) {
+        <div class="stat-chip">
+          <span class="stat-value">{{ manifestStats()!.total }}</span>
+          <span class="stat-label">Total Pax</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-value stat-ci">{{ manifestStats()!.checkedIn }}</span>
+          <span class="stat-label">Checked In</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-value stat-confirmed">{{ manifestStats()!.confirmed }}</span>
+          <span class="stat-label">Confirmed</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-value stat-standby">{{ manifestStats()!.standby }}</span>
+          <span class="stat-label">Standby</span>
+        </div>
+      }
+      @if (cabinStats().length > 0) {
+        <span class="stat-divider"></span>
+        @for (cabin of cabinStats(); track cabin.code) {
+          <div class="stat-chip">
+            <span class="stat-value">{{ cabin.seatsAvailable }}<span class="stat-denom">/{{ cabin.totalSeats }}</span></span>
+            <span class="stat-label"><span class="cabin-code-badge cabin-{{ cabin.code.toLowerCase() }}">{{ cabin.code }}</span></span>
+          </div>
+        }
+      }
+    </div>
+  }
+
   <!-- Split pane body -->
   @if (!loading() && !error()) {
     <div class="detail-body">
@@ -46,18 +79,21 @@
       <div class="pax-panel">
         <div class="panel-title">
           Passengers
-          @if (manifestStats()) {
-            <span class="pax-meta">
-              {{ manifestStats()!.total }} total · {{ manifestStats()!.checkedIn }} checked in
-            </span>
-          }
+          <span class="pax-filter-btns">
+            <button class="filter-btn" [class.filter-btn-active]="paxFilter() === 'all'" (click)="setFilter('all')">All</button>
+            <button class="filter-btn" [class.filter-btn-active]="paxFilter() === 'confirmed'" (click)="setFilter('confirmed')">Confirmed</button>
+            <button class="filter-btn" [class.filter-btn-active]="paxFilter() === 'standby'" (click)="setFilter('standby')">Standby</button>
+          </span>
         </div>
 
-        @if (manifest() && manifest()!.entries.length === 0) {
-          <p class="pax-empty">No manifest entries for this flight.</p>
+        @if (manifest() && groupedEntries().length === 0) {
+          <p class="pax-empty">
+            @if (paxFilter() === 'all') { No manifest entries for this flight. }
+            @else { No {{ paxFilter() }} passengers. }
+          </p>
         }
 
-        @if (manifest() && manifest()!.entries.length > 0) {
+        @if (manifest() && groupedEntries().length > 0) {
           <div class="pax-table-wrap">
             <table class="pax-table">
               <thead>

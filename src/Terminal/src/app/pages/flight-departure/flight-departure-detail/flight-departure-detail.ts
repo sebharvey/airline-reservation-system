@@ -41,6 +41,7 @@ export class FlightDepartureDetailComponent implements OnInit {
   loading = signal(true);
   error = signal('');
   selectedEntry = signal<ManifestEntry | null>(null);
+  paxFilter = signal<'all' | 'confirmed' | 'standby'>('all');
 
   // Seat action state
   pendingSeat = signal<SeatmapSeat | null>(null);
@@ -62,14 +63,32 @@ export class FlightDepartureDetailComponent implements OnInit {
   manifestStats = computed(() => {
     const m = this.manifest();
     if (!m) return null;
+    const standby = m.entries.filter(e => e.bookingType === 'Standby').length;
     return {
       total: m.entries.length,
       checkedIn: m.entries.filter(e => e.checkedIn).length,
+      confirmed: m.entries.length - standby,
+      standby,
     };
   });
 
+  cabinStats = computed(() => {
+    const f = this.flight();
+    if (!f) return [];
+    const codes = ['f', 'j', 'w', 'y'] as const;
+    return codes
+      .filter(k => f[k] !== null)
+      .map(k => ({ code: k.toUpperCase(), ...f[k]! }));
+  });
+
   groupedEntries = computed<EntryGroup[]>(() => {
-    const entries = this.manifest()?.entries ?? [];
+    const filter = this.paxFilter();
+    const allEntries = this.manifest()?.entries ?? [];
+    const entries = filter === 'standby'
+      ? allEntries.filter(e => e.bookingType === 'Standby')
+      : filter === 'confirmed'
+      ? allEntries.filter(e => e.bookingType !== 'Standby')
+      : allEntries;
     const sorted = [...entries].sort((a, b) => {
       const refCmp = a.bookingReference.localeCompare(b.bookingReference);
       if (refCmp !== 0) return refCmp;
@@ -264,5 +283,12 @@ export class FlightDepartureDetailComponent implements OnInit {
 
   bookingTypeBadgeClass(bookingType: string): string {
     return bookingType === 'Standby' ? 'booking-type-standby' : 'booking-type-confirmed';
+  }
+
+  setFilter(filter: 'all' | 'confirmed' | 'standby'): void {
+    this.paxFilter.set(filter);
+    this.selectedEntry.set(null);
+    this.pendingSeat.set(null);
+    this.seatOpError.set('');
   }
 }
