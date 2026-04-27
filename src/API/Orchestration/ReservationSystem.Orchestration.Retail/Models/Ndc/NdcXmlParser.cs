@@ -2,6 +2,7 @@ using System.Xml.Linq;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
 using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
+using ReservationSystem.Orchestration.Retail.Application.NdcOrderRetrieve;
 using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 
 namespace ReservationSystem.Orchestration.Retail.Models.Ndc;
@@ -374,6 +375,76 @@ public static class NdcXmlParser
             string.IsNullOrWhiteSpace(shoppingResponseId) ? null : shoppingResponseId,
             passengers,
             paymentCard);
+    }
+
+    // ── OrderRetrieve parser ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Parses an IATA_OrderRetrieveRQ XML document (NDC 21.3).
+    ///
+    /// Extracts:
+    ///   Query/Filters/OrderFilter/BookingRef/ID       — booking reference (required)
+    ///   Query/Filters/OrderFilter/Pax/Individual/Surname — lead passenger surname (required)
+    ///
+    /// The surname is used for guest authentication; the Order microservice validates it
+    /// against the lead passenger on the booking before returning order data.
+    /// </summary>
+    public static NdcOrderRetrieveCommand? TryParseOrderRetrieveRq(string xml, out string? errorMessage)
+    {
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Parse(xml);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Invalid XML: {ex.Message}";
+            return null;
+        }
+
+        var root = doc.Root;
+        if (root is null)
+        {
+            errorMessage = "Empty XML document.";
+            return null;
+        }
+
+        var ns = root.Name.Namespace;
+
+        var orderFilter = root
+            .Element(ns + "Query")
+            ?.Element(ns + "Filters")
+            ?.Element(ns + "OrderFilter");
+
+        if (orderFilter is null)
+        {
+            errorMessage = "Query/Filters/OrderFilter element is missing.";
+            return null;
+        }
+
+        var bookingReference = orderFilter
+            .Element(ns + "BookingRef")
+            ?.Element(ns + "ID")?.Value?.Trim();
+
+        if (string.IsNullOrWhiteSpace(bookingReference))
+        {
+            errorMessage = "Query/Filters/OrderFilter/BookingRef/ID is missing.";
+            return null;
+        }
+
+        var surname = orderFilter
+            .Element(ns + "Pax")
+            ?.Element(ns + "Individual")
+            ?.Element(ns + "Surname")?.Value?.Trim();
+
+        if (string.IsNullOrWhiteSpace(surname))
+        {
+            errorMessage = "Query/Filters/OrderFilter/Pax/Individual/Surname is missing.";
+            return null;
+        }
+
+        errorMessage = null;
+        return new NdcOrderRetrieveCommand(bookingReference, surname);
     }
 
     // ── ServiceList parser ────────────────────────────────────────────────────

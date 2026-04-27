@@ -29,6 +29,7 @@ using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
 using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
+using ReservationSystem.Orchestration.Retail.Application.NdcOrderRetrieve;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
@@ -143,6 +144,7 @@ var host = new HostBuilder()
         services.AddScoped<NdcOfferPriceHandler>();
         services.AddScoped<NdcServiceListHandler>();
         services.AddScoped<NdcOrderCreateHandler>();
+        services.AddScoped<NdcOrderRetrieveHandler>();
     })
     .Build();
 

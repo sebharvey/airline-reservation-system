@@ -31,7 +31,8 @@ public static class NdcXmlBuilder
     private const string AirShoppingRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_AirShoppingRS";
     private const string OfferPriceRsNsUri  = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS";
     private const string OrderCreateRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS";
-    private const string ServiceListRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS";
+    private const string ServiceListRsNsUri    = "http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS";
+    private const string OrderRetrieveRsNsUri  = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS";
     private const string CarrierCode = "AX";
     private const string CarrierName = "Apex Air";
 
@@ -870,6 +871,240 @@ public static class NdcXmlBuilder
             list.Add(new XElement(ns + "Pax",
                 new XElement(ns + "PaxID", pax.PassengerId),
                 new XElement(ns + "PTC", ptc ?? pax.Type),
+                new XElement(ns + "Individual",
+                    new XElement(ns + "GivenName", pax.GivenName.ToUpperInvariant()),
+                    new XElement(ns + "Surname", pax.Surname.ToUpperInvariant()))));
+        }
+
+        return list;
+    }
+
+    // ── OrderRetrieveRS ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds an IATA NDC 21.3 OrderRetrieveRS XML document from a managed order response.
+    ///
+    /// Structure:
+    ///   Document                    — schema version 21.3
+    ///   Response/Order              — OrderID, BookingRef, StatusCode, TotalAmount
+    ///   Response/Order/OrderItem    — one per confirmed flight item (Price, FareDetail)
+    ///   Response/Order/TicketDocInfo — one per issued e-ticket per passenger
+    ///   Response/DataLists          — FlightSegmentList, OriginDestinationList, PaxList
+    ///
+    /// StatusCode mapping: Confirmed→ISSUED, Cancelled→CANCELLED, all others→OPEN.
+    /// </summary>
+    public static string BuildOrderRetrieveRS(ManagedOrderResponse order)
+    {
+        XNamespace ns = OrderRetrieveRsNsUri;
+
+        var segKeyMap = order.FlightSegments
+            .Select((s, i) => new { s.SegmentId, SegKey = $"SEG{i + 1}", OdKey = $"OD{i + 1}" })
+            .ToDictionary(x => x.SegmentId, x => (x.SegKey, x.OdKey));
+
+        var root = new XElement(ns + "IATA_OrderRetrieveRS",
+            new XAttribute(XNamespace.Xmlns + "xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+            BuildOrDocument(ns),
+            BuildOrResponse(ns, order, segKeyMap));
+
+        return SerialiseXml(root);
+    }
+
+    private static XElement BuildOrDocument(XNamespace ns) =>
+        new(ns + "Document",
+            new XElement(ns + "ReferenceVersion", "21.3"));
+
+    private static XElement BuildOrResponse(
+        XNamespace ns,
+        ManagedOrderResponse order,
+        Dictionary<string, (string SegKey, string OdKey)> segKeyMap)
+    {
+        var statusCode = order.OrderStatus switch
+        {
+            var s when string.Equals(s, "Confirmed", StringComparison.OrdinalIgnoreCase) => "ISSUED",
+            var s when string.Equals(s, "Cancelled", StringComparison.OrdinalIgnoreCase) => "CANCELLED",
+            _ => "OPEN"
+        };
+
+        var orderEl = new XElement(ns + "Order",
+            new XElement(ns + "OrderID", order.OrderId),
+            BuildOrBookingRef(ns, order.BookingReference),
+            new XElement(ns + "StatusCode", statusCode),
+            new XElement(ns + "TotalAmount",
+                new XAttribute("CurCode", order.Currency),
+                order.TotalAmount.ToString("F2")));
+
+        // Flight OrderItems
+        foreach (var item in order.OrderItems.Where(
+            i => string.Equals(i.Type, "Flight", StringComparison.OrdinalIgnoreCase)))
+        {
+            segKeyMap.TryGetValue(item.SegmentRef, out var keys);
+            var segKey = keys.SegKey ?? item.SegmentRef;
+            var cabinCode = order.FlightSegments
+                .FirstOrDefault(s => s.SegmentId == item.SegmentRef)?.CabinCode ?? "Y";
+
+            orderEl.Add(BuildOrOrderItem(ns, item, segKey, cabinCode, order.Currency));
+        }
+
+        // TicketDocInfo — one block per passenger, carrying all their e-ticket numbers
+        var eTicketsByPax = order.OrderItems
+            .Where(i => string.Equals(i.Type, "Flight", StringComparison.OrdinalIgnoreCase)
+                        && i.ETickets is { Count: > 0 })
+            .SelectMany(i => i.ETickets)
+            .GroupBy(t => t.PassengerId, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in eTicketsByPax)
+        {
+            var ticketDocInfo = new XElement(ns + "TicketDocInfo",
+                new XElement(ns + "PaxRefID", group.Key));
+
+            foreach (var eTicket in group)
+            {
+                ticketDocInfo.Add(new XElement(ns + "TicketDocument",
+                    new XElement(ns + "TicketDocNbr", eTicket.ETicketNumber),
+                    new XElement(ns + "Type", "T"),
+                    new XElement(ns + "ReportingType", "BSP")));
+            }
+
+            orderEl.Add(ticketDocInfo);
+        }
+
+        return new XElement(ns + "Response",
+            orderEl,
+            BuildOrDataLists(ns, order, segKeyMap));
+    }
+
+    private static XElement BuildOrBookingRef(XNamespace ns, string bookingReference) =>
+        new(ns + "BookingRef",
+            new XElement(ns + "BookingEntity",
+                new XElement(ns + "Carrier",
+                    new XElement(ns + "AirlineDesigCode", CarrierCode))),
+            new XElement(ns + "ID", bookingReference));
+
+    private static XElement BuildOrOrderItem(
+        XNamespace ns,
+        ManagedOrderItem item,
+        string segKey,
+        string cabinCode,
+        string currency)
+    {
+        var orderItem = new XElement(ns + "OrderItem",
+            new XElement(ns + "OrderItemID", item.OrderItemId),
+            new XElement(ns + "StatusCode", "PAYMENT_DONE"),
+            new XElement(ns + "FlightRefs", segKey));
+
+        foreach (var paxRef in item.PassengerRefs)
+            orderItem.Add(new XElement(ns + "PaxRefID", paxRef));
+
+        orderItem.Add(new XElement(ns + "Price",
+            new XElement(ns + "TotalAmount",
+                new XAttribute("CurCode", currency),
+                item.TotalPrice.ToString("F2")),
+            new XElement(ns + "BaseAmount",
+                new XAttribute("CurCode", currency),
+                (item.TotalPrice - item.Taxes).ToString("F2")),
+            new XElement(ns + "Taxes",
+                new XElement(ns + "Total",
+                    new XAttribute("CurCode", currency),
+                    item.Taxes.ToString("F2")))));
+
+        if (!string.IsNullOrWhiteSpace(item.FareBasisCode))
+        {
+            orderItem.Add(new XElement(ns + "FareDetail",
+                new XElement(ns + "FareComponent",
+                    new XElement(ns + "FareBasisCode",
+                        new XElement(ns + "Code", item.FareBasisCode)),
+                    new XElement(ns + "CabinType",
+                        new XElement(ns + "CabinTypeCode",
+                            new XElement(ns + "Code", MapCabinToNdc(cabinCode)))),
+                    new XElement(ns + "SegmentRefs", segKey))));
+        }
+
+        return orderItem;
+    }
+
+    private static XElement BuildOrDataLists(
+        XNamespace ns,
+        ManagedOrderResponse order,
+        Dictionary<string, (string SegKey, string OdKey)> segKeyMap)
+    {
+        return new XElement(ns + "DataLists",
+            BuildOrFlightSegmentList(ns, order.FlightSegments, segKeyMap),
+            BuildOrOriginDestinationList(ns, order.FlightSegments, segKeyMap),
+            BuildOrPaxList(ns, order.Passengers));
+    }
+
+    private static XElement BuildOrFlightSegmentList(
+        XNamespace ns,
+        IReadOnlyList<ManagedFlightSegment> segments,
+        Dictionary<string, (string SegKey, string OdKey)> segKeyMap)
+    {
+        var list = new XElement(ns + "FlightSegmentList");
+
+        foreach (var seg in segments)
+        {
+            if (!segKeyMap.TryGetValue(seg.SegmentId, out var keys)) continue;
+
+            var (depDate, depTime) = SplitDateTime(seg.DepartureDateTime);
+            var (arrDate, arrTime) = SplitDateTime(seg.ArrivalDateTime);
+            var (airlineId, flightNum) = SplitFlightNumber(seg.FlightNumber);
+            var aircraftCode = MapAircraftType(seg.AircraftType);
+
+            list.Add(new XElement(ns + "FlightSegment",
+                new XElement(ns + "SegmentKey", keys.SegKey),
+                new XElement(ns + "Departure",
+                    new XElement(ns + "AirportCode", seg.Origin),
+                    new XElement(ns + "Date", depDate),
+                    new XElement(ns + "Time", depTime)),
+                new XElement(ns + "Arrival",
+                    new XElement(ns + "AirportCode", seg.Destination),
+                    new XElement(ns + "Date", arrDate),
+                    new XElement(ns + "Time", arrTime)),
+                new XElement(ns + "MarketingCarrier",
+                    new XElement(ns + "AirlineID", airlineId),
+                    new XElement(ns + "FlightNumber", flightNum),
+                    new XElement(ns + "Name", CarrierName)),
+                new XElement(ns + "OperatingCarrier",
+                    new XElement(ns + "AirlineID", airlineId),
+                    new XElement(ns + "FlightNumber", flightNum)),
+                new XElement(ns + "Equipment",
+                    new XElement(ns + "AircraftCode", aircraftCode))));
+        }
+
+        return list;
+    }
+
+    private static XElement BuildOrOriginDestinationList(
+        XNamespace ns,
+        IReadOnlyList<ManagedFlightSegment> segments,
+        Dictionary<string, (string SegKey, string OdKey)> segKeyMap)
+    {
+        var list = new XElement(ns + "OriginDestinationList");
+
+        foreach (var seg in segments)
+        {
+            if (!segKeyMap.TryGetValue(seg.SegmentId, out var keys)) continue;
+
+            list.Add(new XElement(ns + "OriginDestination",
+                new XElement(ns + "OriginDestinationKey", keys.OdKey),
+                new XElement(ns + "DepartureCode", seg.Origin),
+                new XElement(ns + "ArrivalCode", seg.Destination),
+                new XElement(ns + "FlightReferences", keys.SegKey)));
+        }
+
+        return list;
+    }
+
+    private static XElement BuildOrPaxList(
+        XNamespace ns,
+        IReadOnlyList<ManagedPassenger> passengers)
+    {
+        var list = new XElement(ns + "PaxList");
+
+        foreach (var pax in passengers)
+        {
+            list.Add(new XElement(ns + "Pax",
+                new XElement(ns + "PaxID", pax.PassengerId),
+                new XElement(ns + "PTC", pax.Type),
                 new XElement(ns + "Individual",
                     new XElement(ns + "GivenName", pax.GivenName.ToUpperInvariant()),
                     new XElement(ns + "Surname", pax.Surname.ToUpperInvariant()))));

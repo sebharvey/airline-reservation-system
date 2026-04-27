@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
 using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
+using ReservationSystem.Orchestration.Retail.Application.NdcOrderRetrieve;
 using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Retail.Models.Ndc;
@@ -15,10 +16,11 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 /// <summary>
 /// IATA NDC 21.3 channel endpoints.
 ///
-/// POST /v1/ndc/AirShopping  — search available flights and offers.
-/// POST /v1/ndc/OfferPrice   — validate and re-price a stored offer.
-/// POST /v1/ndc/ServiceList  — retrieve available SSR services (ancillaries).
-/// POST /v1/ndc/OrderCreate  — create a confirmed order from a stored offer.
+/// POST /v1/ndc/AirShopping    — search available flights and offers.
+/// POST /v1/ndc/OfferPrice     — validate and re-price a stored offer.
+/// POST /v1/ndc/ServiceList    — retrieve available SSR services (ancillaries).
+/// POST /v1/ndc/OrderCreate    — create a confirmed order from a stored offer.
+/// POST /v1/ndc/OrderRetrieve  — retrieve a confirmed order by booking reference and surname.
 ///
 /// All routes accept and return application/xml using the IATA NDC 21.3 schema.
 /// Errors are returned as application/xml with an NDC Errors element.
@@ -29,6 +31,7 @@ public sealed class NdcFunction
     private readonly NdcOfferPriceHandler _offerPriceHandler;
     private readonly NdcServiceListHandler _serviceListHandler;
     private readonly NdcOrderCreateHandler _orderCreateHandler;
+    private readonly NdcOrderRetrieveHandler _orderRetrieveHandler;
     private readonly ILogger<NdcFunction> _logger;
 
     public NdcFunction(
@@ -36,12 +39,14 @@ public sealed class NdcFunction
         NdcOfferPriceHandler offerPriceHandler,
         NdcServiceListHandler serviceListHandler,
         NdcOrderCreateHandler orderCreateHandler,
+        NdcOrderRetrieveHandler orderRetrieveHandler,
         ILogger<NdcFunction> logger)
     {
         _airShoppingHandler = airShoppingHandler;
         _offerPriceHandler = offerPriceHandler;
         _serviceListHandler = serviceListHandler;
         _orderCreateHandler = orderCreateHandler;
+        _orderRetrieveHandler = orderRetrieveHandler;
         _logger = logger;
     }
 
@@ -428,6 +433,97 @@ public sealed class NdcFunction
                 </Error>
               </Errors>
             </IATA_OrderCreateRS>
+            """;
+
+        var response = req.CreateResponse(status);
+        response.Headers.Add("Content-Type", "application/xml; charset=utf-8");
+        await response.WriteStringAsync(xml, Encoding.UTF8);
+        return response;
+    }
+
+    // ── OrderRetrieve ─────────────────────────────────────────────────────────
+
+    [Function("NdcOrderRetrieve")]
+    public async Task<HttpResponseData> OrderRetrieve(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/ndc/OrderRetrieve")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        // ── Read body ─────────────────────────────────────────────────────────
+        string requestBody;
+        try
+        {
+            using var reader = new StreamReader(req.Body, Encoding.UTF8);
+            requestBody = await reader.ReadToEndAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[NDC] Failed to read OrderRetrieveRQ body");
+            return await XmlOrderRetrieveErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_READ", "Unable to read request body.");
+        }
+
+        if (string.IsNullOrWhiteSpace(requestBody))
+            return await XmlOrderRetrieveErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_EMPTY_BODY", "Request body must not be empty.");
+
+        // ── Parse OrderRetrieveRQ ─────────────────────────────────────────────
+        var command = NdcXmlParser.TryParseOrderRetrieveRq(requestBody, out var parseError);
+        if (command is null)
+        {
+            _logger.LogWarning("[NDC] OrderRetrieveRQ parse failed: {Error}", parseError);
+            return await XmlOrderRetrieveErrorAsync(req, HttpStatusCode.BadRequest,
+                "ERR_PARSE", parseError ?? "Failed to parse OrderRetrieveRQ.");
+        }
+
+        _logger.LogInformation(
+            "[NDC] OrderRetrieve: BookingReference={BookingReference}",
+            command.BookingReference);
+
+        // ── Retrieve order ────────────────────────────────────────────────────
+        NdcOrderRetrieveResult result;
+        try
+        {
+            result = await _orderRetrieveHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[NDC] OrderRetrieve failed for {BookingReference}", command.BookingReference);
+            return await XmlOrderRetrieveErrorAsync(req, HttpStatusCode.InternalServerError,
+                "ERR_ORDER_RETRIEVE", "An error occurred while retrieving the order.");
+        }
+
+        if (result.Outcome == NdcOrderRetrieveOutcome.NotFound)
+            return await XmlOrderRetrieveErrorAsync(req, HttpStatusCode.NotFound,
+                "ERR_ORDER_NOT_FOUND",
+                $"Order with booking reference {command.BookingReference} was not found or the surname does not match.");
+
+        var responseXml = NdcXmlBuilder.BuildOrderRetrieveRS(result.Order!);
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/xml; charset=utf-8");
+        await response.WriteStringAsync(responseXml, Encoding.UTF8);
+        return response;
+    }
+
+    private static async Task<HttpResponseData> XmlOrderRetrieveErrorAsync(
+        HttpRequestData req,
+        HttpStatusCode status,
+        string code,
+        string message)
+    {
+        var xml = $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <IATA_OrderRetrieveRS xmlns="http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS">
+              <Document>
+                <ReferenceVersion>21.3</ReferenceVersion>
+              </Document>
+              <Errors>
+                <Error>
+                  <Code>{System.Security.SecurityElement.Escape(code)}</Code>
+                  <DescText>{System.Security.SecurityElement.Escape(message)}</DescText>
+                  <LangCode>EN</LangCode>
+                </Error>
+              </Errors>
+            </IATA_OrderRetrieveRS>
             """;
 
         var response = req.CreateResponse(status);
