@@ -96,6 +96,7 @@ export interface FlightSeatmap {
 }
 
 export interface ManifestEntry {
+  orderId: string;
   bookingReference: string;
   passengerId: string;
   givenName: string;
@@ -234,11 +235,13 @@ export class InventoryService {
     bookingReference: string,
     passengerId: string,
     inventoryId: string,
+    orderId: string,
+    cabinCode: string,
   ): Promise<void> {
     await firstValueFrom(
       this.#http.post<void>(
         `${this.#baseUrl}/manifest/release-seat`,
-        { eTicketNumber, bookingReference, passengerId, inventoryId }
+        { eTicketNumber, bookingReference, passengerId, inventoryId, orderId, cabinCode }
       )
     );
   }

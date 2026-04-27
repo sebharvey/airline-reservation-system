@@ -21,6 +21,11 @@
         <span class="badge" [class]="statusClass(flight()!.status)">{{ flight()!.status }}</span>
       </div>
     }
+
+    <button class="refresh-btn" [class.refresh-btn-spinning]="loading()" [disabled]="loading()" (click)="refresh()" title="Reload flight data">
+      <lucide-icon name="refresh-cw" [size]="14" />
+      Refresh
+    </button>
   </div>
 
   <!-- Error -->
@@ -65,6 +70,12 @@
           <div class="stat-chip">
             <span class="stat-value">{{ cabin.seatsAvailable }}<span class="stat-denom">/{{ cabin.totalSeats }}</span></span>
             <span class="stat-label"><span class="cabin-code-badge cabin-{{ cabin.code.toLowerCase() }}">{{ cabin.code }}</span></span>
+          </div>
+        }
+        @if (flight()) {
+          <div class="stat-chip">
+            <span class="stat-value">{{ flight()!.totalSeats }}</span>
+            <span class="stat-label">Capacity</span>
           </div>
         }
       }

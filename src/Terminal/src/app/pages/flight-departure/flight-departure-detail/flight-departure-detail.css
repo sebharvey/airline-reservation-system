@@ -34,6 +34,26 @@
 .back-btn:hover { background: var(--bg-light); }
 .back-arrow { font-size: 1rem; }
 
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.refresh-btn:hover:not(:disabled) { background: var(--bg-light); }
+.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.refresh-btn-spinning lucide-icon { animation: spin 0.8s linear infinite; }
+
 .detail-title-group {
   display: flex;
   align-items: center;

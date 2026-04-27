@@ -573,6 +573,7 @@ public sealed class AdminFlightManifestResult
 
 public sealed class AdminManifestEntry
 {
+    [JsonPropertyName("orderId")]          public Guid OrderId            { get; init; }
     [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
     [JsonPropertyName("passengerId")]      public string PassengerId      { get; init; } = string.Empty;
     [JsonPropertyName("givenName")]        public string GivenName        { get; init; } = string.Empty;

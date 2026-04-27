@@ -166,6 +166,27 @@ export class FlightDepartureDetailComponent implements OnInit {
     }
   }
 
+  // Refreshes manifest + seatmap without hiding the UI (used after seat ops)
+  async #silentRefresh(): Promise<void> {
+    try {
+      const [manifest, seatmap] = await Promise.all([
+        this.#inventoryService.getFlightManifest(this.#flightNumber, this.#departureDate),
+        this.#inventoryService.getFlightSeatmap(this.#inventoryId, this.#flightNumber, this.#aircraftType),
+      ]);
+      this.manifest.set(manifest);
+      this.seatmap.set(seatmap);
+    } catch {
+      this.seatOpError.set('Data refresh failed — displayed data may be stale.');
+    }
+  }
+
+  async refresh(): Promise<void> {
+    this.selectedEntry.set(null);
+    this.pendingSeat.set(null);
+    this.seatOpError.set('');
+    await this.#loadData();
+  }
+
   goBack(): void {
     this.#router.navigate(['/flight-departure']);
   }
@@ -198,10 +219,10 @@ export class FlightDepartureDetailComponent implements OnInit {
         entry.bookingReference,
         entry.passengerId,
         this.#inventoryId,
+        entry.orderId,
+        entry.cabinCode,
       );
-      // Refresh data so manifest + seatmap reflect the change
-      await this.#loadData();
-      // Re-select the same passenger (now without a seat)
+      await this.#silentRefresh();
       const updated = this.manifest()?.entries.find(e => e.eTicketNumber === entry.eTicketNumber);
       this.selectedEntry.set(updated ?? null);
       this.pendingSeat.set(null);
@@ -227,7 +248,7 @@ export class FlightDepartureDetailComponent implements OnInit {
         this.#inventoryId,
         seat.seatNumber,
       );
-      await this.#loadData();
+      await this.#silentRefresh();
       const updated = this.manifest()?.entries.find(e => e.eTicketNumber === entry.eTicketNumber);
       this.selectedEntry.set(updated ?? null);
       this.pendingSeat.set(null);
