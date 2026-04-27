@@ -101,6 +101,25 @@ public sealed class EfManifestRepository : IManifestRepository
         return updated;
     }
 
+    public async Task<bool> UpdateSeatByETicketAsync(
+        string eTicketNumber, string? newSeatNumber, CancellationToken cancellationToken = default)
+    {
+        var entry = await _context.Manifests
+            .FirstOrDefaultAsync(m => m.ETicketNumber == eTicketNumber, cancellationToken);
+
+        if (entry is null)
+            return false;
+
+        entry.UpdateSeat(newSeatNumber);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug(
+            "Updated seat to '{SeatNumber}' on manifest entry for e-ticket {ETicketNumber}",
+            newSeatNumber ?? "(none)", eTicketNumber);
+
+        return true;
+    }
+
     public async Task<int> DeleteByBookingAndFlightAsync(
         string bookingReference,
         string flightNumber,
