@@ -88,7 +88,8 @@ public sealed class WriteManifestHandler
                 givenName:       entry.GivenName,
                 surname:         entry.Surname,
                 departureTime:   departureTime,
-                arrivalTime:     arrivalTime);
+                arrivalTime:     arrivalTime,
+                bookingType:     request.BookingType);
 
             var inserted = await _manifestRepository.CreateAsync(manifest, cancellationToken);
             if (inserted) written++; else skipped++;

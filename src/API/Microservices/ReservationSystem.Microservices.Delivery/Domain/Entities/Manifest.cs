@@ -23,6 +23,7 @@ public sealed class Manifest
     public string GivenName { get; private set; } = string.Empty;
     public string Surname { get; private set; } = string.Empty;
     public string? SsrCodes { get; private set; }
+    public string BookingType { get; private set; } = string.Empty;
     public TimeOnly DepartureTime { get; private set; }
     public TimeOnly ArrivalTime { get; private set; }
     public bool CheckedIn { get; private set; }
@@ -78,6 +79,7 @@ public sealed class Manifest
         string surname,
         TimeOnly departureTime,
         TimeOnly arrivalTime,
+        string bookingType,
         string? ssrCodes = null)
     {
         var now = DateTime.UtcNow;
@@ -100,6 +102,7 @@ public sealed class Manifest
             GivenName        = givenName,
             Surname          = surname,
             SsrCodes         = ssrCodes,
+            BookingType      = bookingType,
             DepartureTime    = departureTime,
             ArrivalTime      = arrivalTime,
             CheckedIn        = false,

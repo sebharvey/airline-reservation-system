@@ -223,6 +223,7 @@ The operational source of truth for who is on a given flight. One row per passen
 | GivenName | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | Surname | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | SsrCodes | NVARCHAR(500) | Yes | | | JSON array of IATA SSR codes, e.g. `["VGML","WCHR"]`; written at booking confirmation and updated on SSR change |
+| BookingType | VARCHAR(20) | No | `'Confirmed'` | | `Confirmed` · `Standby` — set at order creation; reflects whether the passenger holds a confirmed seat or is waitlisted |
 | DepartureTime | TIME | No | | | Local departure time; updated by Operations API on delay |
 | ArrivalTime | TIME | No | | | Local arrival time; updated by Operations API on delay |
 | CheckedIn | BIT | No | `0` | | |
@@ -232,6 +233,7 @@ The operational source of truth for who is on a given flight. One row per passen
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 
 > **Indexes:** `IX_Manifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_Manifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_Manifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_Manifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
+> **BookingType:** Set at manifest creation (order confirmation time) and never subsequently updated. `Confirmed` for revenue and reward bookings; `Standby` for standby bookings. Constrained by `CHK_Manifest_BookingType` to `('Confirmed', 'Standby')`.
 > **Lifecycle:** Manifest rows are created when a ticket is issued; removed (hard-deleted) when a booking is cancelled or a flight change removes the segment. On IROPS rebooking, the old manifest row is deleted and a new one written for the replacement flight.
 > **SsrCodes:** Stored as a JSON array (e.g. `["VGML","WCHR"]`) rather than a CSV string, enabling clean serialisation/deserialisation and future query support via SQL Server JSON functions.
 > **Seatmap validation:** The orchestration layer is responsible for validating `SeatNumber` against the active seatmap (via Seat MS) before calling the Delivery MS. The Delivery MS trusts the seat number provided by its caller.
