@@ -5,12 +5,11 @@ import { RetailApiService } from '../../../services/retail-api.service';
 import { CheckInStateService } from '../../../services/check-in-state.service';
 import { BoardingPass, EmdDocument } from '../../../models/order.model';
 import QRCode from 'qrcode';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-boarding-pass',
   standalone: true,
-  imports: [CommonModule, RouterLink, NgTemplateOutlet, LucideAngularModule],
+  imports: [CommonModule, RouterLink, NgTemplateOutlet],
   templateUrl: './boarding-pass.html',
   styleUrl: './boarding-pass.css'
 })

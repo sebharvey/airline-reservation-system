@@ -3,12 +3,11 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Order } from '../../../models/order.model';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-cancel-booking',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './cancel.html',
   styleUrl: './cancel.css'
 })

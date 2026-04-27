@@ -2,12 +2,11 @@ import { Component, HostListener, Input, forwardRef } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Airport, AIRPORTS } from '../../data/airports';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-airport-combobox',
   standalone: true,
-  imports: [FormsModule, CommonModule, LucideAngularModule],
+  imports: [FormsModule, CommonModule],
   templateUrl: './airport-combobox.html',
   styleUrl: './airport-combobox.css',
   providers: [{

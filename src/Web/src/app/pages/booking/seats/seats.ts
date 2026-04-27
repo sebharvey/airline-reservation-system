@@ -6,7 +6,6 @@ import { RetailApiService } from '../../../services/retail-api.service';
 import { BasketFlightOffer } from '../../../models/order.model';
 import { Seatmap, CabinSeatmap, SeatOffer } from '../../../models/flight.model';
 import { BasketSeatSelection } from '../../../models/order.model';
-import { LucideAngularModule } from 'lucide-angular';
 
 interface SeatmapEntry {
   flightOffer: BasketFlightOffer;
@@ -25,7 +24,7 @@ interface SelectedSeat {
 @Component({
   selector: 'app-seats',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './seats.html',
   styleUrl: './seats.css'
 })

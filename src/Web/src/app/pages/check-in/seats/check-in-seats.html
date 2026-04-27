@@ -21,7 +21,7 @@
   <!-- No segment data -->
   @if (!isStandby() && segments().length === 0 && seatmapEntries().length === 0) {
     <div class="unavailable-panel">
-      <div class="unavailable-icon"><lucide-icon name="ban" [size]="24" /></div>
+      <div class="unavailable-icon">&#9940;</div>
       <p class="unavailable-message">Seat selection unavailable</p>
       <p class="unavailable-sub">Flight details could not be loaded. You can select a seat at the airport.</p>
     </div>
@@ -43,7 +43,7 @@
             <span class="pax-tab-name">{{ pax.label }}</span>
             @if (activeEntry(); as entry) {
               @if (getSelectedSeat(passengers()[pax.index]?.passengerId ?? '', entry.segment.segmentRef); as sel) {
-                <span class="pax-tab-seat"><lucide-icon name="check" [size]="12" /> {{ sel.seatOffer.seatNumber }}</span>
+                <span class="pax-tab-seat">&#x2714; {{ sel.seatOffer.seatNumber }}</span>
               }
             }
           </button>
@@ -77,7 +77,7 @@
 
       <!-- Error -->
       @if (entry.error) {
-        <div class="error-banner"><span><lucide-icon name="triangle-alert" [size]="14" /></span> {{ entry.error }}</div>
+        <div class="error-banner"><span>&#9888;</span> {{ entry.error }}</div>
       }
 
       @if (!entry.loading && !entry.error) {
@@ -93,7 +93,7 @@
             <!-- Current assignment -->
             @if (getCurrentSeat(pax.passengerId, entry.segment); as currentSeat) {
               <div class="free-badge">
-                <span class="free-icon"><lucide-icon name="armchair" [size]="16" /></span>
+                <span class="free-icon">&#128186;</span>
                 Current seat: <strong>{{ currentSeat }}</strong> &mdash; select below to change
               </div>
             }
@@ -101,7 +101,7 @@
             <!-- Selection indicator -->
             @if (getSelectedSeat(pax.passengerId, entry.segment.segmentRef); as sel) {
               <div class="free-badge">
-                <span class="free-icon"><lucide-icon name="check" [size]="14" /></span>
+                <span class="free-icon">&#x2714;</span>
                 Selecting <strong>{{ sel.seatOffer.seatNumber }}</strong> for {{ pax.givenName }} {{ pax.surname }}
                 @if (sel.seatOffer.price > 0) {
                   &mdash; {{ sel.seatOffer.currency }} {{ sel.seatOffer.price.toFixed(2) }}
@@ -115,7 +115,7 @@
 
         @if (!entry.seatmap) {
           <div class="unavailable-panel">
-            <div class="unavailable-icon"><lucide-icon name="ban" [size]="24" /></div>
+            <div class="unavailable-icon">&#9940;</div>
             <p class="unavailable-message">Seatmap unavailable</p>
             <p class="unavailable-sub">Unable to display seats for this flight. Please select at the airport.</p>
           </div>
@@ -194,7 +194,7 @@
 
     <!-- Save error -->
     @if (saveError()) {
-      <div class="error-banner"><span><lucide-icon name="triangle-alert" [size]="14" /></span> {{ saveError() }}</div>
+      <div class="error-banner"><span>&#9888;</span> {{ saveError() }}</div>
     }
 
     <!-- Actions -->

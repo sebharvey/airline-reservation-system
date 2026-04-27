@@ -15,7 +15,7 @@
   <!-- Error -->
   @if (errorMessage() && !successMessage()) {
     <div class="error-banner">
-      <span><lucide-icon name="triangle-alert" [size]="14" /></span>
+      <span>&#9888;</span>
       {{ errorMessage() }}
     </div>
   }
@@ -23,13 +23,13 @@
   <!-- Success -->
   @if (successMessage()) {
     <div class="success-banner">
-      <span><lucide-icon name="check" [size]="16" /></span>
+      <span>&#10003;</span>
       {{ successMessage() }}
     </div>
     <a class="btn-primary" [routerLink]="['/manage-booking/detail']" [queryParams]="detailQueryParams" [state]="detailState">
       View Booking Details
     </a>
-    <a routerLink="/manage-booking" class="back-link"><lucide-icon name="arrow-left" [size]="14" /> Back to Manage Booking</a>
+    <a routerLink="/manage-booking" class="back-link">&#8592; Back to Manage Booking</a>
   }
 
   <!-- Main content -->

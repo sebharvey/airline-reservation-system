@@ -5,12 +5,11 @@ import { CommonModule } from '@angular/common';
 import { BookingStateService } from '../../services/booking-state.service';
 import { BookingType } from '../../models/order.model';
 import { AirportComboboxComponent } from '../../components/airport-combobox/airport-combobox';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, FormsModule, CommonModule, AirportComboboxComponent, LucideAngularModule],
+  imports: [RouterLink, FormsModule, CommonModule, AirportComboboxComponent],
   templateUrl: './home.html',
   styleUrl: './home.css'
 })

@@ -15,7 +15,7 @@
   <!-- Error -->
   @if (errorMessage() && !successMessage()) {
     <div class="error-banner">
-      <span><lucide-icon name="triangle-alert" [size]="14" /></span>
+      <span>&#9888;</span>
       {{ errorMessage() }}
     </div>
   }
@@ -23,7 +23,7 @@
   <!-- Success -->
   @if (successMessage()) {
     <div class="success-banner">
-      <span><lucide-icon name="check" [size]="16" /></span>
+      <span>&#10003;</span>
       {{ successMessage() }}
     </div>
     <a routerLink="/manage-booking" class="btn-primary">Back to Manage Booking</a>
@@ -45,7 +45,7 @@
           <div class="seg-flight">{{ seg.flightNumber }}</div>
           <div class="seg-route">
             <span class="seg-code">{{ seg.origin }}</span>
-            <span class="seg-arrow"><lucide-icon name="arrow-right" [size]="14" /></span>
+            <span class="seg-arrow">&#8594;</span>
             <span class="seg-code">{{ seg.destination }}</span>
           </div>
           <div class="seg-time">{{ formatDateTime(seg.departureDateTime) }}</div>
@@ -258,7 +258,7 @@
       </div>
     } @else {
       <a class="back-link" [routerLink]="['/manage-booking/detail']" [queryParams]="detailQueryParams" [state]="detailState">
-        <lucide-icon name="arrow-left" [size]="14" /> Back to Booking Details
+        &#8592; Back to Booking Details
       </a>
     }
   }

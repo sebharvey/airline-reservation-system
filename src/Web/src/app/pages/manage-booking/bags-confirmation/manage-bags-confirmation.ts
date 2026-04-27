@@ -1,12 +1,11 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-manage-bags-confirmation',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule],
   templateUrl: './manage-bags-confirmation.html',
   styleUrl: './manage-bags-confirmation.css'
 })

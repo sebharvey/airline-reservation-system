@@ -8,7 +8,7 @@
 
   @if (segments().length === 0 && flightBagData().length === 0) {
     <div class="unavailable-panel">
-      <div class="unavailable-icon"><lucide-icon name="ban" [size]="24" /></div>
+      <div class="unavailable-icon">&#9940;</div>
       <p class="unavailable-message">Bag selection unavailable</p>
       <p class="unavailable-sub">Flight details could not be loaded. You can add bags at the airport.</p>
     </div>
@@ -33,7 +33,7 @@
       }
 
       @if (entry.error) {
-        <div class="error-banner"><span><lucide-icon name="triangle-alert" [size]="14" /></span> {{ entry.error }}</div>
+        <div class="error-banner"><span>&#9888;</span> {{ entry.error }}</div>
       }
 
       @if (!entry.loading && !entry.error && entry.policyResponse; as policy) {
@@ -45,7 +45,7 @@
             <!-- Free allowance -->
             <div class="allowance-row">
               <div class="allowance-item">
-                <div class="allowance-icon"><lucide-icon name="check" [size]="16" /></div>
+                <div class="allowance-icon">&#10003;</div>
                 <span>{{ policy.policy.freeBagsIncluded }} bag{{ policy.policy.freeBagsIncluded !== 1 ? 's' : '' }} included</span>
                 <span class="allowance-detail">max {{ policy.policy.maxWeightKgPerBag }}kg each</span>
               </div>
@@ -88,7 +88,7 @@
 
   <!-- Save error -->
   @if (saveError()) {
-    <div class="error-banner"><span><lucide-icon name="triangle-alert" [size]="14" /></span> {{ saveError() }}</div>
+    <div class="error-banner"><span>&#9888;</span> {{ saveError() }}</div>
   }
 
   <!-- Actions -->

@@ -5,12 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { LoyaltyApiService } from '../../../services/loyalty-api.service';
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-reward-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './reward-login.html',
   styleUrl: './reward-login.css'
 })

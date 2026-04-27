@@ -41,7 +41,7 @@
   <!-- Not Found -->
   @if (!loading() && notFound()) {
     <div class="not-found-card">
-      <span class="not-found-icon"><lucide-icon name="triangle-alert" [size]="24" /></span>
+      <span class="not-found-icon">&#9888;</span>
       <h3>No Flight Found</h3>
       <p>No status information was found for <strong>{{ flightNumber() }}</strong>. Please check the flight number and try again.</p>
     </div>
@@ -82,7 +82,7 @@
             <span
               class="route-plane"
               [class.plane-moving]="computeDisplayStatus(flightStatus()!) === 'InFlight'"
-            ><lucide-icon name="plane" [size]="20" /></span>
+            >&#9992;</span>
           </div>
         </div>
         <div class="route-airport destination">
@@ -128,7 +128,7 @@
       <!-- Delay Banner -->
       @if (flightStatus()!.delayMinutes > 0) {
         <div class="delay-banner">
-          <span class="delay-icon"><lucide-icon name="clock" [size]="14" /></span>
+          <span class="delay-icon">&#9201;</span>
           <span class="delay-text">Delayed by <strong>{{ flightStatus()!.delayMinutes }} minutes</strong></span>
         </div>
       }

@@ -4,7 +4,7 @@
     @if (!isBoardingPass()) {
       <nav class="nav">
         <div class="nav-inner">
-          <a routerLink="/" class="nav-brand"><lucide-icon name="plane" [size]="20" /> Apex Air</a>
+          <a routerLink="/" class="nav-brand">✈ Apex Air</a>
           <div class="nav-links">
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Home</a>
             <a routerLink="/check-in" routerLinkActive="active">Check In</a>
@@ -31,7 +31,7 @@
         <div class="footer-inner">
 
           <div class="footer-brand-col">
-            <span class="footer-brand"><lucide-icon name="plane" [size]="16" /> Apex Air</span>
+            <span class="footer-brand">✈ Apex Air</span>
             <p class="footer-tagline">Modern travel, seamlessly delivered.</p>
             <button
               class="theme-toggle"
@@ -39,7 +39,7 @@
               [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
               [attr.title]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
             >
-              <span class="toggle-icon">@if (theme.isDark()) {<lucide-icon name="sun" [size]="18" />} @else {<lucide-icon name="moon" [size]="18" />}</span>
+              <span class="toggle-icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
               <span class="toggle-track" [class.is-dark]="theme.isDark()">
                 <span class="toggle-thumb"></span>
               </span>
@@ -99,7 +99,7 @@
         <div class="debug-modal-card fade-in" (click)="$event.stopPropagation()">
           <div class="debug-modal-header">
             <span class="debug-modal-title">🧺 Basket Debug</span>
-            <button class="debug-modal-close" (click)="closeBasketDebug()" aria-label="Close"><lucide-icon name="x" [size]="16" /></button>
+            <button class="debug-modal-close" (click)="closeBasketDebug()" aria-label="Close">✕</button>
           </div>
           <div class="debug-modal-body">
             @if (basketDebugLoading()) {
@@ -124,7 +124,7 @@
             <span class="debug-modal-title">🔍 API Debug <span class="debug-modal-count">{{ httpDebug.entries().length }} request{{ httpDebug.entries().length === 1 ? '' : 's' }}</span></span>
             <div class="debug-modal-actions">
               <button class="debug-action-btn" (click)="clearHttpLog()" title="Clear log">Clear</button>
-              <button class="debug-modal-close" (click)="closeHttpDebug()" aria-label="Close"><lucide-icon name="x" [size]="16" /></button>
+              <button class="debug-modal-close" (click)="closeHttpDebug()" aria-label="Close">✕</button>
             </div>
           </div>
 

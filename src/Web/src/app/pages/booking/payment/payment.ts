@@ -7,7 +7,6 @@ import { RetailApiService, ConfirmBasketResponse } from '../../../services/retai
 import { PaymentSummary, Order, Payment, CardDetails } from '../../../models/order.model';
 import { Basket } from '../../../models/order.model';
 import { PaymentFormComponent } from '../../../components/payment-form/payment-form';
-import { LucideAngularModule } from 'lucide-angular';
 
 function mapConfirmResponseToOrder(result: ConfirmBasketResponse): Order {
   const payments: Payment[] = result.payment ? [{
@@ -107,7 +106,7 @@ function mapConfirmResponseToOrder(result: ConfirmBasketResponse): Order {
 @Component({
   selector: 'app-payment',
   standalone: true,
-  imports: [CommonModule, RouterLink, PaymentFormComponent, LucideAngularModule],
+  imports: [CommonModule, RouterLink, PaymentFormComponent],
   templateUrl: './payment.html',
   styleUrl: './payment.css'
 })

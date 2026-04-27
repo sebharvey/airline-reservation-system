@@ -1,12 +1,11 @@
 import { Component, signal, computed, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CardDetails } from '../../models/order.model';
-import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-payment-form',
   standalone: true,
-  imports: [FormsModule, LucideAngularModule],
+  imports: [FormsModule],
   templateUrl: './payment-form.html',
   styleUrl: './payment-form.css'
 })

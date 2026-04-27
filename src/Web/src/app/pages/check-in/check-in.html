@@ -1,6 +1,6 @@
 <div class="page fade-in">
   <div class="page-header">
-    <span class="page-icon"><lucide-icon name="circle-check" [size]="28" /></span>
+    <span class="page-icon">&#9989;</span>
     <h2>Online Check-In</h2>
     <p>Check in for your flight and get your boarding pass</p>
   </div>
@@ -59,7 +59,7 @@
 
     @if (errorMessage()) {
       <div class="error-banner">
-        <span class="error-icon"><lucide-icon name="triangle-alert" [size]="14" /></span>
+        <span class="error-icon">&#9888;</span>
         {{ errorMessage() }}
       </div>
     }
@@ -78,6 +78,6 @@
   </form>
 
   <div class="info-note">
-    <span><lucide-icon name="circle-alert" [size]="14" /></span> Online check-in is available from 48 hours up to 1 hour before departure.
+    <span>&#9432;</span> Online check-in is available from 48 hours up to 1 hour before departure.
   </div>
 </div>

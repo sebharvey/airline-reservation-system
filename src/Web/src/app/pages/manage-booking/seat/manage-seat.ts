@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Order, Passenger } from '../../../models/order.model';
 import { Seatmap, CabinSeatmap, SeatOffer } from '../../../models/flight.model';
-import { LucideAngularModule } from 'lucide-angular';
 
 interface SeatSelection {
   passengerId: string;
@@ -22,7 +21,7 @@ interface SeatSelection {
 @Component({
   selector: 'app-manage-seat',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './manage-seat.html',
   styleUrl: './manage-seat.css'
 })

@@ -2,7 +2,7 @@
 
   <!-- Success Banner -->
   <div class="success-banner">
-    <div class="success-icon"><lucide-icon name="check" [size]="24" /></div>
+    <div class="success-icon">&#10003;</div>
     <h1>Booking Confirmed!</h1>
     <p class="tagline">
       <ng-container *ngIf="isRewardBooking">Reward booking confirmed with your points!</ng-container>
@@ -13,8 +13,8 @@
       <span class="ref-value-row">
         <span class="ref-value">{{ order.bookingReference }}</span>
         <button class="copy-btn copy-btn--light" [class.copied]="copiedText() === order.bookingReference" (click)="copyToClipboard(order.bookingReference)" [title]="copiedText() === order.bookingReference ? 'Copied!' : 'Copy booking reference'">
-          <lucide-icon *ngIf="copiedText() === order.bookingReference" name="check" [size]="16" />
-          <lucide-icon *ngIf="copiedText() !== order.bookingReference" name="copy" [size]="16" />
+          <svg *ngIf="copiedText() === order.bookingReference" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <svg *ngIf="copiedText() !== order.bookingReference" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
         </button>
       </span>
     </div>
@@ -92,8 +92,8 @@
           <span *ngIf="pax.loyaltyNumber" class="loyalty-badge">
             &#11088; {{ pax.loyaltyNumber }}
             <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyToClipboard(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
-              <lucide-icon *ngIf="copiedText() === pax.loyaltyNumber" name="check" [size]="12" />
-              <lucide-icon *ngIf="copiedText() !== pax.loyaltyNumber" name="copy" [size]="12" />
+              <svg *ngIf="copiedText() === pax.loyaltyNumber" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <svg *ngIf="copiedText() !== pax.loyaltyNumber" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </span>
         </div>
@@ -105,8 +105,8 @@
             <span class="copy-wrap">
               <span class="eticket-mono">{{ et.eTicketNumber }}</span>
               <button class="copy-btn" [class.copied]="copiedText() === et.eTicketNumber" (click)="copyToClipboard(et.eTicketNumber)" [title]="copiedText() === et.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
-                <lucide-icon *ngIf="copiedText() === et.eTicketNumber" name="check" [size]="12" />
-                <lucide-icon *ngIf="copiedText() !== et.eTicketNumber" name="copy" [size]="12" />
+                <svg *ngIf="copiedText() === et.eTicketNumber" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg *ngIf="copiedText() !== et.eTicketNumber" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               </button>
             </span>
           </dd>
@@ -189,8 +189,8 @@
         <span class="points-label copy-wrap">
           Apex Rewards &middot; {{ pointsRedemption.loyaltyNumber }}
           <button class="copy-btn" [class.copied]="copiedText() === pointsRedemption.loyaltyNumber" (click)="copyToClipboard(pointsRedemption.loyaltyNumber)" [title]="copiedText() === pointsRedemption.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
-            <lucide-icon *ngIf="copiedText() === pointsRedemption.loyaltyNumber" name="check" [size]="12" />
-            <lucide-icon *ngIf="copiedText() !== pointsRedemption.loyaltyNumber" name="copy" [size]="12" />
+            <svg *ngIf="copiedText() === pointsRedemption.loyaltyNumber" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <svg *ngIf="copiedText() !== pointsRedemption.loyaltyNumber" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           </button>
         </span>
         <span class="pay-ref">{{ pointsRedemption.redemptionReference }}</span>
