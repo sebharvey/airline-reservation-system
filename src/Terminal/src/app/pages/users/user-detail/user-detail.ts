@@ -7,7 +7,7 @@ import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-user-detail',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './user-detail.html',
   styleUrl: './user-detail.css',
 })

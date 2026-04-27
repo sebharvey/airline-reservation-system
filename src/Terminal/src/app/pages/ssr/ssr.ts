@@ -7,7 +7,7 @@ type CategoryFilter = 'all' | 'Meal' | 'Mobility' | 'Accessibility' | 'Medical' 
 
 @Component({
   selector: 'app-ssr',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './ssr.html',
   styleUrl: './ssr.css',
 })

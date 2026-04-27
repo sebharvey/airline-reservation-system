@@ -5,7 +5,7 @@ import { BagPricingService, BagPricing, CreateBagPricingRequest, UpdateBagPricin
 
 @Component({
   selector: 'app-bag-pricing',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './bag-pricing.html',
   styleUrl: './bag-pricing.css',
 })

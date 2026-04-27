@@ -8,7 +8,7 @@ type StatusFilter = 'all' | 'active' | 'inactive' | 'locked';
 
 @Component({
   selector: 'app-users',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './users.html',
   styleUrl: './users.css',
 })
