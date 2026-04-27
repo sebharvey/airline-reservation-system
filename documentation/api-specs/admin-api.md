@@ -314,6 +314,6 @@ The Admin API reads the following settings at startup:
 |-----|-------------|
 | `UserMs:BaseUrl` | Base URL of the User microservice Azure Function |
 | `UserMs:HostKey` | Azure Function Host Key for service-to-service authentication; retrieved from Azure Key Vault via managed identity at runtime |
-| `UserMs:JwtSecret` | Base64-encoded HMAC-SHA256 key for staff JWT validation (used by TerminalAuthenticationMiddleware on admin endpoints) |
-| `UserMs:JwtIssuer` | Expected JWT issuer (default: `apex-air-user`) |
-| `UserMs:JwtAudience` | Expected JWT audience (default: `apex-air-reservation`) |
+| `Jwt:Secret` | Base64-encoded HMAC-SHA256 key for staff JWT validation (used by TerminalAuthenticationMiddleware on admin endpoints; must match the User MS signing key) |
+| `Jwt:Issuer` | Expected JWT issuer (default: `apex-air-user`) |
+| `Jwt:Audience` | Expected JWT audience (default: `apex-air-reservation`) |
