@@ -229,7 +229,7 @@
                       }
                       <span
                         class="seat-cell"
-                        [class]="seatClass(seat, manifest(), selectedEntry(), pendingSeat())"
+                        [class]="seat ? (seatClassMap().get(seat.seatNumber) ?? '') : 'seat-gap'"
                         [title]="seatTooltip(seat, manifest(), pendingSeat())"
                         (click)="seat && selectSeatFromMap(seat)">
                         @if (seat) {
