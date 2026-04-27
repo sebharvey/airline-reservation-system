@@ -5,11 +5,12 @@ import { RetailApiService } from '../../../services/retail-api.service';
 import { CheckInStateService } from '../../../services/check-in-state.service';
 import { CardDetails, EmdDocument, PaymentSummary } from '../../../models/order.model';
 import { PaymentFormComponent } from '../../../components/payment-form/payment-form';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-check-in-payment',
   standalone: true,
-  imports: [CommonModule, RouterLink, PaymentFormComponent],
+  imports: [CommonModule, RouterLink, PaymentFormComponent, LucideAngularModule],
   templateUrl: './check-in-payment.html',
   styleUrl: './check-in-payment.css'
 })

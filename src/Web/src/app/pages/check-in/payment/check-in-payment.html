@@ -4,7 +4,7 @@
 
     <!-- Payment confirmation -->
     <div class="confirmation-banner">
-      <div class="confirmation-icon">&#10003;</div>
+      <div class="confirmation-icon"><lucide-icon name="check" [size]="28" /></div>
       <h2>Payment Confirmed</h2>
       <p>Your payment has been processed successfully.</p>
       @if (paymentReference()) {
@@ -62,10 +62,10 @@
 
     @if (paymentError() && !paying()) {
       <div class="error-banner">
-        <span>&#9888;</span>
+        <span><lucide-icon name="triangle-alert" [size]="14" /></span>
         {{ paymentError() }}
       </div>
-      <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+      <a routerLink="/check-in" class="back-link"><lucide-icon name="arrow-left" [size]="14" /> Back to Check-In</a>
     }
 
     @if (!summaryLoading() && !paying() && !paymentError()) {
@@ -115,7 +115,7 @@
         (errorDismissed)="paymentError.set('')">
       </app-payment-form>
 
-      <a routerLink="/check-in" class="back-link">&#8592; Back to Check-In</a>
+      <a routerLink="/check-in" class="back-link"><lucide-icon name="arrow-left" [size]="14" /> Back to Check-In</a>
     }
 
   }

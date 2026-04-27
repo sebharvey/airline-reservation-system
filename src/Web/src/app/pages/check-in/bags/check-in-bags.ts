@@ -6,6 +6,7 @@ import { RetailApiService } from '../../../services/retail-api.service';
 import { OciFlightSegment, OciPassenger, BasketBagSelection } from '../../../models/order.model';
 import { CheckInBagSelection } from '../../../services/check-in-state.service';
 import { BagPolicyResponse, BagOffer, CabinCode } from '../../../models/flight.model';
+import { LucideAngularModule } from 'lucide-angular';
 
 interface FlightBagData {
   segment: OciFlightSegment;
@@ -26,7 +27,7 @@ interface PassengerBagSelection {
 @Component({
   selector: 'app-check-in-bags',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './check-in-bags.html',
   styleUrl: './check-in-bags.css'
 })

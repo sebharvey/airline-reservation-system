@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { LoyaltyApiService } from '../../../services/loyalty-api.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 export interface Country {
   code: string;
@@ -60,7 +61,7 @@ export const COUNTRIES: Country[] = [
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './register.html',
   styleUrl: './register.css'
 })

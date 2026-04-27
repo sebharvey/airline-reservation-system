@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
 import { FlightStatus, ScheduledFlightNumber } from '../../models/flight.model';
 import { AIRPORTS } from '../../data/airports';
+import { LucideAngularModule } from 'lucide-angular';
 
 export type FlightStatusCode = FlightStatus['status'];
 export type DisplayStatusCode = FlightStatusCode | 'InFlight';
@@ -25,7 +26,7 @@ const STATUS_CONFIG: Record<DisplayStatusCode, StatusDisplay> = {
 @Component({
   selector: 'app-flight-status',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './flight-status.html',
   styleUrl: './flight-status.css'
 })

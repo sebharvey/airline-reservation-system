@@ -6,6 +6,7 @@ import { LoyaltyApiService, TransferPointsResult } from '../../../services/loyal
 import { LoyaltyStateService } from '../../../services/loyalty-state.service';
 import { TIER_CONFIG, LoyaltyTier, LoyaltyTransaction, TransactionType, CustomerOrderItem } from '../../../models/loyalty.model';
 import { COUNTRIES, PRIORITY_COUNTRIES } from '../register/register';
+import { LucideAngularModule } from 'lucide-angular';
 
 export type AccountTab = 'overview' | 'transactions' | 'transfer' | 'profile' | 'flights' | 'preferences';
 
@@ -78,7 +79,7 @@ const LANGUAGES = [
 @Component({
   selector: 'app-loyalty-account',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, LucideAngularModule],
   templateUrl: './account.html',
   styleUrl: './account.css'
 })

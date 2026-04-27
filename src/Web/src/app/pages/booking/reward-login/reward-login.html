@@ -9,7 +9,7 @@
 
   <!-- Points Requirement Banner -->
   <div class="points-banner" *ngIf="basket() as b">
-    <div class="points-banner-icon">&#11088;</div>
+    <div class="points-banner-icon"><lucide-icon name="star" [size]="24" /></div>
     <div class="points-banner-content">
       <div class="points-banner-title">Points Required</div>
       <div class="points-banner-amount">{{ requiredPoints | number:'1.0-0' }} pts</div>
@@ -36,7 +36,7 @@
   <!-- Login Form -->
   <div class="login-card">
     <div class="login-title">
-      <span class="login-icon">&#128274;</span>
+      <span class="login-icon"><lucide-icon name="lock" [size]="18" /></span>
       Sign in to your Apex Rewards account
     </div>
 
@@ -56,15 +56,15 @@
 
     <!-- Error Message -->
     <div class="login-error" *ngIf="errorMessage()">
-      <span class="error-icon" *ngIf="insufficientPoints()">&#9888;</span>
-      <span class="error-icon" *ngIf="!insufficientPoints()">&#10005;</span>
+      <span class="error-icon" *ngIf="insufficientPoints()"><lucide-icon name="triangle-alert" [size]="14" /></span>
+      <span class="error-icon" *ngIf="!insufficientPoints()"><lucide-icon name="x" [size]="14" /></span>
       {{ errorMessage() }}
     </div>
 
     <!-- Login Button -->
     <button class="btn-login" [class.loading]="loading()" [disabled]="loading()" (click)="onLogin()">
       <span class="btn-login-content" *ngIf="!loading()">
-        Sign In & Continue &#8250;
+        Sign In & Continue <lucide-icon name="chevron-right" [size]="16" />
       </span>
       <span class="btn-login-content" *ngIf="loading()">
         <span class="login-spinner"></span>

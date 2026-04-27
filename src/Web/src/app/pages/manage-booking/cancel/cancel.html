@@ -15,7 +15,7 @@
   <!-- Error -->
   @if (errorMessage() && !successMessage()) {
     <div class="error-banner">
-      <span>&#9888;</span>
+      <span><lucide-icon name="triangle-alert" [size]="14" /></span>
       {{ errorMessage() }}
     </div>
   }
@@ -23,7 +23,7 @@
   <!-- Success -->
   @if (successMessage()) {
     <div class="success-section">
-      <div class="success-icon-wrap">&#10003;</div>
+      <div class="success-icon-wrap"><lucide-icon name="check" [size]="28" /></div>
       <h3>Booking Cancelled</h3>
       <p>{{ successMessage() }}</p>
 
@@ -60,9 +60,9 @@
             {{ o.bookingReference }}
             <button class="copy-btn" [class.copied]="copiedText() === o.bookingReference" (click)="copyToClipboard(o.bookingReference)" [title]="copiedText() === o.bookingReference ? 'Copied!' : 'Copy booking reference'">
               @if (copiedText() === o.bookingReference) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <lucide-icon name="check" [size]="14" />
               } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <lucide-icon name="copy" [size]="14" />
               }
             </button>
           </span>
@@ -114,7 +114,7 @@
       } @else {
         <div class="no-refund-card card">
           <div class="refund-header refund-header--none">
-            <span class="refund-icon">&#9888;</span>
+            <span class="refund-icon"><lucide-icon name="triangle-alert" [size]="14" /></span>
             <span>Non-refundable booking</span>
           </div>
           <p class="refund-disclaimer">
@@ -128,7 +128,7 @@
     <!-- Confirmation actions -->
     <div class="section">
       <div class="warning-box">
-        <span class="warning-icon">&#9888;</span>
+        <span class="warning-icon"><lucide-icon name="triangle-alert" [size]="14" /></span>
         <p>This action is permanent and cannot be undone. Your booking will be cancelled immediately.</p>
       </div>
 

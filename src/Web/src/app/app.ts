@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router, NavigationEnd, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
+import { LucideAngularModule } from 'lucide-angular';
 import { ThemeService } from './services/theme.service';
 import { LoyaltyStateService } from './services/loyalty-state.service';
 import { LoyaltyApiService } from './services/loyalty-api.service';
@@ -12,7 +13,7 @@ import { HttpDebugService, HttpLogEntry } from './services/http-debug.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LucideAngularModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

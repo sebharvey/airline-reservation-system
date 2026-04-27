@@ -13,10 +13,10 @@
 
   @if (errorMessage() && !loading()) {
     <div class="error-banner">
-      <span>&#9888;</span>
+      <span><lucide-icon name="triangle-alert" [size]="14" /></span>
       {{ errorMessage() }}
     </div>
-    <button type="button" class="back-link" (click)="onBack()">&#8592; Back</button>
+    <button type="button" class="back-link" (click)="onBack()"><lucide-icon name="arrow-left" [size]="14" /> Back</button>
   }
 
   @if (!loading() && !errorMessage()) {
@@ -51,6 +51,6 @@
       (errorDismissed)="paymentError.set('')">
     </app-payment-form>
 
-    <button type="button" class="back-link" (click)="onBack()">&#8592; Back to Bag Selection</button>
+    <button type="button" class="back-link" (click)="onBack()"><lucide-icon name="arrow-left" [size]="14" /> Back to Bag Selection</button>
   }
 </div>

@@ -6,6 +6,7 @@ import { CheckInStateService, OciTravelDocument } from '../../../services/check-
 import { RetailApiService } from '../../../services/retail-api.service';
 import { OciOrder, OciFlightSegment } from '../../../models/order.model';
 import { COUNTRIES, PRIORITY_COUNTRIES, Country } from '../../../data/countries';
+import { LucideAngularModule } from 'lucide-angular';
 
 interface TravelDocumentForm {
   type: 'PASSPORT' | 'ID_CARD';
@@ -29,7 +30,7 @@ interface PassengerCheckInState {
 @Component({
   selector: 'app-check-in-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule],
   templateUrl: './check-in-details.html',
   styleUrl: './check-in-details.css'
 })

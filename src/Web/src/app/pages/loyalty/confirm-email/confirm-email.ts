@@ -2,11 +2,12 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { LoyaltyApiService } from '../../../services/loyalty-api.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-confirm-email',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LucideAngularModule],
   templateUrl: './confirm-email.html',
   styleUrl: './confirm-email.css'
 })
