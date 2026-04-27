@@ -12,8 +12,6 @@ import {
 
 interface SeatCell {
   seat: SeatmapSeat | null;
-  cssClass: string;
-  tooltip: string;
   aisleBefore: boolean;
 }
 
@@ -119,23 +117,11 @@ export class FlightDepartureDetailComponent implements OnInit {
     return groups;
   });
 
-  // cabinGrids directly consumes selectedEntry, pendingSeat and manifest so
-  // that any change to passenger selection produces a new iterable for @for.
-  // This is the only reliable way to guarantee @for re-renders its content
-  // in Angular 17's block-based control flow when the seats array itself has
-  // not changed (zone.js does not always re-check @for embedded views whose
-  // own iterable signal is unchanged).
   cabinGrids = computed<CabinGrid[]>(() => {
-    const sm       = this.seatmap();
-    const manifest = this.manifest();
-    const selected = this.selectedEntry();
-    const pending  = this.pendingSeat();
-    const inSelect = selected !== null;
-
+    const sm = this.seatmap();
     if (!sm) return [];
 
     return sm.cabins.map(cabin => {
-      // Build aisle boundary set from layout string (e.g. "2-3-2")
       const groups = cabin.layout.split('-').map(Number).filter(n => n > 0);
       const boundaries = new Set<number>();
       let pos = 0;
@@ -159,42 +145,10 @@ export class FlightDepartureDetailComponent implements OnInit {
         .sort((a, b) => a[0] - b[0])
         .map(([rowNumber, seats]) => {
           const byCols = new Map(seats.map(s => [s.column, s]));
-          const cells: SeatCell[] = cabin.columns.map((col, idx) => {
-            const seat = byCols.get(col) ?? null;
-            const aisleBefore = idx > 0 && boundaries.has(idx);
-
-            let cssClass: string;
-            if (!seat) {
-              cssClass = 'seat-gap';
-            } else if (pending?.seatNumber === seat.seatNumber) {
-              cssClass = 'seat-pending';
-            } else if (selected?.seatNumber === seat.seatNumber) {
-              cssClass = 'seat-selected';
-            } else if (seat.availability === 'available') {
-              cssClass = inSelect ? 'seat-open seat-selectable' : 'seat-open';
-            } else {
-              const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
-              cssClass = entry?.checkedIn            ? 'seat-checked-in'
-                       : seat.availability === 'sold' ? 'seat-booked'
-                       : 'seat-held';
-            }
-
-            let tooltip = '';
-            if (seat) {
-              if (pending?.seatNumber === seat.seatNumber) {
-                tooltip = `${seat.seatNumber} — Selected (pending)`;
-              } else if (seat.availability === 'available') {
-                tooltip = `${seat.seatNumber} — Open`;
-              } else {
-                const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
-                tooltip = entry
-                  ? `${seat.seatNumber} — ${entry.surname}, ${entry.givenName}${entry.checkedIn ? ' (Checked in)' : ''}`
-                  : `${seat.seatNumber} — ${seat.availability}`;
-              }
-            }
-
-            return { seat, cssClass, tooltip, aisleBefore };
-          });
+          const cells: SeatCell[] = cabin.columns.map((col, idx) => ({
+            seat: byCols.get(col) ?? null,
+            aisleBefore: idx > 0 && boundaries.has(idx),
+          }));
           return { rowNumber, cells };
         });
 
@@ -342,6 +296,32 @@ export class FlightDepartureDetailComponent implements OnInit {
 
   bookingTypeBadgeClass(bookingType: string): string {
     return bookingType === 'Standby' ? 'booking-type-standby' : 'booking-type-confirmed';
+  }
+
+  seatClass(seat: SeatmapSeat | null): string {
+    if (!seat) return 'seat-gap';
+    const pending = this.pendingSeat();
+    if (pending?.seatNumber === seat.seatNumber) return 'seat-pending';
+    const selected = this.selectedEntry();
+    if (selected?.seatNumber === seat.seatNumber) return 'seat-selected';
+    if (seat.availability === 'available') {
+      return this.inSeatSelectMode() ? 'seat-open seat-selectable' : 'seat-open';
+    }
+    const entry = this.manifest()?.entries.find(e => e.seatNumber === seat.seatNumber);
+    return entry?.checkedIn            ? 'seat-checked-in'
+         : seat.availability === 'sold' ? 'seat-booked'
+         : 'seat-held';
+  }
+
+  seatTooltip(seat: SeatmapSeat | null): string {
+    if (!seat) return '';
+    const pending = this.pendingSeat();
+    if (pending?.seatNumber === seat.seatNumber) return `${seat.seatNumber} — Selected (pending)`;
+    if (seat.availability === 'available') return `${seat.seatNumber} — Open`;
+    const entry = this.manifest()?.entries.find(e => e.seatNumber === seat.seatNumber);
+    return entry
+      ? `${seat.seatNumber} — ${entry.surname}, ${entry.givenName}${entry.checkedIn ? ' (Checked in)' : ''}`
+      : `${seat.seatNumber} — ${seat.availability}`;
   }
 
   setFilter(filter: 'all' | 'confirmed' | 'standby'): void {
