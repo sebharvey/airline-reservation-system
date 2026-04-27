@@ -7,7 +7,7 @@ import { ScheduleService, ScheduleSummary, ScheduleGroupSummary, ImportSsimRespo
   selector: 'app-schedules',
   templateUrl: './schedules.html',
   styleUrl: './schedules.css',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
 })
 export class SchedulesComponent implements OnInit {
   #scheduleService = inject(ScheduleService);

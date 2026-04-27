@@ -6,7 +6,7 @@ import { FareFamiliesService, FareFamily } from '../../services/fare-families.se
 
 @Component({
   selector: 'app-fare-rules',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './fare-rules.html',
   styleUrl: './fare-rules.css',
 })

@@ -5,7 +5,7 @@ import { BagPolicyService, BagPolicy, CreateBagPolicyRequest, UpdateBagPolicyReq
 
 @Component({
   selector: 'app-bag-policy',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './bag-policy.html',
   styleUrl: './bag-policy.css',
 })

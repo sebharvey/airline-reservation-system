@@ -10,7 +10,7 @@ import {
 
 @Component({
   selector: 'app-seating',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './seating.html',
   styleUrl: './seating.css',
 })

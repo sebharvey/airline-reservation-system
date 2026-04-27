@@ -11,7 +11,7 @@ import {
 
 @Component({
   selector: 'app-product-groups',
-   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './product-groups.html',
   styleUrl: './product-groups.css',
 })
