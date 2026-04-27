@@ -10,12 +10,18 @@ import {
   SeatmapSeat,
 } from '../../../services/inventory.service';
 
+interface SeatCell {
+  seat: SeatmapSeat | null;
+  cssClass: string;
+  tooltip: string;
+  aisleBefore: boolean;
+}
+
 interface CabinGrid {
   cabinCode: string;
   cabinName: string;
-  columns: string[];
-  layout: string;
-  rows: { rowNumber: number; seats: (SeatmapSeat | null)[] }[];
+  headers: { label: string; aisleBefore: boolean }[];
+  rows: { rowNumber: number; cells: SeatCell[] }[];
 }
 
 interface EntryGroup {
@@ -113,57 +119,87 @@ export class FlightDepartureDetailComponent implements OnInit {
     return groups;
   });
 
+  // cabinGrids directly consumes selectedEntry, pendingSeat and manifest so
+  // that any change to passenger selection produces a new iterable for @for.
+  // This is the only reliable way to guarantee @for re-renders its content
+  // in Angular 17's block-based control flow when the seats array itself has
+  // not changed (zone.js does not always re-check @for embedded views whose
+  // own iterable signal is unchanged).
   cabinGrids = computed<CabinGrid[]>(() => {
-    const sm = this.seatmap();
+    const sm       = this.seatmap();
+    const manifest = this.manifest();
+    const selected = this.selectedEntry();
+    const pending  = this.pendingSeat();
+    const inSelect = selected !== null;
+
     if (!sm) return [];
+
     return sm.cabins.map(cabin => {
+      // Build aisle boundary set from layout string (e.g. "2-3-2")
+      const groups = cabin.layout.split('-').map(Number).filter(n => n > 0);
+      const boundaries = new Set<number>();
+      let pos = 0;
+      for (let g = 0; g < groups.length - 1; g++) {
+        pos += groups[g];
+        boundaries.add(pos);
+      }
+
+      const headers = cabin.columns.map((label, idx) => ({
+        label,
+        aisleBefore: idx > 0 && boundaries.has(idx),
+      }));
+
       const byRow = new Map<number, SeatmapSeat[]>();
       for (const seat of cabin.seats) {
         if (!byRow.has(seat.rowNumber)) byRow.set(seat.rowNumber, []);
         byRow.get(seat.rowNumber)!.push(seat);
       }
+
       const rows = [...byRow.entries()]
         .sort((a, b) => a[0] - b[0])
         .map(([rowNumber, seats]) => {
           const byCols = new Map(seats.map(s => [s.column, s]));
-          return { rowNumber, seats: cabin.columns.map(col => byCols.get(col) ?? null) };
+          const cells: SeatCell[] = cabin.columns.map((col, idx) => {
+            const seat = byCols.get(col) ?? null;
+            const aisleBefore = idx > 0 && boundaries.has(idx);
+
+            let cssClass: string;
+            if (!seat) {
+              cssClass = 'seat-gap';
+            } else if (pending?.seatNumber === seat.seatNumber) {
+              cssClass = 'seat-pending';
+            } else if (selected?.seatNumber === seat.seatNumber) {
+              cssClass = 'seat-selected';
+            } else if (seat.availability === 'available') {
+              cssClass = inSelect ? 'seat-open seat-selectable' : 'seat-open';
+            } else {
+              const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
+              cssClass = entry?.checkedIn            ? 'seat-checked-in'
+                       : seat.availability === 'sold' ? 'seat-booked'
+                       : 'seat-held';
+            }
+
+            let tooltip = '';
+            if (seat) {
+              if (pending?.seatNumber === seat.seatNumber) {
+                tooltip = `${seat.seatNumber} — Selected (pending)`;
+              } else if (seat.availability === 'available') {
+                tooltip = `${seat.seatNumber} — Open`;
+              } else {
+                const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
+                tooltip = entry
+                  ? `${seat.seatNumber} — ${entry.surname}, ${entry.givenName}${entry.checkedIn ? ' (Checked in)' : ''}`
+                  : `${seat.seatNumber} — ${seat.availability}`;
+              }
+            }
+
+            return { seat, cssClass, tooltip, aisleBefore };
+          });
+          return { rowNumber, cells };
         });
-      return { cabinCode: cabin.cabinCode, cabinName: cabin.cabinName, columns: cabin.columns, layout: cabin.layout, rows };
+
+      return { cabinCode: cabin.cabinCode, cabinName: cabin.cabinName, headers, rows };
     });
-  });
-
-  // Precomputes a seatNumber → CSS class map so the template reads a single
-  // top-level signal. This guarantees re-evaluation when selectedEntry or
-  // pendingSeat change, regardless of @for embedded-view tracking behaviour.
-  seatClassMap = computed<Map<string, string>>(() => {
-    const manifest  = this.manifest();
-    const selected  = this.selectedEntry();
-    const pending   = this.pendingSeat();
-    const sm        = this.seatmap();
-    const inSelect  = selected !== null;
-
-    const map = new Map<string, string>();
-    if (!sm) return map;
-
-    for (const cabin of sm.cabins) {
-      for (const seat of cabin.seats) {
-        let cls: string;
-        if (pending?.seatNumber === seat.seatNumber) {
-          cls = 'seat-pending';
-        } else if (selected?.seatNumber === seat.seatNumber) {
-          cls = 'seat-selected';
-        } else if (seat.availability === 'available') {
-          cls = inSelect ? 'seat-open seat-selectable' : 'seat-open';
-        } else {
-          const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
-          cls = entry?.checkedIn       ? 'seat-checked-in'
-              : seat.availability === 'sold' ? 'seat-booked'
-              : 'seat-held';
-        }
-        map.set(seat.seatNumber, cls);
-      }
-    }
-    return map;
   });
 
   // Params cached for seat operations
@@ -302,33 +338,6 @@ export class FlightDepartureDetailComponent implements OnInit {
 
   cabinLabel(code: string): string {
     return ({ F: 'First', J: 'Business', W: 'Premium Economy', Y: 'Economy' } as Record<string, string>)[code] ?? code;
-  }
-
-  isAisle(col: string, allCols: string[], layout?: string): boolean {
-    const idx = allCols.indexOf(col);
-    if (idx <= 0) return false;
-    if (layout) {
-      const groups = layout.split('-').map(Number).filter(n => n > 0);
-      let boundary = 0;
-      for (let g = 0; g < groups.length - 1; g++) {
-        boundary += groups[g];
-        if (idx === boundary) return true;
-      }
-      return false;
-    }
-    return col.charCodeAt(0) - allCols[idx - 1].charCodeAt(0) > 1;
-  }
-
-  seatTooltip(seat: SeatmapSeat | null, manifest: FlightManifest | null, pending: SeatmapSeat | null): string {
-    if (!seat) return '';
-    if (pending?.seatNumber === seat.seatNumber) return `${seat.seatNumber} — Selected (pending)`;
-    if (seat.availability === 'available') return `${seat.seatNumber} — Open`;
-    const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
-    if (entry) {
-      const ci = entry.checkedIn ? ' (Checked in)' : '';
-      return `${seat.seatNumber} — ${entry.surname}, ${entry.givenName}${ci}`;
-    }
-    return `${seat.seatNumber} — ${seat.availability}`;
   }
 
   bookingTypeBadgeClass(bookingType: string): string {
