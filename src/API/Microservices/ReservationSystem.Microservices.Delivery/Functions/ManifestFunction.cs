@@ -67,6 +67,7 @@ public sealed class ManifestFunction
                 eTicketNumber    = e.ETicketNumber,
                 seatNumber       = string.IsNullOrEmpty(e.SeatNumber) ? (string?)null : e.SeatNumber,
                 cabinCode        = e.CabinCode,
+                bookingType      = e.BookingType,
                 checkedIn        = e.CheckedIn,
                 checkedInAt      = e.CheckedInAt,
                 ssrCodes         = string.IsNullOrEmpty(e.SsrCodes)

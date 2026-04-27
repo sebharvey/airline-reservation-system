@@ -140,7 +140,8 @@ public sealed class ConfirmBasketHandler
 
         var issuedTickets = await ticketsTask;
 
-        await RunManifestWriteAsync(basketDataJson, confirmedOrder.BookingReference, confirmedOrder.OrderId, issuedTickets, cancellationToken);
+        var manifestBookingType = string.Equals(bookingType, "Standby", StringComparison.OrdinalIgnoreCase) ? "Standby" : "Confirmed";
+        await RunManifestWriteAsync(basketDataJson, confirmedOrder.BookingReference, confirmedOrder.OrderId, issuedTickets, manifestBookingType, cancellationToken);
 
         var bookedAt = DateTime.UtcNow.ToString("o");
         var confirmedTotalAmount = totalAmount;
@@ -953,6 +954,7 @@ public sealed class ConfirmBasketHandler
         string bookingReference,
         Guid orderId,
         List<IssuedTicket> issuedTickets,
+        string bookingType,
         CancellationToken ct)
     {
         if (basketDataJson is null) return;
@@ -994,6 +996,7 @@ public sealed class ConfirmBasketHandler
                     segment.AircraftType,
                     segment.DepartureTime,
                     segment.ArrivalTime,
+                    bookingType,
                     entries, ct);
             }
         }

@@ -772,6 +772,7 @@ CREATE TABLE [delivery].[Manifest] (
     SsrCodes         NVARCHAR(500)        NULL,
     DepartureTime    TIME             NOT NULL,
     ArrivalTime      TIME             NOT NULL,
+    BookingType      VARCHAR(20)      NOT NULL CONSTRAINT DF_Manifest_BookingType DEFAULT 'Confirmed',
     CheckedIn        BIT              NOT NULL CONSTRAINT DF_Manifest_Checked DEFAULT 0,
     CheckedInAt      DATETIME2            NULL,
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Manifest_Created DEFAULT SYSUTCDATETIME(),
@@ -781,7 +782,8 @@ CREATE TABLE [delivery].[Manifest] (
     CONSTRAINT FK_Manifest_Ticket   FOREIGN KEY (TicketId) REFERENCES [delivery].[Ticket](TicketId),
     CONSTRAINT UQ_Manifest_Seat     UNIQUE (InventoryId, SeatNumber),
     CONSTRAINT UQ_Manifest_Pax      UNIQUE (InventoryId, ETicketNumber),
-    CONSTRAINT CHK_Manifest_Cabin   CHECK (CabinCode IN ('F','J','W','Y'))
+    CONSTRAINT CHK_Manifest_Cabin   CHECK (CabinCode IN ('F','J','W','Y')),
+    CONSTRAINT CHK_Manifest_BookingType CHECK (BookingType IN ('Confirmed', 'Standby'))
 );
 GO
 
@@ -813,6 +815,13 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Manifest_OrderId' AND object_id = OBJECT_ID('[delivery].[Manifest]'))
     CREATE INDEX IX_Manifest_OrderId ON [delivery].[Manifest] (OrderId);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[delivery].[Manifest]') AND name = 'BookingType')
+BEGIN
+    ALTER TABLE [delivery].[Manifest] ADD BookingType VARCHAR(20) NOT NULL CONSTRAINT DF_Manifest_BookingType DEFAULT 'Confirmed';
+    ALTER TABLE [delivery].[Manifest] ADD CONSTRAINT CHK_Manifest_BookingType CHECK (BookingType IN ('Confirmed', 'Standby'));
+END
 GO
 
 -- delivery.Document -----------------------------------------------------------

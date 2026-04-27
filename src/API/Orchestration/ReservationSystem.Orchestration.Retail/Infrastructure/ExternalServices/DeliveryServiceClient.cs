@@ -188,10 +188,11 @@ public sealed class DeliveryServiceClient
         string aircraftType,
         string departureTime,
         string arrivalTime,
+        string bookingType,
         List<ManifestPassengerEntry> entries,
         CancellationToken ct)
     {
-        var payload = new { bookingReference, orderId, inventoryId, flightNumber, origin, destination, departureDate, aircraftType, departureTime, arrivalTime, entries };
+        var payload = new { bookingReference, orderId, inventoryId, flightNumber, origin, destination, departureDate, aircraftType, departureTime, arrivalTime, bookingType, entries };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/manifest", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
@@ -569,6 +570,7 @@ public sealed class AdminManifestEntry
     [JsonPropertyName("eTicketNumber")]    public string ETicketNumber    { get; init; } = string.Empty;
     [JsonPropertyName("seatNumber")]       public string? SeatNumber      { get; init; }
     [JsonPropertyName("cabinCode")]        public string CabinCode        { get; init; } = string.Empty;
+    [JsonPropertyName("bookingType")]      public string BookingType      { get; init; } = string.Empty;
     [JsonPropertyName("checkedIn")]        public bool CheckedIn          { get; init; }
     [JsonPropertyName("ssrCodes")]         public List<string> SsrCodes   { get; init; } = [];
 }

@@ -14,6 +14,7 @@ public sealed class WriteManifestRequest
     [JsonPropertyName("aircraftType")]     public string AircraftType { get; init; } = string.Empty;
     [JsonPropertyName("departureTime")]    public string DepartureTime { get; init; } = string.Empty;
     [JsonPropertyName("arrivalTime")]      public string ArrivalTime { get; init; } = string.Empty;
+    [JsonPropertyName("bookingType")]      public string BookingType { get; init; } = "Confirmed";
     [JsonPropertyName("entries")]          public List<ManifestEntryRequest> Entries { get; init; } = [];
 }
 
