@@ -132,6 +132,40 @@ export class FlightDepartureDetailComponent implements OnInit {
     });
   });
 
+  // Precomputes a seatNumber → CSS class map so the template reads a single
+  // top-level signal. This guarantees re-evaluation when selectedEntry or
+  // pendingSeat change, regardless of @for embedded-view tracking behaviour.
+  seatClassMap = computed<Map<string, string>>(() => {
+    const manifest  = this.manifest();
+    const selected  = this.selectedEntry();
+    const pending   = this.pendingSeat();
+    const sm        = this.seatmap();
+    const inSelect  = selected !== null;
+
+    const map = new Map<string, string>();
+    if (!sm) return map;
+
+    for (const cabin of sm.cabins) {
+      for (const seat of cabin.seats) {
+        let cls: string;
+        if (pending?.seatNumber === seat.seatNumber) {
+          cls = 'seat-pending';
+        } else if (selected?.seatNumber === seat.seatNumber) {
+          cls = 'seat-selected';
+        } else if (seat.availability === 'available') {
+          cls = inSelect ? 'seat-open seat-selectable' : 'seat-open';
+        } else {
+          const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
+          cls = entry?.checkedIn       ? 'seat-checked-in'
+              : seat.availability === 'sold' ? 'seat-booked'
+              : 'seat-held';
+        }
+        map.set(seat.seatNumber, cls);
+      }
+    }
+    return map;
+  });
+
   // Params cached for seat operations
   #inventoryId = '';
   #flightNumber = '';
@@ -283,19 +317,6 @@ export class FlightDepartureDetailComponent implements OnInit {
       return false;
     }
     return col.charCodeAt(0) - allCols[idx - 1].charCodeAt(0) > 1;
-  }
-
-  seatClass(seat: SeatmapSeat | null, manifest: FlightManifest | null, selected: ManifestEntry | null, pending: SeatmapSeat | null): string {
-    if (!seat) return 'seat-gap';
-    if (pending?.seatNumber === seat.seatNumber) return 'seat-pending';
-    if (selected?.seatNumber && selected.seatNumber === seat.seatNumber) return 'seat-selected';
-    if (seat.availability === 'available') {
-      return selected !== null ? 'seat-open seat-selectable' : 'seat-open';
-    }
-    const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
-    if (entry?.checkedIn) return 'seat-checked-in';
-    if (seat.availability === 'sold') return 'seat-booked';
-    return 'seat-held';
   }
 
   seatTooltip(seat: SeatmapSeat | null, manifest: FlightManifest | null, pending: SeatmapSeat | null): string {
