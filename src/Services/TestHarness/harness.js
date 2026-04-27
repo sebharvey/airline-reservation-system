@@ -25,7 +25,6 @@
         { value: 'bag-policy',                  label: 'admin - bag policy' },
         { value: 'bag-pricing',                 label: 'admin - bag pricing' },
         { value: 'ndc-air-shopping',             label: 'NDC - AirShopping + OfferPrice (IATA NDC 21.3)' },
-        { value: 'ndc-order-create',             label: 'NDC - ServiceList + OrderCreate (IATA NDC 21.3)' },
         { value: 'timatic',                     label: 'timatic - autocheck simulator' },
         { value: 'operations',                  label: 'operations - SSIM import & inventory', disabled: true }
     ];
