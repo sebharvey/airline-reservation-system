@@ -166,10 +166,29 @@
 .pax-table tbody tr {
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
+  cursor: pointer;
 }
 .pax-table tbody tr:last-child { border-bottom: none; }
 .pax-table tbody tr:hover { background: var(--bg-light); }
 .pax-table tbody tr.pax-checked-in { background: rgba(63, 185, 80, 0.04); }
+.pax-table tbody tr.pax-row-selected { background: rgba(99, 102, 241, 0.1) !important; }
+
+.booking-group-header { cursor: default !important; }
+.booking-group-header td {
+  padding: 5px 10px 4px;
+  background: var(--bg-light, #f6f8fa);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.booking-group-header:first-child td { border-top: none; }
+
+.booking-ref-link {
+  color: var(--grad-start, #6366f1);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.booking-ref-link:hover { text-decoration: underline; }
 
 .pax-table td {
   padding: 7px 10px;
@@ -320,6 +339,9 @@
 .seat-held       { background: rgba(240, 136, 62, 0.18); }
 .seat-held .seat-inner { background: #f0883e; opacity: 0.7; }
 
+.seat-selected { background: rgba(99, 102, 241, 0.3); outline: 2px solid var(--grad-start, #6366f1); outline-offset: 1px; border-radius: 3px; }
+.seat-selected .seat-inner { background: var(--grad-start, #6366f1); }
+
 .seat-gap { background: transparent; pointer-events: none; }
 
 .legend-dot.seat-open       { background: #3fb950; opacity: 0.5; }
@@ -372,6 +394,11 @@
   .fd-detail-page {
     padding: 0;
     height: calc(100vh - var(--topbar-height) - 64px);
+  }
+
+  .pax-panel {
+    flex: 0 0 38%;
+    width: 38%;
   }
 }
 

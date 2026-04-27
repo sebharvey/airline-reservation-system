@@ -66,44 +66,52 @@
                   <th>Cabin</th>
                   <th>Given Name</th>
                   <th>Surname</th>
-                  <th>Booking Ref</th>
                   <th>E-Ticket</th>
-                  <th>Pax ID</th>
                   <th>SSR</th>
                   <th>CI</th>
                 </tr>
               </thead>
               <tbody>
-                @for (entry of manifest()!.entries; track entry.eTicketNumber) {
-                  <tr [class.pax-checked-in]="entry.checkedIn">
-                    <td>
-                      <span class="pax-seat-badge" [class]="'cabin-' + entry.cabinCode.toLowerCase()">
-                        {{ entry.seatNumber ?? '—' }}
-                      </span>
-                    </td>
-                    <td>
-                      <span class="cabin-code-badge cabin-{{ entry.cabinCode.toLowerCase() }}">{{ entry.cabinCode }}</span>
-                    </td>
-                    <td class="pax-name">{{ entry.givenName }}</td>
-                    <td class="pax-name">{{ entry.surname }}</td>
-                    <td class="mono muted">{{ entry.bookingReference }}</td>
-                    <td class="mono muted">{{ entry.eTicketNumber }}</td>
-                    <td class="mono muted">{{ entry.passengerId }}</td>
-                    <td>
-                      @if (entry.ssrCodes.length > 0) {
-                        <span class="ssr-badges">
-                          @for (ssr of entry.ssrCodes; track ssr) {
-                            <span class="ssr-tag" [title]="ssr">{{ ssr }}</span>
-                          }
-                        </span>
-                      }
-                    </td>
-                    <td>
-                      @if (entry.checkedIn) {
-                        <span class="ci-badge">CI</span>
-                      }
+                @for (group of groupedEntries(); track group.bookingReference) {
+                  <tr class="booking-group-header">
+                    <td colspan="7">
+                      <a class="booking-ref-link mono" [routerLink]="['/order', group.bookingReference]">
+                        {{ group.bookingReference }}
+                      </a>
                     </td>
                   </tr>
+                  @for (entry of group.entries; track entry.eTicketNumber) {
+                    <tr
+                      [class.pax-checked-in]="entry.checkedIn"
+                      [class.pax-row-selected]="selectedEntry()?.eTicketNumber === entry.eTicketNumber"
+                      (click)="selectEntry(entry)">
+                      <td>
+                        <span class="pax-seat-badge" [class]="'cabin-' + entry.cabinCode.toLowerCase()">
+                          {{ entry.seatNumber ?? '—' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="cabin-code-badge cabin-{{ entry.cabinCode.toLowerCase() }}">{{ entry.cabinCode }}</span>
+                      </td>
+                      <td class="pax-name">{{ entry.givenName }}</td>
+                      <td class="pax-name">{{ entry.surname }}</td>
+                      <td class="mono muted">{{ entry.eTicketNumber }}</td>
+                      <td>
+                        @if (entry.ssrCodes.length > 0) {
+                          <span class="ssr-badges">
+                            @for (ssr of entry.ssrCodes; track ssr) {
+                              <span class="ssr-tag" [title]="ssr">{{ ssr }}</span>
+                            }
+                          </span>
+                        }
+                      </td>
+                      <td>
+                        @if (entry.checkedIn) {
+                          <span class="ci-badge">CI</span>
+                        }
+                      </td>
+                    </tr>
+                  }
                 }
               </tbody>
             </table>
