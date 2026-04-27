@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ScheduleService, ScheduleSummary, ScheduleGroupSummary, ImportSsimResponse } from '../../services/schedule.service';
@@ -6,7 +7,7 @@ import { ScheduleService, ScheduleSummary, ScheduleGroupSummary, ImportSsimRespo
   selector: 'app-schedules',
   templateUrl: './schedules.html',
   styleUrl: './schedules.css',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
 })
 export class SchedulesComponent implements OnInit {
   #scheduleService = inject(ScheduleService);

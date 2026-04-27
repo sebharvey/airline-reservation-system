@@ -25,14 +25,14 @@
   <!-- Success -->
   @if (success()) {
     <div class="success-banner" role="status">
-      <span>&#10003;</span> {{ success() }}
+      <lucide-icon name="check" [size]="14" /> {{ success() }}
     </div>
   }
 
   <!-- Error -->
   @if (error()) {
     <div class="error-banner" role="alert">
-      <span>&#9888;</span> {{ error() }}
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
     </div>
   }
 
@@ -175,7 +175,7 @@
   @if (loaded() && pricings().length > 0 && !showForm()) {
     <div class="filter-row">
       <div class="search-field">
-        <span class="search-icon">&#128269;</span>
+        <lucide-icon name="search" [size]="15" class="search-icon" />
         <input
           class="search-input"
           type="search"

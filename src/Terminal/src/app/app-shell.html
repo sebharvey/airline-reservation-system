@@ -13,13 +13,13 @@
         <span class="burger-line"></span>
         <span class="burger-line"></span>
       </button>
-      <span class="topbar-brand">✈ Apex Air <span class="topbar-product">Terminal</span></span>
+      <span class="topbar-brand"><lucide-icon name="plane" [size]="15" class="brand-plane" /> Apex Air <span class="topbar-product">Terminal</span></span>
     </div>
 
     <div class="topbar-right">
       @if (auth.currentUser(); as user) {
         <div class="agent-badge">
-          <span class="agent-icon">👤</span>
+          <lucide-icon name="user" [size]="16" class="agent-icon" />
           <span class="agent-info">
             <span class="agent-name">{{ user.displayName }}</span>
             <span class="agent-meta">{{ user.username }}</span>
@@ -33,14 +33,14 @@
         [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
         title="Toggle theme"
       >
-        <span class="toggle-icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
+        <lucide-icon [name]="theme.isDark() ? 'sun' : 'moon'" [size]="16" class="toggle-icon" />
         <span class="toggle-track" [class.is-dark]="theme.isDark()">
           <span class="toggle-thumb"></span>
         </span>
       </button>
 
       <button class="logout-btn" (click)="logout()" title="Sign out">
-        <span>⏏</span>
+        <lucide-icon name="log-out" [size]="15" />
         <span class="logout-label">Sign out</span>
       </button>
     </div>
@@ -61,7 +61,7 @@
                 class="nav-item"
                 [attr.title]="item.description"
               >
-                <span class="nav-icon">{{ item.icon }}</span>
+                <lucide-icon [name]="item.icon" [size]="18" class="nav-icon" />
                 <span class="nav-label">{{ item.label }}</span>
               </a>
             }

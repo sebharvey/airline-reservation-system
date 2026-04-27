@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -9,7 +10,7 @@ import {
 
 @Component({
   selector: 'app-seating',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './seating.html',
   styleUrl: './seating.css',
 })

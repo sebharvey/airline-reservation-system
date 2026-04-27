@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -10,7 +11,7 @@ import {
 
 @Component({
   selector: 'app-product-groups',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './product-groups.html',
   styleUrl: './product-groups.css',
 })

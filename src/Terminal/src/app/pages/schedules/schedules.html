@@ -69,14 +69,14 @@
   <!-- Import success -->
   @if (importSuccess()) {
     <div class="success-banner" role="status">
-      <span>&#10003;</span> {{ importSuccess() }}
+      <lucide-icon name="check" [size]="14" /> {{ importSuccess() }}
     </div>
   }
 
   <!-- Error -->
   @if (error()) {
     <div class="error-banner" role="alert">
-      <span>&#9888;</span> {{ error() }}
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
     </div>
   }
 
@@ -110,7 +110,7 @@
   @if (loaded() && schedules().length > 0) {
     <div class="filter-row">
       <div class="search-field">
-        <span class="search-icon">&#128269;</span>
+        <lucide-icon name="search" [size]="15" class="search-icon" />
         <input
           class="search-input"
           type="search"
@@ -241,7 +241,7 @@
       <div class="modal-body">
         @if (groupError()) {
           <div class="error-banner" role="alert">
-            <span>&#9888;</span> {{ groupError() }}
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ groupError() }}
           </div>
         }
 
@@ -326,12 +326,12 @@
 
           @if (ssimError()) {
             <div class="error-banner" role="alert" style="margin-top: 16px;">
-              <span>&#9888;</span> {{ ssimError() }}
+              <lucide-icon name="triangle-alert" [size]="14" /> {{ ssimError() }}
             </div>
           }
         } @else {
           <div class="ssim-success">
-            <div class="ssim-success-icon">&#10003;</div>
+            <div class="ssim-success-icon"><lucide-icon name="check" [size]="20" /></div>
             <p class="ssim-success-title">Import complete</p>
             <div class="ssim-result-stats">
               <div class="ssim-stat">
@@ -384,7 +384,7 @@
 
         @if (importError()) {
           <div class="error-banner" role="alert">
-            <span>&#9888;</span> {{ importError() }}
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ importError() }}
           </div>
         }
       </div>

@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UserService, UserAccount } from '../../services/user.service';
@@ -7,7 +8,7 @@ type StatusFilter = 'all' | 'active' | 'inactive' | 'locked';
 
 @Component({
   selector: 'app-users',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './users.html',
   styleUrl: './users.css',
 })

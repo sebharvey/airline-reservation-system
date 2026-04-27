@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SlicePipe } from '@angular/common';
@@ -24,7 +25,7 @@ const ALL_CHANNELS_DEFAULT = ALL_CHANNELS_JSON;
 
 @Component({
   selector: 'app-products',
-  imports: [FormsModule, SlicePipe],
+  imports: [FormsModule, SlicePipe, LucideAngularModule],
   templateUrl: './products.html',
   styleUrl: './products.css',
 })

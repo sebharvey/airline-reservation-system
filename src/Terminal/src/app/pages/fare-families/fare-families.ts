@@ -1,10 +1,11 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FareFamiliesService, FareFamily, CreateFareFamilyRequest } from '../../services/fare-families.service';
 
 @Component({
   selector: 'app-fare-families',
-  imports: [FormsModule],
+   [FormsModule]:imports: [FormsModule, LucideAngularModule]: [FormsModule],
   templateUrl: './fare-families.html',
   styleUrl: './fare-families.css',
 })

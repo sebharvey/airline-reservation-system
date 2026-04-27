@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { OrderService, OrderDetail, OrderPassenger, PassengerTravelDocument, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, OrderNote, SsrOption, SsrPatchAction, Ticket, Document, ItemTotals } from '../../../services/order.service';
 
 interface EditForm {
@@ -25,6 +26,7 @@ interface DocDetailState {
 
 @Component({
   selector: 'app-order-detail',
+  imports: [LucideAngularModule],
   templateUrl: './order-detail.html',
   styleUrl: './order-detail.css',
 })

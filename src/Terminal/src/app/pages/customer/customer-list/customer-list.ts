@@ -1,10 +1,12 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { CustomerService, CustomerSummary } from '../../../services/customer.service';
 import { CustomerSearchStateService } from '../../../services/customer-search-state.service';
 
 @Component({
   selector: 'app-customer-list',
+  imports: [LucideAngularModule],
   templateUrl: './customer-list.html',
   styleUrl: './customer-list.css',
 })

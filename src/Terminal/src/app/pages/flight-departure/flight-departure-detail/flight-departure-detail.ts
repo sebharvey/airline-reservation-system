@@ -1,3 +1,4 @@
+import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
@@ -18,7 +19,7 @@ interface CabinGrid {
 @Component({
   selector: 'app-flight-departure-detail',
   standalone: true,
-  imports: [],
+  imports: [LucideAngularModule],
   templateUrl: './flight-departure-detail.html',
   styleUrl: './flight-departure-detail.css',
 })
