@@ -770,6 +770,9 @@ CREATE TABLE [delivery].[Manifest] (
     GivenName        VARCHAR(100)     NOT NULL,
     Surname          VARCHAR(100)     NOT NULL,
     SsrCodes         NVARCHAR(500)        NULL,
+    Gender           VARCHAR(10)          NULL,
+    DateOfBirth      DATE                 NULL,
+    PtcCode          VARCHAR(10)      NOT NULL CONSTRAINT DF_Manifest_PtcCode DEFAULT 'ADT',
     DepartureTime    TIME             NOT NULL,
     ArrivalTime      TIME             NOT NULL,
     BookingType      VARCHAR(20)      NOT NULL CONSTRAINT DF_Manifest_BookingType DEFAULT 'Confirmed',
@@ -837,6 +840,18 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Manifest_Seat' AND object_id = OBJECT_ID('[delivery].[Manifest]'))
     CREATE UNIQUE INDEX IX_Manifest_Seat ON [delivery].[Manifest] (InventoryId, SeatNumber) WHERE SeatNumber IS NOT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[delivery].[Manifest]') AND name = 'Gender')
+    ALTER TABLE [delivery].[Manifest] ADD Gender VARCHAR(10) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[delivery].[Manifest]') AND name = 'DateOfBirth')
+    ALTER TABLE [delivery].[Manifest] ADD DateOfBirth DATE NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[delivery].[Manifest]') AND name = 'PtcCode')
+    ALTER TABLE [delivery].[Manifest] ADD PtcCode VARCHAR(10) NOT NULL CONSTRAINT DF_Manifest_PtcCode DEFAULT 'ADT';
 GO
 
 -- delivery.Document -----------------------------------------------------------

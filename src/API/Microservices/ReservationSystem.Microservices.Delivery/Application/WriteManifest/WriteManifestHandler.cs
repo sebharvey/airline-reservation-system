@@ -82,7 +82,10 @@ public sealed class WriteManifestHandler
                 surname:         entry.Surname,
                 departureTime:   departureTime,
                 arrivalTime:     arrivalTime,
-                bookingType:     request.BookingType);
+                bookingType:     request.BookingType,
+                gender:          entry.Gender,
+                dateOfBirth:     DateOnly.TryParse(entry.DateOfBirth, out var dob) ? dob : null,
+                ptcCode:         entry.PtcCode);
 
             var inserted = await _manifestRepository.CreateAsync(manifest, cancellationToken);
             if (inserted) written++; else skipped++;

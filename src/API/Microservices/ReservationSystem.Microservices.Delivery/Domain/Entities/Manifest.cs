@@ -23,6 +23,9 @@ public sealed class Manifest
     public string GivenName { get; private set; } = string.Empty;
     public string Surname { get; private set; } = string.Empty;
     public string? SsrCodes { get; private set; }
+    public string? Gender { get; private set; }
+    public DateOnly? DateOfBirth { get; private set; }
+    public string PtcCode { get; private set; } = string.Empty;
     public string BookingType { get; private set; } = string.Empty;
     public TimeOnly DepartureTime { get; private set; }
     public TimeOnly ArrivalTime { get; private set; }
@@ -87,7 +90,10 @@ public sealed class Manifest
         TimeOnly departureTime,
         TimeOnly arrivalTime,
         string bookingType,
-        string? ssrCodes = null)
+        string? ssrCodes = null,
+        string? gender = null,
+        DateOnly? dateOfBirth = null,
+        string ptcCode = "ADT")
     {
         var now = DateTime.UtcNow;
         return new Manifest
@@ -109,6 +115,9 @@ public sealed class Manifest
             GivenName        = givenName,
             Surname          = surname,
             SsrCodes         = ssrCodes,
+            Gender           = gender,
+            DateOfBirth      = dateOfBirth,
+            PtcCode          = ptcCode,
             BookingType      = bookingType,
             DepartureTime    = departureTime,
             ArrivalTime      = arrivalTime,

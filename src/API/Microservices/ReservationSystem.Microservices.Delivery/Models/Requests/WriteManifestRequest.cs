@@ -26,4 +26,7 @@ public sealed class ManifestEntryRequest
     [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
     [JsonPropertyName("seatNumber")]    public string? SeatNumber { get; init; }
     [JsonPropertyName("cabinCode")]     public string CabinCode { get; init; } = string.Empty;
+    [JsonPropertyName("gender")]        public string? Gender { get; init; }
+    [JsonPropertyName("dateOfBirth")]   public string? DateOfBirth { get; init; }
+    [JsonPropertyName("ptcCode")]       public string PtcCode { get; init; } = "ADT";
 }

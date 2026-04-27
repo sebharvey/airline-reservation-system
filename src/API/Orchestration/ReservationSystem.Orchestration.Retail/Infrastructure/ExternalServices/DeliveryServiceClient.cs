@@ -283,6 +283,12 @@ public sealed class TicketPassenger
     [JsonPropertyName("dob")]
     public string? Dob { get; init; }
 
+    [JsonPropertyName("gender")]
+    public string? Gender { get; init; }
+
+    [JsonPropertyName("ptcCode")]
+    public string PtcCode { get; init; } = "ADT";
+
     [JsonPropertyName("fareConstruction")]
     public TicketFareConstruction? FareConstruction { get; init; }
 
@@ -608,4 +614,13 @@ public sealed class ManifestPassengerEntry
 
     [JsonPropertyName("seatPosition")]
     public string? SeatPosition { get; init; }
+
+    [JsonPropertyName("gender")]
+    public string? Gender { get; init; }
+
+    [JsonPropertyName("dateOfBirth")]
+    public string? DateOfBirth { get; init; }
+
+    [JsonPropertyName("ptcCode")]
+    public string PtcCode { get; init; } = "ADT";
 }
