@@ -275,14 +275,12 @@ export class FlightDepartureDetailComponent implements OnInit {
     return col.charCodeAt(0) - allCols[idx - 1].charCodeAt(0) > 1;
   }
 
-  seatClass(seat: SeatmapSeat | null, manifest: FlightManifest | null): string {
+  seatClass(seat: SeatmapSeat | null, manifest: FlightManifest | null, selected: ManifestEntry | null, pending: SeatmapSeat | null): string {
     if (!seat) return 'seat-gap';
-    const pending = this.pendingSeat();
     if (pending?.seatNumber === seat.seatNumber) return 'seat-pending';
-    const selected = this.selectedEntry();
     if (selected?.seatNumber && selected.seatNumber === seat.seatNumber) return 'seat-selected';
     if (seat.availability === 'available') {
-      return this.inSeatSelectMode() ? 'seat-open seat-selectable' : 'seat-open';
+      return selected !== null ? 'seat-open seat-selectable' : 'seat-open';
     }
     const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
     if (entry?.checkedIn) return 'seat-checked-in';
@@ -290,9 +288,9 @@ export class FlightDepartureDetailComponent implements OnInit {
     return 'seat-held';
   }
 
-  seatTooltip(seat: SeatmapSeat | null, manifest: FlightManifest | null): string {
+  seatTooltip(seat: SeatmapSeat | null, manifest: FlightManifest | null, pending: SeatmapSeat | null): string {
     if (!seat) return '';
-    if (this.pendingSeat()?.seatNumber === seat.seatNumber) return `${seat.seatNumber} — Selected (pending)`;
+    if (pending?.seatNumber === seat.seatNumber) return `${seat.seatNumber} — Selected (pending)`;
     if (seat.availability === 'available') return `${seat.seatNumber} — Open`;
     const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
     if (entry) {

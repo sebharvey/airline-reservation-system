@@ -229,8 +229,8 @@
                       }
                       <span
                         class="seat-cell"
-                        [class]="seatClass(seat, manifest())"
-                        [title]="seatTooltip(seat, manifest())"
+                        [class]="seatClass(seat, manifest(), selectedEntry(), pendingSeat())"
+                        [title]="seatTooltip(seat, manifest(), pendingSeat())"
                         (click)="seat && selectSeatFromMap(seat)">
                         @if (seat) {
                           <span class="seat-inner"></span>
