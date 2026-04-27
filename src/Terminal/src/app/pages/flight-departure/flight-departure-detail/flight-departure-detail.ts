@@ -14,6 +14,7 @@ interface CabinGrid {
   cabinCode: string;
   cabinName: string;
   columns: string[];
+  layout: string;
   rows: { rowNumber: number; seats: (SeatmapSeat | null)[] }[];
 }
 
@@ -127,7 +128,7 @@ export class FlightDepartureDetailComponent implements OnInit {
           const byCols = new Map(seats.map(s => [s.column, s]));
           return { rowNumber, seats: cabin.columns.map(col => byCols.get(col) ?? null) };
         });
-      return { cabinCode: cabin.cabinCode, cabinName: cabin.cabinName, columns: cabin.columns, rows };
+      return { cabinCode: cabin.cabinCode, cabinName: cabin.cabinName, columns: cabin.columns, layout: cabin.layout, rows };
     });
   });
 
@@ -269,9 +270,18 @@ export class FlightDepartureDetailComponent implements OnInit {
     return ({ F: 'First', J: 'Business', W: 'Premium Economy', Y: 'Economy' } as Record<string, string>)[code] ?? code;
   }
 
-  isAisle(col: string, allCols: string[]): boolean {
+  isAisle(col: string, allCols: string[], layout?: string): boolean {
     const idx = allCols.indexOf(col);
     if (idx <= 0) return false;
+    if (layout) {
+      const groups = layout.split('-').map(Number).filter(n => n > 0);
+      let boundary = 0;
+      for (let g = 0; g < groups.length - 1; g++) {
+        boundary += groups[g];
+        if (idx === boundary) return true;
+      }
+      return false;
+    }
     return col.charCodeAt(0) - allCols[idx - 1].charCodeAt(0) > 1;
   }
 
