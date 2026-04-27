@@ -762,7 +762,7 @@ CREATE TABLE [delivery].[Manifest] (
     Destination      CHAR(3)          NOT NULL,
     DepartureDate    DATE             NOT NULL,
     AircraftType     CHAR(4)          NOT NULL,
-    SeatNumber       VARCHAR(5)       NOT NULL,
+    SeatNumber       VARCHAR(5)           NULL,
     CabinCode        CHAR(1)          NOT NULL,
     BookingReference CHAR(6)          NOT NULL,
     ETicketNumber    VARCHAR(20)      NOT NULL,
@@ -780,7 +780,6 @@ CREATE TABLE [delivery].[Manifest] (
     Version          INT              NOT NULL CONSTRAINT DF_Manifest_Version DEFAULT 1,
     CONSTRAINT PK_Manifest          PRIMARY KEY (ManifestId),
     CONSTRAINT FK_Manifest_Ticket   FOREIGN KEY (TicketId) REFERENCES [delivery].[Ticket](TicketId),
-    CONSTRAINT UQ_Manifest_Seat     UNIQUE (InventoryId, SeatNumber),
     CONSTRAINT UQ_Manifest_Pax      UNIQUE (InventoryId, ETicketNumber),
     CONSTRAINT CHK_Manifest_Cabin   CHECK (CabinCode IN ('F','J','W','Y')),
     CONSTRAINT CHK_Manifest_BookingType CHECK (BookingType IN ('Confirmed', 'Standby'))
@@ -792,6 +791,9 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Manifest_Flight' AND o
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Manifest_BookingReference' AND object_id = OBJECT_ID('[delivery].[Manifest]'))
     CREATE INDEX IX_Manifest_BookingReference ON [delivery].[Manifest] (BookingReference);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Manifest_Seat' AND object_id = OBJECT_ID('[delivery].[Manifest]'))
+    CREATE UNIQUE INDEX IX_Manifest_Seat ON [delivery].[Manifest] (InventoryId, SeatNumber) WHERE SeatNumber IS NOT NULL;
 GO
 
 IF OBJECT_ID('[delivery].[TR_Manifest_UpdatedAt]', 'TR') IS NULL
@@ -822,6 +824,19 @@ BEGIN
     ALTER TABLE [delivery].[Manifest] ADD BookingType VARCHAR(20) NOT NULL CONSTRAINT DF_Manifest_BookingType DEFAULT 'Confirmed';
     ALTER TABLE [delivery].[Manifest] ADD CONSTRAINT CHK_Manifest_BookingType CHECK (BookingType IN ('Confirmed', 'Standby'));
 END
+GO
+
+-- Allow NULL seat: passengers without a seat assignment are still on the manifest
+IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UQ_Manifest_Seat' AND parent_object_id = OBJECT_ID('[delivery].[Manifest]'))
+    ALTER TABLE [delivery].[Manifest] DROP CONSTRAINT UQ_Manifest_Seat;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[delivery].[Manifest]') AND name = 'SeatNumber' AND is_nullable = 0)
+    ALTER TABLE [delivery].[Manifest] ALTER COLUMN SeatNumber VARCHAR(5) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Manifest_Seat' AND object_id = OBJECT_ID('[delivery].[Manifest]'))
+    CREATE UNIQUE INDEX IX_Manifest_Seat ON [delivery].[Manifest] (InventoryId, SeatNumber) WHERE SeatNumber IS NOT NULL;
 GO
 
 -- delivery.Document -----------------------------------------------------------
