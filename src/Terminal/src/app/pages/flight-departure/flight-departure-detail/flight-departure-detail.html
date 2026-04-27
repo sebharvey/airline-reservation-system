@@ -78,6 +78,9 @@
                       <a class="booking-ref-link mono" [routerLink]="['/order', group.bookingReference]">
                         {{ group.bookingReference }}
                       </a>
+                      <span class="booking-type-badge" [class]="bookingTypeBadgeClass(group.bookingType)">
+                        {{ group.bookingType || 'Confirmed' }}
+                      </span>
                     </td>
                   </tr>
                   @for (entry of group.entries; track entry.eTicketNumber) {
@@ -131,6 +134,21 @@
           </span>
         </div>
 
+        @if (inSeatSelectMode()) {
+          <div class="seat-select-banner">
+            @if (selectedEntry()!.seatNumber) {
+              <lucide-icon name="map-pin" [size]="13" />
+              Current seat: <strong>{{ selectedEntry()!.seatNumber }}</strong>
+            } @else {
+              <lucide-icon name="armchair" [size]="13" />
+              No seat assigned — click an open seat to select
+            }
+            @if (pendingSeat()) {
+              <span class="pending-seat-chip">→ {{ pendingSeat()!.seatNumber }}</span>
+            }
+          </div>
+        }
+
         @if (seatmap()) {
           <div class="seatmap-scroll">
             @for (cabin of cabinGrids(); track cabin.cabinCode) {
@@ -165,7 +183,8 @@
                       <span
                         class="seat-cell"
                         [class]="seatClass(seat, manifest())"
-                        [title]="seatTooltip(seat, manifest())">
+                        [title]="seatTooltip(seat, manifest())"
+                        (click)="seat && selectSeatFromMap(seat)">
                         @if (seat) {
                           <span class="seat-inner"></span>
                         }
@@ -175,6 +194,41 @@
                 }
               </div>
             }
+          </div>
+        }
+
+        <!-- Seat action buttons -->
+        @if (selectedEntry()) {
+          <div class="seat-actions">
+            @if (seatOpError()) {
+              <span class="seat-op-error">
+                <lucide-icon name="triangle-alert" [size]="12" /> {{ seatOpError() }}
+              </span>
+            }
+            <div class="seat-action-btns">
+              <button
+                class="seat-btn seat-btn-release"
+                [disabled]="!canReleaseSeat()"
+                (click)="releaseSeat()">
+                @if (seatOpLoading()) {
+                  <span class="btn-spinner"></span>
+                } @else {
+                  <lucide-icon name="x-circle" [size]="14" />
+                }
+                Release Seat
+              </button>
+              <button
+                class="seat-btn seat-btn-confirm"
+                [disabled]="!canConfirmSeat()"
+                (click)="confirmSeat()">
+                @if (seatOpLoading()) {
+                  <span class="btn-spinner"></span>
+                } @else {
+                  <lucide-icon name="check-circle" [size]="14" />
+                }
+                Confirm Seat
+              </button>
+            </div>
           </div>
         }
       </div>

@@ -16,6 +16,8 @@ public interface IManifestRepository
 
     Task<int> DeleteByBookingAndFlightAsync(string bookingReference, string flightNumber, DateOnly departureDate, CancellationToken cancellationToken = default);
 
+    Task<bool> UpdateSeatByETicketAsync(string eTicketNumber, string? newSeatNumber, CancellationToken cancellationToken = default);
+
     Task<int> RebookByBookingAndFlightAsync(
         string bookingReference,
         string fromFlightNumber,

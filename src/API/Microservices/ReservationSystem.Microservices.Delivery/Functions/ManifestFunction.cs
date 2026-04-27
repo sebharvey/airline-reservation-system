@@ -109,6 +109,39 @@ public sealed class ManifestFunction
         }
     }
 
+    // PATCH /v1/manifest/{eTicketNumber}/seat
+    [Function("UpdateManifestSeat")]
+    [OpenApiOperation(operationId: "UpdateManifestSeat", tags: new[] { "Manifest" }, Summary = "Update the seat number on a manifest entry by e-ticket number")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content — seat updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound,  Description = "Not Found — no manifest entry for this e-ticket")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> UpdateManifestSeat(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/{eTicketNumber}/seat")] HttpRequestData req,
+        string eTicketNumber,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(eTicketNumber))
+            return await req.BadRequestAsync("eTicketNumber is required.");
+
+        string? newSeatNumber = null;
+        try
+        {
+            using var doc = await System.Text.Json.JsonDocument.ParseAsync(req.Body, cancellationToken: cancellationToken);
+            if (doc.RootElement.TryGetProperty("seatNumber", out var seatEl))
+                newSeatNumber = seatEl.ValueKind == System.Text.Json.JsonValueKind.Null ? null : seatEl.GetString();
+        }
+        catch
+        {
+            return await req.BadRequestAsync("Request body must be valid JSON.");
+        }
+
+        var updated = await _manifestRepository.UpdateSeatByETicketAsync(eTicketNumber, newSeatNumber, cancellationToken);
+
+        return updated
+            ? req.CreateResponse(HttpStatusCode.NoContent)
+            : req.CreateResponse(HttpStatusCode.NotFound);
+    }
+
     // DELETE /v1/manifest/{bookingReference}/flight/{flightNumber}/{departureDate}
     [Function("DeleteManifestFlight")]
     [OpenApiOperation(operationId: "DeleteManifestFlight", tags: new[] { "Manifest" }, Summary = "Remove manifest entries for a booking on a specific cancelled flight")]

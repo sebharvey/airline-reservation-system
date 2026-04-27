@@ -34,6 +34,13 @@ public sealed class Manifest
 
     private Manifest() { }
 
+    public void UpdateSeat(string? newSeatNumber)
+    {
+        SeatNumber = newSeatNumber ?? string.Empty;
+        UpdatedAt  = DateTime.UtcNow;
+        Version++;
+    }
+
     public void Rebook(
         Guid newInventoryId,
         Guid newTicketId,

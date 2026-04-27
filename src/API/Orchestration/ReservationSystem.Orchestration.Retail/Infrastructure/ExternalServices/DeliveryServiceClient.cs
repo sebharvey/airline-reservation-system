@@ -165,6 +165,16 @@ public sealed class DeliveryServiceClient
         return await response.Content.ReadAsStringAsync(ct);
     }
 
+    public async Task<bool> UpdateManifestSeatAsync(string eTicketNumber, string? newSeatNumber, CancellationToken ct)
+    {
+        var payload = new { seatNumber = newSeatNumber };
+        var json = System.Text.Json.JsonSerializer.Serialize(payload, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/manifest/{Uri.EscapeDataString(eTicketNumber)}/seat", content, ct);
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<AdminFlightManifestResult?> GetManifestByFlightAsync(
         string flightNumber, string departureDate, CancellationToken ct)
     {

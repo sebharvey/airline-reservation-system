@@ -103,6 +103,7 @@ export interface ManifestEntry {
   eTicketNumber: string;
   seatNumber: string | null;
   cabinCode: string;
+  bookingType: string;
   checkedIn: boolean;
   checkedInAt: string | null;
   ssrCodes: string[];
@@ -224,6 +225,35 @@ export class InventoryService {
       this.#http.get<FlightManifest>(
         `${this.#baseUrl}/manifest`,
         { params: { flightNumber, departureDate } }
+      )
+    );
+  }
+
+  async releaseSeat(
+    eTicketNumber: string,
+    bookingReference: string,
+    passengerId: string,
+    inventoryId: string,
+  ): Promise<void> {
+    await firstValueFrom(
+      this.#http.post<void>(
+        `${this.#baseUrl}/manifest/release-seat`,
+        { eTicketNumber, bookingReference, passengerId, inventoryId }
+      )
+    );
+  }
+
+  async assignSeat(
+    eTicketNumber: string,
+    bookingReference: string,
+    passengerId: string,
+    inventoryId: string,
+    seatNumber: string,
+  ): Promise<void> {
+    await firstValueFrom(
+      this.#http.post<void>(
+        `${this.#baseUrl}/manifest/assign-seat`,
+        { eTicketNumber, bookingReference, passengerId, inventoryId, seatNumber }
       )
     );
   }

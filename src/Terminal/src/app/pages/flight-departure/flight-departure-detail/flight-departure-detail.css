@@ -190,6 +190,25 @@
 }
 .booking-ref-link:hover { text-decoration: underline; }
 
+.booking-type-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.booking-type-confirmed {
+  background: rgba(63, 185, 80, 0.12);
+  color: #3fb950;
+}
+.booking-type-standby {
+  background: rgba(240, 136, 62, 0.15);
+  color: #f0883e;
+}
+
 .pax-table td {
   padding: 7px 10px;
   vertical-align: middle;
@@ -344,10 +363,102 @@
 
 .seat-gap { background: transparent; pointer-events: none; }
 
+.seat-pending { background: rgba(99, 102, 241, 0.5); outline: 2px solid var(--grad-start, #6366f1); outline-offset: 1px; border-radius: 3px; cursor: pointer; }
+.seat-pending .seat-inner { background: var(--grad-start, #6366f1); }
+
+.seat-selectable { cursor: pointer !important; }
+.seat-selectable:hover { outline: 1.5px dashed #3fb950; outline-offset: 1px; opacity: 1 !important; }
+
 .legend-dot.seat-open       { background: #3fb950; opacity: 0.5; }
 .legend-dot.seat-booked     { background: #f85149; }
 .legend-dot.seat-checked-in { background: #3fb950; }
 .legend-dot.seat-held       { background: #f0883e; opacity: 0.7; }
+
+/* ── Seat selection banner ──────────────────────────────────────────────── */
+.seat-select-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: rgba(99, 102, 241, 0.06);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.pending-seat-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--grad-start, #6366f1);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin-left: 4px;
+}
+
+/* ── Seat action buttons ────────────────────────────────────────────────── */
+.seat-actions {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.seat-op-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: #f85149;
+}
+
+.seat-action-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.seat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid;
+  transition: background var(--transition), opacity var(--transition);
+  flex: 1;
+  justify-content: center;
+}
+.seat-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.seat-btn-release {
+  background: rgba(248, 81, 73, 0.07);
+  border-color: rgba(248, 81, 73, 0.3);
+  color: #f85149;
+}
+.seat-btn-release:not(:disabled):hover {
+  background: rgba(248, 81, 73, 0.14);
+}
+
+.seat-btn-confirm {
+  background: rgba(63, 185, 80, 0.08);
+  border-color: rgba(63, 185, 80, 0.3);
+  color: #3fb950;
+}
+.seat-btn-confirm:not(:disabled):hover {
+  background: rgba(63, 185, 80, 0.16);
+}
 
 /* ── Shared ─────────────────────────────────────────────────────────────── */
 .badge {

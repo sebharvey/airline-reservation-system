@@ -19,6 +19,7 @@ interface CabinGrid {
 
 interface EntryGroup {
   bookingReference: string;
+  bookingType: string;
   entries: ManifestEntry[];
 }
 
@@ -40,6 +41,23 @@ export class FlightDepartureDetailComponent implements OnInit {
   loading = signal(true);
   error = signal('');
   selectedEntry = signal<ManifestEntry | null>(null);
+
+  // Seat action state
+  pendingSeat = signal<SeatmapSeat | null>(null);
+  seatOpLoading = signal(false);
+  seatOpError = signal('');
+
+  // Computed helpers
+  inSeatSelectMode = computed(() => this.selectedEntry() !== null);
+
+  canReleaseSeat = computed(() => {
+    const entry = this.selectedEntry();
+    return !!entry?.seatNumber && !this.seatOpLoading();
+  });
+
+  canConfirmSeat = computed(() =>
+    this.pendingSeat() !== null && !this.seatOpLoading()
+  );
 
   manifestStats = computed(() => {
     const m = this.manifest();
@@ -65,7 +83,11 @@ export class FlightDepartureDetailComponent implements OnInit {
       if (last && last.bookingReference === entry.bookingReference) {
         last.entries.push(entry);
       } else {
-        groups.push({ bookingReference: entry.bookingReference, entries: [entry] });
+        groups.push({
+          bookingReference: entry.bookingReference,
+          bookingType: entry.bookingType,
+          entries: [entry],
+        });
       }
     }
     return groups;
@@ -90,21 +112,31 @@ export class FlightDepartureDetailComponent implements OnInit {
     });
   });
 
+  // Params cached for seat operations
+  #inventoryId = '';
+  #flightNumber = '';
+  #departureDate = '';
+  #aircraftType = '';
+
   async ngOnInit(): Promise<void> {
-    const inventoryId = this.#route.snapshot.paramMap.get('inventoryId') ?? '';
-    const flightNumber = this.#route.snapshot.queryParamMap.get('fn') ?? '';
-    const departureDate = this.#route.snapshot.queryParamMap.get('date') ?? '';
-    const aircraftType = this.#route.snapshot.queryParamMap.get('ac') ?? '';
+    this.#inventoryId   = this.#route.snapshot.paramMap.get('inventoryId') ?? '';
+    this.#flightNumber  = this.#route.snapshot.queryParamMap.get('fn') ?? '';
+    this.#departureDate = this.#route.snapshot.queryParamMap.get('date') ?? '';
+    this.#aircraftType  = this.#route.snapshot.queryParamMap.get('ac') ?? '';
 
     const stateFlight = history.state?.flight as FlightInventoryGroup | undefined;
     if (stateFlight) this.flight.set(stateFlight);
 
+    await this.#loadData();
+  }
+
+  async #loadData(): Promise<void> {
     this.loading.set(true);
     this.error.set('');
     try {
       const [manifest, seatmap] = await Promise.all([
-        this.#inventoryService.getFlightManifest(flightNumber, departureDate),
-        this.#inventoryService.getFlightSeatmap(inventoryId, flightNumber, aircraftType),
+        this.#inventoryService.getFlightManifest(this.#flightNumber, this.#departureDate),
+        this.#inventoryService.getFlightSeatmap(this.#inventoryId, this.#flightNumber, this.#aircraftType),
       ]);
       this.manifest.set(manifest);
       this.seatmap.set(seatmap);
@@ -120,9 +152,71 @@ export class FlightDepartureDetailComponent implements OnInit {
   }
 
   selectEntry(entry: ManifestEntry): void {
-    this.selectedEntry.set(
-      this.selectedEntry()?.eTicketNumber === entry.eTicketNumber ? null : entry
+    const isSame = this.selectedEntry()?.eTicketNumber === entry.eTicketNumber;
+    this.selectedEntry.set(isSame ? null : entry);
+    this.pendingSeat.set(null);
+    this.seatOpError.set('');
+  }
+
+  selectSeatFromMap(seat: SeatmapSeat): void {
+    if (!this.inSeatSelectMode()) return;
+    if (seat.availability !== 'available') return;
+    this.pendingSeat.set(
+      this.pendingSeat()?.seatNumber === seat.seatNumber ? null : seat
     );
+    this.seatOpError.set('');
+  }
+
+  async releaseSeat(): Promise<void> {
+    const entry = this.selectedEntry();
+    if (!entry?.seatNumber || this.seatOpLoading()) return;
+
+    this.seatOpLoading.set(true);
+    this.seatOpError.set('');
+    try {
+      await this.#inventoryService.releaseSeat(
+        entry.eTicketNumber,
+        entry.bookingReference,
+        entry.passengerId,
+        this.#inventoryId,
+      );
+      // Refresh data so manifest + seatmap reflect the change
+      await this.#loadData();
+      // Re-select the same passenger (now without a seat)
+      const updated = this.manifest()?.entries.find(e => e.eTicketNumber === entry.eTicketNumber);
+      this.selectedEntry.set(updated ?? null);
+      this.pendingSeat.set(null);
+    } catch {
+      this.seatOpError.set('Failed to release seat. Please try again.');
+    } finally {
+      this.seatOpLoading.set(false);
+    }
+  }
+
+  async confirmSeat(): Promise<void> {
+    const entry = this.selectedEntry();
+    const seat  = this.pendingSeat();
+    if (!entry || !seat || this.seatOpLoading()) return;
+
+    this.seatOpLoading.set(true);
+    this.seatOpError.set('');
+    try {
+      await this.#inventoryService.assignSeat(
+        entry.eTicketNumber,
+        entry.bookingReference,
+        entry.passengerId,
+        this.#inventoryId,
+        seat.seatNumber,
+      );
+      await this.#loadData();
+      const updated = this.manifest()?.entries.find(e => e.eTicketNumber === entry.eTicketNumber);
+      this.selectedEntry.set(updated ?? null);
+      this.pendingSeat.set(null);
+    } catch {
+      this.seatOpError.set('Failed to confirm seat. Please try again.');
+    } finally {
+      this.seatOpLoading.set(false);
+    }
   }
 
   statusClass(status: string): string {
@@ -143,9 +237,13 @@ export class FlightDepartureDetailComponent implements OnInit {
 
   seatClass(seat: SeatmapSeat | null, manifest: FlightManifest | null): string {
     if (!seat) return 'seat-gap';
+    const pending = this.pendingSeat();
+    if (pending?.seatNumber === seat.seatNumber) return 'seat-pending';
     const selected = this.selectedEntry();
     if (selected?.seatNumber && selected.seatNumber === seat.seatNumber) return 'seat-selected';
-    if (seat.availability === 'available') return 'seat-open';
+    if (seat.availability === 'available') {
+      return this.inSeatSelectMode() ? 'seat-open seat-selectable' : 'seat-open';
+    }
     const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
     if (entry?.checkedIn) return 'seat-checked-in';
     if (seat.availability === 'sold') return 'seat-booked';
@@ -154,6 +252,7 @@ export class FlightDepartureDetailComponent implements OnInit {
 
   seatTooltip(seat: SeatmapSeat | null, manifest: FlightManifest | null): string {
     if (!seat) return '';
+    if (this.pendingSeat()?.seatNumber === seat.seatNumber) return `${seat.seatNumber} — Selected (pending)`;
     if (seat.availability === 'available') return `${seat.seatNumber} — Open`;
     const entry = manifest?.entries.find(e => e.seatNumber === seat.seatNumber);
     if (entry) {
@@ -161,5 +260,9 @@ export class FlightDepartureDetailComponent implements OnInit {
       return `${seat.seatNumber} — ${entry.surname}, ${entry.givenName}${ci}`;
     }
     return `${seat.seatNumber} — ${seat.availability}`;
+  }
+
+  bookingTypeBadgeClass(bookingType: string): string {
+    return bookingType === 'Standby' ? 'booking-type-standby' : 'booking-type-confirmed';
   }
 }
