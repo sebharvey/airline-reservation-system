@@ -1,7 +1,7 @@
 {
   "journey": {
-    "name": "NDC — AirShopping + OfferPrice + ServiceList + OrderCreate + OrderRetrieve (IATA NDC 21.3)",
-    "description": "Validates the IATA NDC 21.3 AirShopping, OfferPrice, ServiceList, OrderCreate, and OrderRetrieve endpoints on the Retail API. Steps 1–6 cover AirShopping: well-formed requests with single and multiple passenger types, a past-date search returning an empty OffersGroup, and negative cases. Steps 7–11 cover OfferPrice: the OfferID captured in step 1 is forwarded to price the offer, including a traveler-typed request, then negative cases for an unknown ID, missing SelectedOffer, and empty body. Steps 12–16 cover ServiceList just before order creation: the happy path exercises all SSRs with no context filter, offer-scoped SSRs using the OfferID from step 1, and cabin-filtered SSRs; negative cases cover invalid XML and empty body. Steps 17–21 cover OrderCreate: step 17 creates a confirmed order using the OfferID from step 1, and steps 18–21 cover missing OrderItems, unknown offer, invalid XML, and empty body. Steps 22–26 cover OrderRetrieve: step 22 retrieves the order created in step 17 using its booking reference and the passenger surname from that step, then negative cases cover an unknown booking reference, a wrong surname, a missing BookingRef/ID element, and an empty body.",
+    "name": "NDC — AirShopping + OfferPrice + ServiceList + OrderCreate + OrderRetrieve + SeatAvailability (IATA NDC 21.3)",
+    "description": "Validates the IATA NDC 21.3 AirShopping, OfferPrice, ServiceList, OrderCreate, OrderRetrieve, and SeatAvailability endpoints on the Retail API. Steps 1–6 cover AirShopping: well-formed requests with single and multiple passenger types, a past-date search returning an empty OffersGroup, and negative cases. Steps 7–11 cover OfferPrice: the OfferID captured in step 1 is forwarded to price the offer, including a traveler-typed request, then negative cases for an unknown ID, missing SelectedOffer, and empty body. Steps 12–16 cover ServiceList just before order creation: the happy path exercises all SSRs with no context filter, offer-scoped SSRs using the OfferID from step 1, and cabin-filtered SSRs; negative cases cover invalid XML and empty body. Steps 17–21 cover OrderCreate: step 17 creates a confirmed order using the OfferID from step 1, and steps 18–21 cover missing OrderItems, unknown offer, invalid XML, and empty body. Steps 22–26 cover OrderRetrieve: step 22 retrieves the order created in step 17 using its booking reference and the passenger surname from that step, then negative cases cover an unknown booking reference, a wrong surname, a missing BookingRef/ID element, and an empty body. Steps 27–30 cover SeatAvailability: step 27 requests the seatmap for the OfferID from step 1 and expects a 200 IATA_SeatAvailabilityRS with cabin and row/seat data; negative cases cover an unknown OfferRefID (404), missing OfferRefID (400), and empty body (400).",
     "domain": "Retail",
     "baseUrls": [
       {
@@ -43,7 +43,7 @@
           "field": "OfferID",
           "as": "ndcOfferId",
           "xmlRegex": "<OfferID>([^<]+)</OfferID>",
-          "usedInSteps": [7, 8, 13, 17]
+          "usedInSteps": [7, 8, 13, 17, 27]
         }
       ]
     },
@@ -776,6 +776,122 @@
         "description": "Returns 400 when the request body is empty.",
         "keyFields": [],
         "validationNotes": "Code must be ERR_EMPTY_BODY. Namespace must be IATA_OrderRetrieveRS."
+      }
+    },
+    {
+      "step": 27,
+      "name": "SeatAvailability — seatmap for offer from step 1",
+      "description": "Posts a valid IATA_SeatAvailabilityRQ using the OfferID captured from step 1. The handler resolves the stored offer to obtain the flight's InventoryId and AircraftType, then concurrently fetches the physical seatmap layout and per-seat pricing from the Seat microservice. Expects 200 with an IATA_SeatAvailabilityRS containing Response/SeatAvailability/Flights/Flight/CabinList (at least one Cabin with ColumnList and RowList/Row/Seat elements) and DataLists (FlightSegmentList and OriginDestinationList). Depends on step 1 returning a valid OfferID and the aircraft type having a configured seatmap.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/SeatAvailability",
+        "baseUrlRef": "retail",
+        "note": "OfferRefID chained from step 1"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_SeatAvailabilityRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Travelers>\n    <Traveler>\n      <AnonymousTraveler>\n        <PTC>ADT</PTC>\n        <Quantity>1</Quantity>\n      </AnonymousTraveler>\n    </Traveler>\n  </Travelers>\n  <Query>\n    <OriginDestCriteria>\n      <OfferRefID>__CHAIN_ndcOfferId__</OfferRefID>\n    </OriginDestCriteria>\n  </Query>\n</IATA_SeatAvailabilityRQ>",
+        "dataChain": [
+          {
+            "field": "OfferRefID",
+            "from": "ndcOfferId",
+            "source": "Step 1 → AirShoppingRS first OfferID"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_SeatAvailabilityRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <SeatAvailability>\n      <Flights>\n        <Flight>\n          <SegmentRefs>SEG1</SegmentRefs>\n          <CabinList>\n            <Cabin>\n              <CabinCode>M</CabinCode>\n              <ColumnList><Column><Position>A</Position></Column></ColumnList>\n              <RowList><Row><RowNumber>1</RowNumber><Seat><Column>A</Column><SeatNumber>1A</SeatNumber><OccupationStatusCode>F</OccupationStatusCode></Seat></Row></RowList>\n            </Cabin>\n          </CabinList>\n        </Flight>\n      </Flights>\n    </SeatAvailability>\n    <DataLists>\n      <FlightSegmentList>...</FlightSegmentList>\n      <OriginDestinationList>...</OriginDestinationList>\n    </DataLists>\n  </Response>\n</IATA_SeatAvailabilityRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with a well-formed IATA_SeatAvailabilityRS. Response/SeatAvailability/Flights/Flight must contain CabinList with at least one Cabin. Each Cabin must include ColumnList and RowList. Each Row must include at least one Seat with Column, SeatNumber, and OccupationStatusCode (F=free or O=occupied). DataLists must contain FlightSegmentList and OriginDestinationList derived from the offer.",
+        "keyFields": [],
+        "validationNotes": "Root element must be IATA_SeatAvailabilityRS with namespace http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRS. Depends on step 1 returning a valid OfferID and the flight's aircraft type having a configured seatmap. If no seat pricing is available the Seat elements are still returned without OfferRef children."
+      }
+    },
+    {
+      "step": 28,
+      "name": "SeatAvailability — unknown OfferRefID → 404",
+      "description": "Posts an IATA_SeatAvailabilityRQ with a randomly generated GUID that does not correspond to any stored offer. Expects 404 with an IATA_SeatAvailabilityRS Errors element containing Code ERR_OFFER_NOT_FOUND.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/SeatAvailability",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_SeatAvailabilityRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Query>\n    <OriginDestCriteria>\n      <OfferRefID>00000000-0000-0000-0000-000000000000</OfferRefID>\n    </OriginDestCriteria>\n  </Query>\n</IATA_SeatAvailabilityRQ>"
+      },
+      "response": {
+        "statusCode": 404,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_SeatAvailabilityRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_OFFER_NOT_FOUND</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_SeatAvailabilityRS>"
+      },
+      "expected": {
+        "statusCode": 404,
+        "description": "Returns 404 with an IATA_SeatAvailabilityRS Errors/Error element with Code ERR_OFFER_NOT_FOUND when the OfferRefID does not match any stored offer.",
+        "keyFields": [],
+        "validationNotes": "The nil GUID (all zeros) will never match a real stored offer. Response namespace must be IATA_SeatAvailabilityRS."
+      }
+    },
+    {
+      "step": 29,
+      "name": "SeatAvailability — missing OfferRefID → 400",
+      "description": "Posts an IATA_SeatAvailabilityRQ that omits the Query/OriginDestCriteria/OfferRefID element. The parser cannot determine which offer to use and must return 400 with an IATA_SeatAvailabilityRS Errors element containing Code ERR_PARSE.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/SeatAvailability",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_SeatAvailabilityRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRQ\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Query />\n</IATA_SeatAvailabilityRQ>"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_SeatAvailabilityRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_PARSE</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_SeatAvailabilityRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 with an IATA_SeatAvailabilityRS Errors/Error element with Code ERR_PARSE when OfferRefID is absent.",
+        "keyFields": [],
+        "validationNotes": "Query/OriginDestCriteria/OfferRefID is a mandatory field. Its absence must produce ERR_PARSE, not a 500. Response namespace must be IATA_SeatAvailabilityRS."
+      }
+    },
+    {
+      "step": 30,
+      "name": "SeatAvailability — empty body → 400",
+      "description": "Posts an empty body to the SeatAvailability endpoint. Must return 400 with an IATA_SeatAvailabilityRS Errors element containing Code ERR_EMPTY_BODY.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/SeatAvailability",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": null
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_SeatAvailabilityRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_EMPTY_BODY</Code>\n      <DescText>Request body must not be empty.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_SeatAvailabilityRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body is empty.",
+        "keyFields": [],
+        "validationNotes": "Code must be ERR_EMPTY_BODY. Namespace must be IATA_SeatAvailabilityRS."
       }
     }
   ]

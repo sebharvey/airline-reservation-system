@@ -3,6 +3,7 @@ using System.Xml;
 using System.Xml.Linq;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOrderCreate;
+using ReservationSystem.Orchestration.Retail.Application.NdcSeatAvailability;
 using ReservationSystem.Orchestration.Retail.Application.NdcServiceList;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
@@ -32,7 +33,8 @@ public static class NdcXmlBuilder
     private const string OfferPriceRsNsUri  = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OfferPriceRS";
     private const string OrderCreateRsNsUri = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS";
     private const string ServiceListRsNsUri    = "http://www.iata.org/IATA/2015/00/2021.3/IATA_ServiceListRS";
-    private const string OrderRetrieveRsNsUri  = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS";
+    private const string OrderRetrieveRsNsUri      = "http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS";
+    private const string SeatAvailabilityRsNsUri   = "http://www.iata.org/IATA/2015/00/2021.3/IATA_SeatAvailabilityRS";
     private const string CarrierCode = "AX";
     private const string CarrierName = "Apex Air";
 
@@ -1111,6 +1113,278 @@ public static class NdcXmlBuilder
         }
 
         return list;
+    }
+
+    // ── SeatAvailabilityRS ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds an IATA NDC 21.3 SeatAvailabilityRS XML document.
+    ///
+    /// Structure:
+    ///   Document                       — schema version 21.3
+    ///   Response/SeatAvailability      — one Flight per flight segment
+    ///     Flight/SegmentRefs           — SEG1 key
+    ///     Flight/CabinList/Cabin       — one entry per cabin
+    ///       Cabin/ColumnList           — column letters with NDC position code
+    ///       Cabin/RowList/Row          — row number + exit-row flag
+    ///         Row/Seat                 — seat number, column, occupation status
+    ///           Seat/OfferRef          — seat offer ID and unit price (when priced)
+    ///   Response/DataLists             — FlightSegmentList, OriginDestinationList
+    ///
+    /// Occupation status: F=Free/available, O=Occupied, X=Blocked.
+    /// Seat offers are joined to the layout by SeatNumber; seats absent from the
+    /// offers list are treated as occupied/unavailable.
+    /// </summary>
+    public static string BuildSeatAvailabilityRS(NdcSeatAvailabilityResult result)
+    {
+        XNamespace ns = SeatAvailabilityRsNsUri;
+
+        const string segKey = "SEG1";
+        const string odKey  = "OD1";
+
+        var seatOfferMap = result.SeatOffers?.SeatOffers
+            .ToDictionary(o => o.SeatNumber, o => o, StringComparer.OrdinalIgnoreCase)
+            ?? [];
+
+        var root = new XElement(ns + "IATA_SeatAvailabilityRS",
+            new XAttribute(XNamespace.Xmlns + "xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+            BuildSaDocument(ns),
+            BuildSaResponse(ns, result, segKey, odKey, seatOfferMap));
+
+        return SerialiseXml(root);
+    }
+
+    private static XElement BuildSaDocument(XNamespace ns) =>
+        new(ns + "Document",
+            new XElement(ns + "ReferenceVersion", "21.3"));
+
+    private static XElement BuildSaResponse(
+        XNamespace ns,
+        NdcSeatAvailabilityResult result,
+        string segKey,
+        string odKey,
+        Dictionary<string, SeatOfferDto> seatOfferMap)
+    {
+        var offer = result.OfferDetail!;
+        var seatmap = result.Seatmap!;
+
+        var flightEl = new XElement(ns + "Flight",
+            new XElement(ns + "SegmentRefs", segKey),
+            BuildSaCabinList(ns, seatmap, seatOfferMap));
+
+        return new XElement(ns + "Response",
+            new XElement(ns + "SeatAvailability",
+                new XElement(ns + "Flights", flightEl)),
+            BuildSaDataLists(ns, offer, segKey, odKey));
+    }
+
+    private static XElement BuildSaCabinList(
+        XNamespace ns,
+        SeatmapLayoutDto seatmap,
+        Dictionary<string, SeatOfferDto> seatOfferMap)
+    {
+        var cabinList = new XElement(ns + "CabinList");
+
+        foreach (var cabin in seatmap.Cabins)
+        {
+            // Build a per-column position lookup from the cabin's seats.
+            var columnPosition = BuildColumnPositionMap(cabin);
+
+            var cabinEl = new XElement(ns + "Cabin",
+                new XElement(ns + "CabinCode", MapCabinToNdc(cabin.CabinCode)),
+                new XElement(ns + "CabinName", cabin.CabinName),
+                new XElement(ns + "DeckCode", cabin.DeckLevel ?? "Main"),
+                new XElement(ns + "FirstRowNumber", cabin.StartRow.ToString()),
+                new XElement(ns + "LastRowNumber", cabin.EndRow.ToString()),
+                BuildSaColumnList(ns, cabin.Columns, columnPosition),
+                BuildSaRowList(ns, cabin.Rows, seatOfferMap));
+
+            cabinList.Add(cabinEl);
+        }
+
+        return cabinList;
+    }
+
+    private static XElement BuildSaColumnList(
+        XNamespace ns,
+        List<string> columns,
+        Dictionary<string, string> columnPosition)
+    {
+        var colList = new XElement(ns + "ColumnList");
+
+        foreach (var col in columns)
+        {
+            var colEl = new XElement(ns + "Column",
+                new XElement(ns + "Position", col));
+
+            columnPosition.TryGetValue(col, out var charCode);
+            if (!string.IsNullOrWhiteSpace(charCode))
+                colEl.Add(new XElement(ns + "SeatCharacteristicCode", charCode));
+
+            colList.Add(colEl);
+        }
+
+        return colList;
+    }
+
+    private static XElement BuildSaRowList(
+        XNamespace ns,
+        List<RowLayoutDto> rows,
+        Dictionary<string, SeatOfferDto> seatOfferMap)
+    {
+        var rowList = new XElement(ns + "RowList");
+
+        foreach (var row in rows)
+        {
+            var isExitRow = row.Seats.Any(s =>
+                s.Attributes.Any(a => a.Contains("EXIT", StringComparison.OrdinalIgnoreCase)));
+
+            var rowEl = new XElement(ns + "Row",
+                new XElement(ns + "RowNumber", row.RowNumber.ToString()));
+
+            if (isExitRow)
+                rowEl.Add(new XElement(ns + "CharacteristicCode", "K"));
+
+            foreach (var seat in row.Seats)
+                rowEl.Add(BuildSaSeat(ns, seat, seatOfferMap));
+
+            rowList.Add(rowEl);
+        }
+
+        return rowList;
+    }
+
+    private static XElement BuildSaSeat(
+        XNamespace ns,
+        SeatLayoutDto seat,
+        Dictionary<string, SeatOfferDto> seatOfferMap)
+    {
+        seatOfferMap.TryGetValue(seat.SeatNumber, out var offer);
+
+        // Determine occupation status.
+        // A seat is Free only when it appears in the offers list and is selectable.
+        var statusCode = (offer is not null && offer.IsSelectable) ? "F"
+                       : seat.IsSelectable                         ? "F"
+                                                                   : "O";
+
+        var seatEl = new XElement(ns + "Seat",
+            new XElement(ns + "Column", seat.Column),
+            new XElement(ns + "SeatNumber", seat.SeatNumber),
+            new XElement(ns + "OccupationStatusCode", statusCode));
+
+        // Seat characteristics (window, aisle, middle, exit).
+        var charCode = MapSeatPositionToNdc(seat.Position);
+        if (!string.IsNullOrWhiteSpace(charCode))
+            seatEl.Add(new XElement(ns + "SeatCharacteristicCode", charCode));
+
+        // Offer reference and pricing — only when a priced offer exists.
+        if (offer is not null && offer.IsSelectable)
+        {
+            var currency = string.IsNullOrWhiteSpace(offer.CurrencyCode) ? "GBP" : offer.CurrencyCode;
+
+            seatEl.Add(new XElement(ns + "OfferRef",
+                new XElement(ns + "OfferRefID", offer.SeatOfferId),
+                new XElement(ns + "UnitPrice",
+                    new XElement(ns + "TotalAmount",
+                        new XAttribute("CurCode", currency),
+                        (offer.Price + offer.Tax).ToString("F2")),
+                    new XElement(ns + "BaseAmount",
+                        new XAttribute("CurCode", currency),
+                        offer.Price.ToString("F2")),
+                    new XElement(ns + "Taxes",
+                        new XElement(ns + "Total",
+                            new XAttribute("CurCode", currency),
+                            offer.Tax.ToString("F2"))))));
+        }
+
+        return seatEl;
+    }
+
+    private static XElement BuildSaDataLists(
+        XNamespace ns,
+        OfferDetailDto offer,
+        string segKey,
+        string odKey)
+    {
+        DateOnly.TryParse(offer.DepartureDate, out var depDate);
+        var arrDate = depDate.AddDays(offer.ArrivalDayOffset);
+        var (airlineId, flightNum) = SplitFlightNumber(offer.FlightNumber);
+        var aircraftCode = MapAircraftType(offer.AircraftType);
+
+        var flightSegment = new XElement(ns + "FlightSegment",
+            new XElement(ns + "SegmentKey", segKey),
+            new XElement(ns + "Departure",
+                new XElement(ns + "AirportCode", offer.Origin),
+                new XElement(ns + "Date", offer.DepartureDate),
+                new XElement(ns + "Time", offer.DepartureTime)),
+            new XElement(ns + "Arrival",
+                new XElement(ns + "AirportCode", offer.Destination),
+                new XElement(ns + "Date", arrDate.ToString("yyyy-MM-dd")),
+                new XElement(ns + "Time", offer.ArrivalTime)),
+            new XElement(ns + "MarketingCarrier",
+                new XElement(ns + "AirlineID", airlineId),
+                new XElement(ns + "FlightNumber", flightNum),
+                new XElement(ns + "Name", CarrierName)),
+            new XElement(ns + "OperatingCarrier",
+                new XElement(ns + "AirlineID", airlineId),
+                new XElement(ns + "FlightNumber", flightNum)),
+            new XElement(ns + "Equipment",
+                new XElement(ns + "AircraftCode", aircraftCode)));
+
+        var originDest = new XElement(ns + "OriginDestination",
+            new XElement(ns + "OriginDestinationKey", odKey),
+            new XElement(ns + "DepartureCode", offer.Origin),
+            new XElement(ns + "ArrivalCode", offer.Destination),
+            new XElement(ns + "FlightReferences", segKey));
+
+        return new XElement(ns + "DataLists",
+            new XElement(ns + "FlightSegmentList", flightSegment),
+            new XElement(ns + "OriginDestinationList", originDest));
+    }
+
+    /// <summary>
+    /// Builds a column → NDC position code map by inspecting the first seat found
+    /// in each column across all rows of the cabin.
+    /// </summary>
+    private static Dictionary<string, string> BuildColumnPositionMap(CabinLayoutDto cabin)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var row in cabin.Rows)
+        {
+            foreach (var seat in row.Seats)
+            {
+                if (!map.ContainsKey(seat.Column))
+                {
+                    var code = MapSeatPositionToNdc(seat.Position);
+                    if (!string.IsNullOrWhiteSpace(code))
+                        map[seat.Column] = code;
+                }
+            }
+
+            // Stop once all columns have been mapped.
+            if (map.Count >= cabin.Columns.Count) break;
+        }
+
+        return map;
+    }
+
+    /// <summary>
+    /// Maps internal seat position descriptors to NDC SeatCharacteristicCode values.
+    /// NDC: W=Window, A=Aisle, M=Middle, K=ExitRow.
+    /// </summary>
+    private static string MapSeatPositionToNdc(string position)
+    {
+        if (string.IsNullOrWhiteSpace(position)) return string.Empty;
+
+        return position.ToUpperInvariant() switch
+        {
+            var p when p.Contains("WINDOW") => "W",
+            var p when p.Contains("AISLE")  => "A",
+            var p when p.Contains("MIDDLE") => "M",
+            var p when p.Contains("EXIT")   => "K",
+            _                               => string.Empty
+        };
     }
 
     // ── Helpers: DateTime splitting ───────────────────────────────────────────
