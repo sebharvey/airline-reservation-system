@@ -824,7 +824,7 @@ public sealed class OrderFunction
         if (!int.TryParse(query["limit"], out var limit) || limit <= 0 || limit > 100)
             limit = 10;
 
-        var orders = await _orderRepository.GetRecentAsync(limit, ct);
+        var orders = await _orderRepository.GetRecentAsync(limit, CancellationToken.None);
         return await req.OkJsonAsync(orders.Select(o => OrderMapper.ToResponse(o)));
     }
 
