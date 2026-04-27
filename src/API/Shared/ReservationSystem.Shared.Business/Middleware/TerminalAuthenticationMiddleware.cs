@@ -29,7 +29,7 @@ public sealed class TerminalAuthenticationMiddleware : IFunctionsWorkerMiddlewar
     {
         _logger = logger;
 
-        var secret = configuration["Jwt:Secret"];
+        var secret = configuration["UserMs:JwtSecret"];
 
         if (!string.IsNullOrEmpty(secret))
         {
@@ -37,9 +37,9 @@ public sealed class TerminalAuthenticationMiddleware : IFunctionsWorkerMiddlewar
             _tokenValidation = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuer = configuration["Jwt:Issuer"] ?? "apex-air-user",
+                ValidIssuer = configuration["UserMs:JwtIssuer"] ?? "apex-air-user",
                 ValidateAudience = true,
-                ValidAudience = configuration["Jwt:Audience"] ?? "apex-air-reservation",
+                ValidAudience = configuration["UserMs:JwtAudience"] ?? "apex-air-reservation",
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
@@ -68,7 +68,7 @@ public sealed class TerminalAuthenticationMiddleware : IFunctionsWorkerMiddlewar
 
         if (_tokenValidation is null)
         {
-            _logger.LogError("Staff JWT validation is not configured (Jwt:Secret is missing)");
+            _logger.LogError("Staff JWT validation is not configured (UserMs:JwtSecret is missing)");
             context.GetInvocationResult().Value = await requestData.InternalServerErrorAsync();
             return;
         }
