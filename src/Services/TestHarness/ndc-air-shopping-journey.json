@@ -1,7 +1,7 @@
 {
   "journey": {
-    "name": "NDC — AirShopping + OfferPrice + ServiceList (IATA NDC 21.3)",
-    "description": "Validates the IATA NDC 21.3 AirShopping, OfferPrice, ServiceList, and OrderCreate endpoints on the Retail API. Steps 1–6 cover AirShopping: well-formed requests with single and multiple passenger types, a past-date search returning an empty OffersGroup, and negative cases. Steps 7–11 cover OfferPrice: the OfferID captured in step 1 is forwarded to price the offer, including a traveler-typed request, then negative cases for an unknown ID, missing SelectedOffer, and empty body. Steps 12–16 cover ServiceList just before order creation: the happy path exercises all SSRs with no context filter, offer-scoped SSRs using the OfferID from step 1, and cabin-filtered SSRs; negative cases cover invalid XML and empty body. Steps 17–21 cover OrderCreate: step 17 creates a confirmed order using the OfferID from step 1, and steps 18–21 cover missing OrderItems, unknown offer, invalid XML, and empty body.",
+    "name": "NDC — AirShopping + OfferPrice + ServiceList + OrderCreate + OrderRetrieve (IATA NDC 21.3)",
+    "description": "Validates the IATA NDC 21.3 AirShopping, OfferPrice, ServiceList, OrderCreate, and OrderRetrieve endpoints on the Retail API. Steps 1–6 cover AirShopping: well-formed requests with single and multiple passenger types, a past-date search returning an empty OffersGroup, and negative cases. Steps 7–11 cover OfferPrice: the OfferID captured in step 1 is forwarded to price the offer, including a traveler-typed request, then negative cases for an unknown ID, missing SelectedOffer, and empty body. Steps 12–16 cover ServiceList just before order creation: the happy path exercises all SSRs with no context filter, offer-scoped SSRs using the OfferID from step 1, and cabin-filtered SSRs; negative cases cover invalid XML and empty body. Steps 17–21 cover OrderCreate: step 17 creates a confirmed order using the OfferID from step 1, and steps 18–21 cover missing OrderItems, unknown offer, invalid XML, and empty body. Steps 22–26 cover OrderRetrieve: step 22 retrieves the order created in step 17 using its booking reference and the passenger surname from that step, then negative cases cover an unknown booking reference, a wrong surname, a missing BookingRef/ID element, and an empty body.",
     "domain": "Retail",
     "baseUrls": [
       {
@@ -509,7 +509,15 @@
         "description": "Returns 201 Created with a well-formed IATA_OrderCreateRS. Order/StatusCode must be ISSUED. BookingRef/BookingEntity/Carrier/AirlineDesigCode must be AX. At least one OrderItem with StatusCode=PAYMENT_DONE. DataLists contains FlightSegmentList, OriginDestinationList, and PaxList reflecting the submitted passenger.",
         "keyFields": [],
         "validationNotes": "Root element must be IATA_OrderCreateRS with namespace http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderCreateRS. Depends on step 1 returning a valid OfferID. The offer is consumed by this step — subsequent OrderCreate calls with the same OfferID will return 404."
-      }
+      },
+      "chainsTo": [
+        {
+          "field": "BookingRef/ID",
+          "as": "ndcBookingRef",
+          "xmlRegex": "<ID>([A-Z0-9]{4,8})</ID>",
+          "usedInSteps": [22, 23]
+        }
+      ]
     },
     {
       "step": 18,
@@ -617,6 +625,157 @@
         "description": "Returns 400 when the request body is empty.",
         "keyFields": [],
         "validationNotes": "Code must be ERR_EMPTY_BODY. Namespace must be IATA_OrderCreateRS."
+      }
+    },
+    {
+      "step": 22,
+      "name": "OrderRetrieve — retrieve order from step 17",
+      "description": "Posts a valid IATA_OrderRetrieveRQ using the booking reference captured from step 17 and the same passenger surname used in that step. Expects 200 with an IATA_OrderRetrieveRS containing Response/Order (OrderID, BookingRef with AirlineDesigCode=AX, StatusCode=ISSUED, TotalAmount, at least one OrderItem with StatusCode=PAYMENT_DONE, TicketDocInfo) and DataLists (FlightSegmentList, OriginDestinationList, PaxList). Depends on step 17 completing successfully.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderRetrieve",
+        "baseUrlRef": "retail",
+        "note": "BookingRef/ID chained from step 17"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Party>\n    <Sender>\n      <TravelAgencySender>\n        <AgencyID>TEST001</AgencyID>\n        <Name>Test OTA</Name>\n      </TravelAgencySender>\n    </Sender>\n    <Recipient>\n      <AirlineRecipient>\n        <AirlineDesigCode>AX</AirlineDesigCode>\n      </AirlineRecipient>\n    </Recipient>\n  </Party>\n  <Query>\n    <Filters>\n      <OrderFilter>\n        <BookingRef>\n          <BookingEntity>\n            <Carrier>\n              <AirlineDesigCode>AX</AirlineDesigCode>\n            </Carrier>\n          </BookingEntity>\n          <ID>__CHAIN_ndcBookingRef__</ID>\n        </BookingRef>\n        <Pax>\n          <Individual>\n            <Surname>__RAND_SURNAME__</Surname>\n          </Individual>\n        </Pax>\n      </OrderFilter>\n    </Filters>\n  </Query>\n</IATA_OrderRetrieveRQ>",
+        "dataChain": [
+          {
+            "field": "BookingRef/ID",
+            "from": "ndcBookingRef",
+            "source": "Step 17 → OrderCreateRS BookingRef/ID"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Response>\n    <Order>\n      <OrderID>...</OrderID>\n      <BookingRef>\n        <BookingEntity><Carrier><AirlineDesigCode>AX</AirlineDesigCode></Carrier></BookingEntity>\n        <ID>...</ID>\n      </BookingRef>\n      <StatusCode>ISSUED</StatusCode>\n      <TotalAmount CurCode=\"GBP\">...</TotalAmount>\n      <OrderItem>\n        <OrderItemID>...</OrderItemID>\n        <StatusCode>PAYMENT_DONE</StatusCode>\n        <Price><TotalAmount CurCode=\"GBP\">...</TotalAmount></Price>\n      </OrderItem>\n      <TicketDocInfo>...</TicketDocInfo>\n    </Order>\n    <DataLists>\n      <FlightSegmentList>...</FlightSegmentList>\n      <OriginDestinationList>...</OriginDestinationList>\n      <PaxList><Pax><PaxID>PAX1</PaxID><PTC>ADT</PTC></Pax></PaxList>\n    </DataLists>\n  </Response>\n</IATA_OrderRetrieveRS>"
+      },
+      "expected": {
+        "statusCode": 200,
+        "description": "Returns 200 with a well-formed IATA_OrderRetrieveRS. Order/StatusCode must be ISSUED. BookingRef/ID must match the booking reference from step 17. At least one OrderItem with StatusCode=PAYMENT_DONE. DataLists contains FlightSegmentList, OriginDestinationList, and PaxList.",
+        "keyFields": [],
+        "validationNotes": "Root element must be IATA_OrderRetrieveRS with namespace http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS. The surname in the request must match the lead passenger surname used in step 17 — the Order microservice performs surname validation before returning the order."
+      }
+    },
+    {
+      "step": 23,
+      "name": "OrderRetrieve — unknown booking reference → 404",
+      "description": "Posts a valid IATA_OrderRetrieveRQ with a booking reference that does not correspond to any order. Expects 404 with an IATA_OrderRetrieveRS Errors element containing Code ERR_ORDER_NOT_FOUND.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderRetrieve",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Query>\n    <Filters>\n      <OrderFilter>\n        <BookingRef>\n          <BookingEntity>\n            <Carrier>\n              <AirlineDesigCode>AX</AirlineDesigCode>\n            </Carrier>\n          </BookingEntity>\n          <ID>ZZZZZZ</ID>\n        </BookingRef>\n        <Pax>\n          <Individual>\n            <Surname>SMITH</Surname>\n          </Individual>\n        </Pax>\n      </OrderFilter>\n    </Filters>\n  </Query>\n</IATA_OrderRetrieveRQ>"
+      },
+      "response": {
+        "statusCode": 404,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_ORDER_NOT_FOUND</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OrderRetrieveRS>"
+      },
+      "expected": {
+        "statusCode": 404,
+        "description": "Returns 404 with an IATA_OrderRetrieveRS Errors/Error element with Code ERR_ORDER_NOT_FOUND when the booking reference does not match any order.",
+        "keyFields": [],
+        "validationNotes": "The booking reference ZZZZZZ is chosen to be unlikely to match a real booking. Response namespace must be IATA_OrderRetrieveRS."
+      }
+    },
+    {
+      "step": 24,
+      "name": "OrderRetrieve — wrong surname → 404",
+      "description": "Posts an IATA_OrderRetrieveRQ with the correct booking reference from step 17 but a surname that does not match the lead passenger. The Order microservice validates the surname and returns 404 when it does not match. Expects 404 with Code ERR_ORDER_NOT_FOUND.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderRetrieve",
+        "baseUrlRef": "retail",
+        "note": "BookingRef/ID chained from step 17; surname deliberately wrong"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRQ\">\n  <Document>\n    <Name>Apex Air NDC Test Harness</Name>\n    <ReferenceVersion>21.3</ReferenceVersion>\n  </Document>\n  <Query>\n    <Filters>\n      <OrderFilter>\n        <BookingRef>\n          <BookingEntity>\n            <Carrier>\n              <AirlineDesigCode>AX</AirlineDesigCode>\n            </Carrier>\n          </BookingEntity>\n          <ID>__CHAIN_ndcBookingRef__</ID>\n        </BookingRef>\n        <Pax>\n          <Individual>\n            <Surname>WRONGSURNAME</Surname>\n          </Individual>\n        </Pax>\n      </OrderFilter>\n    </Filters>\n  </Query>\n</IATA_OrderRetrieveRQ>",
+        "dataChain": [
+          {
+            "field": "BookingRef/ID",
+            "from": "ndcBookingRef",
+            "source": "Step 17 → OrderCreateRS BookingRef/ID"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 404,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_ORDER_NOT_FOUND</Code>\n      <DescText>...</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OrderRetrieveRS>"
+      },
+      "expected": {
+        "statusCode": 404,
+        "description": "Returns 404 when the surname does not match the lead passenger on the booking. The Order microservice validates the surname before returning order data; a mismatch is treated identically to an unknown booking reference.",
+        "keyFields": [],
+        "validationNotes": "Surname validation prevents unauthorised retrieval of another passenger's booking. The error code ERR_ORDER_NOT_FOUND is used for both unknown references and surname mismatches to avoid leaking booking existence."
+      }
+    },
+    {
+      "step": 25,
+      "name": "OrderRetrieve — missing BookingRef/ID → 400",
+      "description": "Posts an IATA_OrderRetrieveRQ that omits the Query/Filters/OrderFilter/BookingRef/ID element. The parser cannot determine which booking to retrieve and must return 400 with Code ERR_PARSE.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderRetrieve",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRQ xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRQ\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Query>\n    <Filters>\n      <OrderFilter>\n        <Pax>\n          <Individual>\n            <Surname>SMITH</Surname>\n          </Individual>\n        </Pax>\n      </OrderFilter>\n    </Filters>\n  </Query>\n</IATA_OrderRetrieveRQ>"
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_PARSE</Code>\n      <DescText>Query/Filters/OrderFilter/BookingRef/ID is missing.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OrderRetrieveRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 with an IATA_OrderRetrieveRS Errors/Error element with Code ERR_PARSE when BookingRef/ID is absent.",
+        "keyFields": [],
+        "validationNotes": "BookingRef/ID is a mandatory field. Its absence must produce ERR_PARSE, not a 500. The response namespace must be IATA_OrderRetrieveRS."
+      }
+    },
+    {
+      "step": 26,
+      "name": "OrderRetrieve — empty body → 400",
+      "description": "Posts an empty body to the OrderRetrieve endpoint. Must return 400 with an IATA_OrderRetrieveRS Errors element containing Code ERR_EMPTY_BODY.",
+      "type": "negative",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/ndc/OrderRetrieve",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/xml"
+        },
+        "body": null
+      },
+      "response": {
+        "statusCode": 400,
+        "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IATA_OrderRetrieveRS xmlns=\"http://www.iata.org/IATA/2015/00/2021.3/IATA_OrderRetrieveRS\">\n  <Document><ReferenceVersion>21.3</ReferenceVersion></Document>\n  <Errors>\n    <Error>\n      <Code>ERR_EMPTY_BODY</Code>\n      <DescText>Request body must not be empty.</DescText>\n      <LangCode>EN</LangCode>\n    </Error>\n  </Errors>\n</IATA_OrderRetrieveRS>"
+      },
+      "expected": {
+        "statusCode": 400,
+        "description": "Returns 400 when the request body is empty.",
+        "keyFields": [],
+        "validationNotes": "Code must be ERR_EMPTY_BODY. Namespace must be IATA_OrderRetrieveRS."
       }
     }
   ]
