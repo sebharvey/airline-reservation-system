@@ -260,6 +260,7 @@ export interface OrderNote {
   dateTime: string;
   type: string;
   message: string;
+  paxId?: number;
 }
 
 export interface OrderData {

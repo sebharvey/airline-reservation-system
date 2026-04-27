@@ -60,7 +60,7 @@ public sealed class OrderServiceClient
         CancellationToken ct)
     {
         object? notesPayload = timaticNotes is { Count: > 0 }
-            ? timaticNotes.Select(n => (object)new { dateTime = n.DateTime, type = n.Type, message = n.Message }).ToList()
+            ? timaticNotes.Select(n => (object)new { dateTime = n.DateTime, type = n.Type, message = n.Message, paxId = n.PaxId }).ToList()
             : null;
 
         var payload = new { departureAirport, checkedInAt, passengers, notes = notesPayload };
@@ -84,7 +84,7 @@ public sealed class OrderServiceClient
         IReadOnlyList<OrderTimaticNote> notes,
         CancellationToken ct)
     {
-        var notesPayload = notes.Select(n => (object)new { dateTime = n.DateTime, type = n.Type, message = n.Message }).ToList();
+        var notesPayload = notes.Select(n => (object)new { dateTime = n.DateTime, type = n.Type, message = n.Message, paxId = n.PaxId }).ToList();
         var payload = new { notes = notesPayload };
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
@@ -233,4 +233,5 @@ public sealed class OrderTimaticNote
     public string DateTime { get; init; } = string.Empty;
     public string Type     { get; init; } = string.Empty;
     public string Message  { get; init; } = string.Empty;
+    public int?   PaxId    { get; init; }
 }

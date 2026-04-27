@@ -220,6 +220,17 @@ export class OrderDetailComponent implements OnInit {
     this.order()?.orderData?.notes ?? []
   );
 
+  paxNameByPaxId = computed<Map<number, string>>(() => {
+    const map = new Map<number, string>();
+    for (const pax of this.order()?.orderData?.dataLists?.passengers ?? []) {
+      const match = pax.passengerId?.match(/-(\d+)$/);
+      if (match) {
+        map.set(parseInt(match[1], 10), `${pax.givenName} ${pax.surname}`.trim());
+      }
+    }
+    return map;
+  });
+
   ngOnInit(): void {
     this.bookingRef = this.#route.snapshot.paramMap.get('bookingRef') ?? '';
     this.loadOrder();

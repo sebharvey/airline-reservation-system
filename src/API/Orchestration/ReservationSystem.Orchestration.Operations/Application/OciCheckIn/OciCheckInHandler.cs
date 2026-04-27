@@ -46,6 +46,11 @@ public sealed class OciCheckInHandler
             t => string.IsNullOrWhiteSpace(t.GivenName) ? t.Surname : $"{t.GivenName} {t.Surname}".Trim(),
             StringComparer.OrdinalIgnoreCase);
 
+        var paxIdByTicket = tickets.ToDictionary(
+            t => t.TicketNumber,
+            t => t.PassengerId,
+            StringComparer.OrdinalIgnoreCase);
+
         if (tickets.Count == 0)
         {
             _logger.LogWarning("OCI check-in: no tickets found for {BookingReference}", command.BookingReference);
@@ -66,7 +71,7 @@ public sealed class OciCheckInHandler
                 {
                     await _orderServiceClient.AddOrderNotesAsync(
                         command.BookingReference,
-                        BuildOrderNotes(ex.TimaticNotes, paxNameByTicket),
+                        BuildOrderNotes(ex.TimaticNotes, paxNameByTicket, paxIdByTicket),
                         ct);
                 }
                 catch (Exception notesEx)
@@ -106,7 +111,7 @@ public sealed class OciCheckInHandler
                     command.DepartureAirport,
                     checkedInAt,
                     paxCheckIn,
-                    BuildOrderNotes(result.TimaticNotes, paxNameByTicket),
+                    BuildOrderNotes(result.TimaticNotes, paxNameByTicket, paxIdByTicket),
                     ct);
             }
             catch (Exception ex)
@@ -226,7 +231,8 @@ public sealed class OciCheckInHandler
 
     private static List<OrderTimaticNote> BuildOrderNotes(
         IReadOnlyList<OciTimaticNote> timaticNotes,
-        IReadOnlyDictionary<string, string>? paxNameByTicket = null)
+        IReadOnlyDictionary<string, string>? paxNameByTicket = null,
+        IReadOnlyDictionary<string, string>? paxIdByTicket = null)
         => timaticNotes.Select(n =>
         {
             var checkLabel = n.CheckType switch
@@ -246,11 +252,20 @@ public sealed class OciCheckInHandler
             var message = string.IsNullOrWhiteSpace(n.Detail)
                 ? $"{checkLabel} {statusText} for {subject}"
                 : $"{checkLabel} {statusText} for {subject}: {n.Detail}";
+            var paxIdStr = paxIdByTicket is not null && paxIdByTicket.TryGetValue(n.TicketNumber, out var pid) ? pid : null;
             return new OrderTimaticNote
             {
                 DateTime = n.Timestamp,
                 Type     = "TIMATIC",
-                Message  = message
+                Message  = message,
+                PaxId    = ExtractPaxIdInt(paxIdStr)
             };
         }).ToList();
+
+    private static int? ExtractPaxIdInt(string? paxId)
+    {
+        if (string.IsNullOrEmpty(paxId)) return null;
+        var dash = paxId.LastIndexOf('-');
+        return dash >= 0 && int.TryParse(paxId[(dash + 1)..], out var n) ? n : null;
+    }
 }
