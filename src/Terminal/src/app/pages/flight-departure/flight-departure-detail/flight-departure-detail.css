@@ -98,8 +98,8 @@
 
 /* ── PAX list panel (left) ──────────────────────────────────────────────── */
 .pax-panel {
-  flex: 0 0 50%;
-  width: 50%;
+  flex: 0 0 60%;
+  width: 60%;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -394,11 +394,6 @@
   .fd-detail-page {
     padding: 0;
     height: calc(100vh - var(--topbar-height) - 64px);
-  }
-
-  .pax-panel {
-    flex: 0 0 38%;
-    width: 38%;
   }
 }
 
