@@ -215,7 +215,7 @@ The operational source of truth for who is on a given flight. One row per passen
 | FlightNumber | VARCHAR(10) | No | | | Denormalised, e.g. `AX003` |
 | DepartureDate | DATE | No | | | Denormalised for query convenience |
 | AircraftType | CHAR(4) | No | | | Used for seatmap validation at write time |
-| SeatNumber | VARCHAR(5) | No | | | e.g. `1A`, `22K` — must exist on active seatmap for `AircraftType` |
+| SeatNumber | VARCHAR(5) | Yes | | | e.g. `1A`, `22K`; `NULL` when no seat has been assigned. Non-null values must exist on the active seatmap for `AircraftType`. |
 | CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
 | BookingReference | CHAR(6) | No | | | e.g. `AB1234` |
 | ETicketNumber | VARCHAR(20) | No | | | e.g. `932-1234567890`; denormalised from `delivery.Ticket` |
@@ -232,7 +232,7 @@ The operational source of truth for who is on a given flight. One row per passen
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
 
-> **Indexes:** `IX_Manifest_Seat` (unique) on `(InventoryId, SeatNumber)` — prevents double-assignment of a seat on a flight. `IX_Manifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_Manifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_Manifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
+> **Indexes:** `IX_Manifest_Seat` (filtered unique) on `(InventoryId, SeatNumber) WHERE SeatNumber IS NOT NULL` — prevents double-assignment of a seat on a flight while allowing multiple unassigned passengers. `IX_Manifest_Pax` (unique) on `(InventoryId, ETicketNumber)` — prevents duplicate manifest entries for the same passenger. `IX_Manifest_Flight` on `(FlightNumber, DepartureDate)` — used for gate staff and IROPS manifest retrieval. `IX_Manifest_BookingReference` on `(BookingReference)` — used for customer servicing and check-in lookups.
 > **BookingType:** Set at manifest creation (order confirmation time) and never subsequently updated. `Confirmed` for revenue and reward bookings; `Standby` for standby bookings. Constrained by `CHK_Manifest_BookingType` to `('Confirmed', 'Standby')`.
 > **Lifecycle:** Manifest rows are created when a ticket is issued; removed (hard-deleted) when a booking is cancelled or a flight change removes the segment. On IROPS rebooking, the old manifest row is deleted and a new one written for the replacement flight.
 > **SsrCodes:** Stored as a JSON array (e.g. `["VGML","WCHR"]`) rather than a CSV string, enabling clean serialisation/deserialisation and future query support via SQL Server JSON functions.

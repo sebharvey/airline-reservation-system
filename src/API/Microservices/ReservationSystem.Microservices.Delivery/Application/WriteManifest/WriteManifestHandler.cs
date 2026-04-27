@@ -44,13 +44,6 @@ public sealed class WriteManifestHandler
 
         foreach (var entry in request.Entries)
         {
-            // SeatNumber is NOT NULL in the manifest table — skip unseated passengers
-            if (string.IsNullOrWhiteSpace(entry.SeatNumber))
-            {
-                skipped++;
-                continue;
-            }
-
             // Skip if ticket issuance failed for this passenger
             if (string.IsNullOrWhiteSpace(entry.ETicketNumber))
             {

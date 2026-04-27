@@ -15,7 +15,7 @@ public sealed class Manifest
     public string Destination { get; private set; } = string.Empty;
     public DateOnly DepartureDate { get; private set; }
     public string AircraftType { get; private set; } = string.Empty;
-    public string SeatNumber { get; private set; } = string.Empty;
+    public string? SeatNumber { get; private set; }
     public string CabinCode { get; private set; } = string.Empty;
     public string BookingReference { get; private set; } = string.Empty;
     public string ETicketNumber { get; private set; } = string.Empty;
@@ -36,7 +36,7 @@ public sealed class Manifest
 
     public void UpdateSeat(string? newSeatNumber)
     {
-        SeatNumber = newSeatNumber ?? string.Empty;
+        SeatNumber = newSeatNumber;
         UpdatedAt  = DateTime.UtcNow;
         Version++;
     }
@@ -63,7 +63,7 @@ public sealed class Manifest
         ArrivalTime   = newArrivalTime;
         CabinCode     = newCabinCode;
         ETicketNumber = newETicketNumber;
-        SeatNumber    = string.Empty;
+        SeatNumber    = null;
         UpdatedAt     = DateTime.UtcNow;
         Version++;
     }
@@ -77,7 +77,7 @@ public sealed class Manifest
         string destination,
         DateOnly departureDate,
         string aircraftType,
-        string seatNumber,
+        string? seatNumber,
         string cabinCode,
         string bookingReference,
         string eTicketNumber,

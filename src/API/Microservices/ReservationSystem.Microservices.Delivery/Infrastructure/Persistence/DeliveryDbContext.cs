@@ -87,7 +87,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(m => m.Destination).HasColumnType("char(3)").HasMaxLength(3).IsRequired();
             entity.Property(m => m.DepartureDate).HasColumnType("date").IsRequired();
             entity.Property(m => m.AircraftType).HasColumnType("char(4)").HasMaxLength(4).IsRequired();
-            entity.Property(m => m.SeatNumber).HasColumnType("varchar(5)").HasMaxLength(5).IsRequired();
+            entity.Property(m => m.SeatNumber).HasColumnType("varchar(5)").HasMaxLength(5).IsRequired(false);
             entity.Property(m => m.CabinCode).HasColumnType("char(1)").HasMaxLength(1).IsRequired();
             entity.Property(m => m.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
             entity.Property(m => m.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
@@ -106,7 +106,7 @@ public sealed class DeliveryDbContext : DbContext
 
             entity.HasIndex(m => new { m.FlightNumber, m.DepartureDate });
             entity.HasIndex(m => m.BookingReference);
-            entity.HasIndex(m => new { m.InventoryId, m.SeatNumber }).IsUnique();
+            entity.HasIndex(m => new { m.InventoryId, m.SeatNumber }).IsUnique().HasFilter("[SeatNumber] IS NOT NULL");
             entity.HasIndex(m => new { m.InventoryId, m.ETicketNumber }).IsUnique();
         });
     }
