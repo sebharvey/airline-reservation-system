@@ -48,6 +48,7 @@ export class AppShell {
       items: [
         { path: '/check-in',        label: 'Check In',        icon: 'plane-takeoff', description: 'Agent desk check-in for passengers' },
         { path: '/flight-departure', label: 'Flight Departure', icon: 'plane',       description: 'Despatch flights and manage departure paperwork' },
+        { path: '/watchlist',        label: 'Watchlist',        icon: 'shield-alert', description: 'Departure screening watchlist' },
       ],
     },
     {

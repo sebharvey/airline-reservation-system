@@ -1,0 +1,226 @@
+<div class="watchlist-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">Watchlist</h1>
+      <p class="page-subtitle">Passengers flagged for additional departure screening</p>
+    </div>
+    <div class="header-actions">
+      @if (loaded() && !showForm()) {
+        <button class="load-btn secondary-btn" (click)="loadEntries()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="btn-spinner"></span> Refreshing…
+          } @else {
+            Refresh
+          }
+        </button>
+        <button class="load-btn" (click)="openCreateForm()">
+          + Add to Watchlist
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (success()) {
+    <div class="success-banner" role="status">
+      <lucide-icon name="check" [size]="14" /> {{ success() }}
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
+    </div>
+  }
+
+  <!-- Create / Edit Form -->
+  @if (showForm()) {
+    <div class="form-card">
+      <div class="form-header">
+        <h2 class="form-title">{{ editing() ? 'Edit Watchlist Entry' : 'Add Passenger to Watchlist' }}</h2>
+        <button class="close-btn" (click)="cancelForm()">&times;</button>
+      </div>
+
+      <div class="form-sections">
+        <div class="form-section">
+          <h3 class="section-heading">Passenger Identity</h3>
+          <div class="form-grid grid-2">
+            <div class="form-group">
+              <label>Given Name *</label>
+              <input
+                type="text"
+                placeholder="e.g. JOHN"
+                [ngModel]="form().givenName"
+                (ngModelChange)="updateField('givenName', $event)"
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-group">
+              <label>Surname *</label>
+              <input
+                type="text"
+                placeholder="e.g. SMITH"
+                [ngModel]="form().surname"
+                (ngModelChange)="updateField('surname', $event)"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <div class="form-grid grid-2" style="margin-top: 16px;">
+            <div class="form-group">
+              <label>Date of Birth *</label>
+              <input
+                type="date"
+                [ngModel]="form().dateOfBirth"
+                (ngModelChange)="updateField('dateOfBirth', $event)"
+              />
+            </div>
+            <div class="form-group">
+              <label>Passport Number *</label>
+              <input
+                type="text"
+                placeholder="e.g. GB12345678"
+                [ngModel]="form().passportNumber"
+                (ngModelChange)="updateField('passportNumber', $event)"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h3 class="section-heading">Notes</h3>
+          <div class="form-grid grid-1-full">
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea
+                rows="3"
+                placeholder="Optional notes for screening staff…"
+                [ngModel]="form().notes"
+                (ngModelChange)="updateField('notes', $event)"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="cancelForm()" [disabled]="saving()">Cancel</button>
+        <button class="save-btn" (click)="save()" [disabled]="saving()">
+          @if (saving()) {
+            <span class="btn-spinner"></span> Saving…
+          } @else {
+            {{ editing() ? 'Update Entry' : 'Add to Watchlist' }}
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Stats -->
+  @if (loaded() && !showForm()) {
+    <div class="stats-row">
+      <div class="stat-card stat-flagged">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-label">Flagged Passengers</span>
+      </div>
+    </div>
+  }
+
+  <!-- Search filter -->
+  @if (loaded() && !showForm()) {
+    <div class="search-bar">
+      <lucide-icon name="search" [size]="15" class="search-icon" />
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Filter by name or passport number…"
+        [ngModel]="filter()"
+        (ngModelChange)="setFilter($event)"
+      />
+      @if (filter()) {
+        <button class="clear-filter" (click)="setFilter('')">&times;</button>
+      }
+    </div>
+  }
+
+  <!-- Confirm delete dialog -->
+  @if (confirmDelete()) {
+    <div class="confirm-overlay">
+      <div class="confirm-card">
+        <lucide-icon name="triangle-alert" [size]="24" class="confirm-icon" />
+        <p class="confirm-msg">Remove this passenger from the watchlist?</p>
+        <div class="confirm-actions">
+          <button class="cancel-btn" (click)="cancelDelete()">Cancel</button>
+          <button class="delete-confirm-btn" (click)="confirmDeleteEntry(confirmDelete()!)">Remove</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Table -->
+  @if (loaded() && !showForm()) {
+    <div class="table-card">
+      <table class="rules-table">
+        <thead>
+          <tr>
+            <th>Surname</th>
+            <th>Given Name</th>
+            <th>Date of Birth</th>
+            <th>Passport Number</th>
+            <th>Notes</th>
+            <th>Added By</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of filtered(); track entry.watchlistId) {
+            <tr class="rule-row">
+              <td class="mono bold">{{ entry.surname }}</td>
+              <td class="mono">{{ entry.givenName }}</td>
+              <td>{{ formatDob(entry.dateOfBirth) }}</td>
+              <td><span class="badge badge-passport">{{ entry.passportNumber }}</span></td>
+              <td class="notes-cell">{{ entry.notes || '—' }}</td>
+              <td class="muted">{{ entry.addedBy }}</td>
+              <td>
+                <div class="action-btns">
+                  <button class="action-btn edit-btn" (click)="openEditForm(entry)" title="Edit">Edit</button>
+                  <button
+                    class="action-btn delete-btn"
+                    (click)="requestDelete(entry.watchlistId)"
+                    [disabled]="deleting() === entry.watchlistId"
+                    title="Remove from watchlist"
+                  >
+                    @if (deleting() === entry.watchlistId) { … } @else { Del }
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+
+          @if (filtered().length === 0 && loaded()) {
+            <tr>
+              <td colspan="7" class="empty-row">
+                @if (filter()) {
+                  No entries match "{{ filter() }}".
+                } @else {
+                  No passengers on the watchlist.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="results-count">Showing {{ filtered().length }} of {{ entries().length }} entries</p>
+  }
+
+  @if (!loaded() && loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner loading-spinner"></span>
+      <p>Loading watchlist…</p>
+    </div>
+  }
+
+</div>

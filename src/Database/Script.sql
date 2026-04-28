@@ -926,6 +926,43 @@ BEGIN
 END
 GO
 
+-- delivery.Watchlist ----------------------------------------------------------
+-- Departure-control watchlist of passengers flagged for additional screening.
+-- One row per individual identified by passport number.
+IF OBJECT_ID('[delivery].[Watchlist]', 'U') IS NULL
+CREATE TABLE [delivery].[Watchlist] (
+    WatchlistId    UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Watchlist_Id      DEFAULT NEWID(),
+    GivenName      VARCHAR(100)     NOT NULL,
+    Surname        VARCHAR(100)     NOT NULL,
+    DateOfBirth    DATE             NOT NULL,
+    PassportNumber VARCHAR(20)      NOT NULL,
+    AddedBy        VARCHAR(100)     NOT NULL,
+    Notes          NVARCHAR(500)        NULL,
+    CreatedAt      DATETIME2        NOT NULL CONSTRAINT DF_Watchlist_Created DEFAULT SYSUTCDATETIME(),
+    UpdatedAt      DATETIME2        NOT NULL CONSTRAINT DF_Watchlist_Updated DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_Watchlist              PRIMARY KEY (WatchlistId),
+    CONSTRAINT UQ_Watchlist_Passport     UNIQUE (PassportNumber)
+);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Watchlist_Surname' AND object_id = OBJECT_ID('[delivery].[Watchlist]'))
+    CREATE INDEX IX_Watchlist_Surname ON [delivery].[Watchlist] (Surname);
+GO
+
+IF OBJECT_ID('[delivery].[TR_Watchlist_UpdatedAt]', 'TR') IS NULL
+BEGIN
+    EXEC('
+        CREATE TRIGGER [delivery].[TR_Watchlist_UpdatedAt]
+        ON [delivery].[Watchlist]
+        AFTER UPDATE AS
+            UPDATE [delivery].[Watchlist]
+            SET    UpdatedAt = SYSUTCDATETIME()
+            FROM   [delivery].[Watchlist] t
+            INNER JOIN inserted i ON t.WatchlistId = i.WatchlistId;
+    ');
+END
+GO
+
 -- =============================================================================
 -- SEAT DOMAIN
 -- =============================================================================

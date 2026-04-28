@@ -130,6 +130,11 @@ Staff-only endpoints protected by a valid staff JWT token (`Authorization: Beare
 |--------|----------|-------------|
 | `GET` | `/v1/admin/inventory` | Return flight inventory for a given departure date, grouped by flight (one row per flight with cabin F/J/W/Y aggregated as columns). Query param `departureDate=yyyy-MM-dd`; defaults to today. Each row includes total seats, seats available per cabin, overall load factor (percent of seats filled), and flight status. |
 | `GET` | `/v1/admin/manifest` | Return the passenger manifest for a flight from `delivery.Manifest`. Query params `flightNumber` (required) and `departureDate=yyyy-MM-dd` (required). Each entry includes booking reference, passenger name, e-ticket number, seat number, cabin code, check-in status, check-in timestamp, and SSR codes. Proxies to the Delivery microservice `GET /v1/manifest`. Used by the Terminal Flight Departure screen to display the PAX list alongside the seatmap. |
+| `GET` | `/v1/admin/watchlist-entries` | Return all watchlist entries; proxies to Delivery MS. Used by the Terminal Watchlist screen. |
+| `GET` | `/v1/admin/watchlist-entries/{watchlistId}` | Return a single watchlist entry by GUID; proxies to Delivery MS. |
+| `POST` | `/v1/admin/watchlist-entries` | Add a passenger to the watchlist; `addedBy` is populated from the staff JWT `unique_name` claim; proxies to Delivery MS. |
+| `PUT` | `/v1/admin/watchlist-entries/{watchlistId}` | Update a watchlist entry; proxies to Delivery MS. |
+| `DELETE` | `/v1/admin/watchlist-entries/{watchlistId}` | Remove a passenger from the watchlist; proxies to Delivery MS. |
 
 ### NDC
 
@@ -450,6 +455,16 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/boarding-cards` | Generate boarding cards and BCBP barcode strings for checked-in passengers |
+
+### Watchlist
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/watchlist-entries` | Return all watchlist entries ordered by surname then given name; response `{ entries: [...] }` |
+| `GET` | `/v1/watchlist-entries/{watchlistId}` | Return a single watchlist entry by GUID; `404` if not found |
+| `POST` | `/v1/watchlist-entries` | Add a passenger to the watchlist; required fields: `givenName`, `surname`, `dateOfBirth` (yyyy-MM-dd), `passportNumber`; `notes` optional; names and passport number uppercased on write; `409` if passport number already exists |
+| `PUT` | `/v1/watchlist-entries/{watchlistId}` | Update a watchlist entry; `404` if not found |
+| `DELETE` | `/v1/watchlist-entries/{watchlistId}` | Remove a passenger from the watchlist; `204 No Content` on success; `404` if not found |
 
 ---
 

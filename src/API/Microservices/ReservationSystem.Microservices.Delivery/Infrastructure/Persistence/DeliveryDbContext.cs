@@ -11,6 +11,7 @@ public sealed class DeliveryDbContext : DbContext
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<Manifest> Manifests => Set<Manifest>();
+    public DbSet<WatchlistEntry> WatchlistEntries => Set<WatchlistEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -111,6 +112,29 @@ public sealed class DeliveryDbContext : DbContext
             entity.HasIndex(m => m.BookingReference);
             entity.HasIndex(m => new { m.InventoryId, m.SeatNumber }).IsUnique().HasFilter("[SeatNumber] IS NOT NULL");
             entity.HasIndex(m => new { m.InventoryId, m.ETicketNumber }).IsUnique();
+        });
+
+        // ── WatchlistEntry ─────────────────────────────────────────────────────
+        modelBuilder.Entity<WatchlistEntry>(entity =>
+        {
+            entity.ToTable("Watchlist", "delivery", t =>
+            {
+                t.HasTrigger("TR_Watchlist_UpdatedAt");
+                t.UseSqlOutputClause(false);
+            });
+            entity.HasKey(w => w.WatchlistId);
+            entity.Property(w => w.WatchlistId).HasColumnType("uniqueidentifier").ValueGeneratedNever();
+            entity.Property(w => w.GivenName).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
+            entity.Property(w => w.Surname).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
+            entity.Property(w => w.DateOfBirth).HasColumnType("date").IsRequired();
+            entity.Property(w => w.PassportNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(w => w.AddedBy).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
+            entity.Property(w => w.Notes).HasColumnType("nvarchar(500)").HasMaxLength(500).IsRequired(false);
+            entity.Property(w => w.CreatedAt).HasColumnType("datetime2").IsRequired();
+            entity.Property(w => w.UpdatedAt).HasColumnType("datetime2").IsRequired();
+
+            entity.HasIndex(w => w.PassportNumber).IsUnique().HasDatabaseName("UQ_Watchlist_Passport");
+            entity.HasIndex(w => w.Surname).HasDatabaseName("IX_Watchlist_Surname");
         });
     }
 }

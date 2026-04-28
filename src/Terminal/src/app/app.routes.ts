@@ -33,6 +33,10 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'watchlist',
+        loadComponent: () => import('./pages/flight-departure/watchlist/watchlist').then(m => m.WatchlistComponent),
+      },
+      {
         path: 'inventory',
         loadComponent: () => import('./pages/inventory/inventory').then(m => m.InventoryComponent),
       },
