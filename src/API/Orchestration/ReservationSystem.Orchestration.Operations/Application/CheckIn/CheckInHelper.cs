@@ -106,7 +106,7 @@ public static class CheckInHelper
             return new OrderTimaticNote
             {
                 DateTime = n.Timestamp,
-                Type     = "TIMATIC",
+                Type     = "OCI",
                 Message  = message,
                 PaxId    = ExtractPaxIdInt(paxIdStr)
             };

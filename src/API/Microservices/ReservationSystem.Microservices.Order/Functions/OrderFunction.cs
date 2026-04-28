@@ -920,11 +920,13 @@ public sealed class OrderFunction
         var notes = new List<AddOrderNoteEntry>();
         foreach (var n in notesEl.EnumerateArray())
         {
-            var dt   = n.TryGetProperty("dateTime", out var dtEl)  ? dtEl.GetString()  ?? "" : "";
-            var type = n.TryGetProperty("type",     out var typeEl) ? typeEl.GetString() ?? "" : "";
-            var msg  = n.TryGetProperty("message",  out var mEl)   ? mEl.GetString()   ?? "" : "";
+            var dt    = n.TryGetProperty("dateTime", out var dtEl)   ? dtEl.GetString()  ?? "" : "";
+            var type  = n.TryGetProperty("type",     out var typeEl) ? typeEl.GetString() ?? "" : "";
+            var msg   = n.TryGetProperty("message",  out var mEl)   ? mEl.GetString()   ?? "" : "";
+            int? paxId = n.TryGetProperty("paxId",   out var paxEl) && paxEl.ValueKind == JsonValueKind.Number
+                ? paxEl.GetInt32() : null;
             if (!string.IsNullOrWhiteSpace(msg))
-                notes.Add(new AddOrderNoteEntry(dt, type, msg));
+                notes.Add(new AddOrderNoteEntry(dt, type, msg, paxId));
         }
 
         if (notes.Count == 0)

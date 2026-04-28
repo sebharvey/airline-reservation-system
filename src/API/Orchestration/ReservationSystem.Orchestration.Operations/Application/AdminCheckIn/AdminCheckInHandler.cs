@@ -194,7 +194,7 @@ public sealed class AdminCheckInHandler
             return new OrderTimaticNote
             {
                 DateTime = timestamp,
-                Type     = "TIMATIC_OVERRIDE",
+                Type     = "OCI",
                 Message  = $"Timatic override by agent for {subject}: {reason}",
                 PaxId    = CheckInHelper.ExtractPaxIdInt(paxIdStr)
             };
