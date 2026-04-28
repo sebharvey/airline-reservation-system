@@ -102,13 +102,13 @@
 | `GET` | `/v1/flights/{flightId}/seatmap` | Retrieve seatmap with pricing and availability for a flight |
 | `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve real-time seat availability overlay for a flight |
 
-### Check-in
+### Check-in ancillaries
+
+Seat and bag purchases made during the OLCI flow are a retail transaction (payment, EMD issuance) and remain in the Retail API.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/checkin/retrieve` | Retrieve booking details to begin the online check-in flow |
-| `PATCH` | `/v1/checkin/{bookingRef}/seats` | Update seat assignment during check-in (no charge at OLCI) |
-| `POST` | `/v1/checkin/{bookingRef}` | Submit check-in for all passengers, recording APIS data and generating boarding cards |
+| `POST` | `/v1/checkin/{bookingRef}/ancillaries` | Purchase seat and/or bag ancillaries during online check-in; processes payment, updates the order, and issues EMDs |
 
 ### Admin order management
 
@@ -270,6 +270,7 @@ Read-only staff endpoints for viewing payment transactions. All routes require a
 | `POST` | `/v1/oci/bags` | Submit baggage selection during check-in (not implemented — returns success) |
 | `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; retrieves the order to resolve ticket numbers, calls the Delivery microservice to update each ticket coupon status to `C`, and returns the list of checked-in ticket numbers |
 | `POST` | `/v1/oci/boarding-docs` | Request boarding documents for a set of checked-in ticket numbers and departure airport; proxies to the Delivery microservice and returns an array of boarding cards with BCBP strings |
+| `POST` | `/v1/admin/checkin/{bookingRef}` | Agent check-in for one or more passengers on a booking; accepts travel documents per passenger, persists docs to the order, calls the Delivery microservice to update coupon status to `C` with Timatic validation, and returns boarding cards with BCBP strings; supports `overrideTimatic` flag with mandatory `overrideReason` for agent-authorised bypasses — override and Timatic check results are written as audit notes on the order; staff JWT required |
 
 ### Fare family management
 

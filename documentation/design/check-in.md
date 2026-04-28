@@ -1,4 +1,8 @@
-# Online check-in
+# Check-in
+
+There are two check-in paths. Both are owned by the **Operations API** — check-in is an airport operational capability, not a retail one. Seat and bag purchases made during the OLCI flow are an exception: those are retail transactions (payment, EMD issuance) and remain in the Retail API (`POST /v1/checkin/{bookingRef}/ancillaries`).
+
+## Online check-in (OLCI)
 
 Online check-in (OLCI) opens 24 hours before departure, allowing passengers to submit **Advance Passenger Information (API)** data and generate boarding passes.
 
@@ -170,3 +174,76 @@ The fields break down as follows:
 | `JAX7KLP2NZR901A` | `JAX7KLP2NZR901A` | Airline-specific free-text data (selectee indicator, document verification, etc.) |
 
 The Delivery microservice is responsible for assembling this string at the point of boarding card generation, drawing on data from the `delivery.Manifest` row and the confirmed order. The barcode string is returned in the boarding card payload alongside human-readable fields; channels render it using their preferred barcode library (e.g. PDF417 for print, QR for mobile).
+
+---
+
+## Agent check-in
+
+Agent check-in is performed by airport agents using the Terminal app. It is a single-step operation: the agent supplies travel documents for one or more passengers and the Operations API handles document persistence, Timatic validation, coupon update, and boarding card generation in one call.
+
+Key differences from OLCI:
+- **Single endpoint** — no multi-step form flow; all steps execute server-side in one request.
+- **Timatic override** — agents can override a Timatic failure by setting `overrideTimatic: true` with a mandatory `overrideReason`; the override and all Timatic results are written as audit notes (`TIMATIC` / `TIMATIC_OVERRIDE`) on the order.
+- **Lookup by booking reference or e-ticket** — the Terminal app looks up the order via the Retail API admin order endpoints (`GET /v1/admin/orders/{ref}` and `GET /v1/admin/orders/e-ticket/{number}`), then calls the Operations API for the check-in action itself.
+- **Staff JWT required** — the `Admin` function prefix activates `TerminalAuthenticationMiddleware`.
+
+```mermaid
+sequenceDiagram
+
+    actor Agent
+    participant Terminal as Terminal (Angular)
+    participant RetailApi as Retail API
+    participant OperationsApi as Operations API
+    participant OrderMS as Order [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    Agent ->> Terminal: Enters booking reference or e-ticket number
+
+    Terminal ->> RetailApi: GET /v1/admin/orders/{ref} (or /e-ticket/{number})
+    RetailApi -->> Terminal: Full order detail (passengers, segments, e-tickets)
+
+    Agent ->> Terminal: Selects departure airport and enters/confirms travel documents per PAX
+
+    Terminal ->> OperationsApi: POST /v1/admin/checkin/{bookingRef} <br /> departureAirport, passengers[{ ticketNumber, travelDocument }]
+
+    OperationsApi ->> OrderMS: GET /v1/orders/{bookingRef}
+    OrderMS -->> OperationsApi: Order detail
+
+    OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/passengers <br /> Persist travel documents
+
+    OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Tickets with doc details; Timatic validation runs here
+
+    alt Timatic pass
+        DeliveryMS -->> OperationsApi: Checked-in ticket list + Timatic PASS notes
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write Timatic PASS audit notes
+    else Timatic fail, no override
+        DeliveryMS -->> OperationsApi: 422 with timaticNotes
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write Timatic FAIL audit notes
+        OperationsApi -->> Terminal: 400 with timaticNotes — agent must review
+    else Timatic fail, agent override
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write TIMATIC_OVERRIDE audit note with reason
+        OperationsApi ->> DeliveryMS: POST /v1/oci/checkin (bypassTimatic: true)
+        DeliveryMS -->> OperationsApi: Checked-in ticket list
+    end
+
+    OperationsApi ->> DeliveryMS: POST /v1/oci/boarding-docs <br /> Checked-in ticket numbers + departure airport
+    DeliveryMS -->> OperationsApi: Array of boarding cards with BCBP strings
+
+    OperationsApi -->> Terminal: { bookingReference, timaticNotes, boardingCards }
+
+    Terminal ->> Terminal: Render boarding card per passenger
+```
+
+### Operations API
+
+| Method | Path | Description | Request | Response |
+|--------|------|-------------|---------|----------|
+| `POST` | `/v1/admin/checkin/{bookingRef}` | Agent check-in for one or more passengers; persists travel docs, runs Timatic, updates coupon status to `C`, returns boarding cards with BCBP strings; supports `overrideTimatic` with `overrideReason`; writes Timatic and override audit notes to the order; staff JWT required | `{`<br>`  "departureAirport": "LHR",`<br>`  "passengers": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "travelDocument": {`<br>`      "type": "PASSPORT",`<br>`      "number": "PA1234567",`<br>`      "issuingCountry": "GBR",`<br>`      "nationality": "GBR",`<br>`      "issueDate": "2019-06-01",`<br>`      "expiryDate": "2030-01-01"`<br>`    }`<br>`  }],`<br>`  "overrideTimatic": false,`<br>`  "overrideReason": null`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "timaticNotes": [{`<br>`    "checkType": "APIS",`<br>`    "ticketNumber": "932-1234567890",`<br>`    "status": "PASS",`<br>`    "detail": ""`<br>`  }],`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
+
+### Retail API (ancillaries only)
+
+Seat and bag purchases during OLCI are a retail transaction. They remain in the Retail API.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/checkin/{bookingRef}/ancillaries` | Purchase seat and/or bag ancillaries during online check-in; processes payment and issues EMDs |

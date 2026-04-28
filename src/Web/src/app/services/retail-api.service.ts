@@ -14,7 +14,7 @@ import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode, ProductsResponse } from '../models/flight.model';
 import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary, PaymentSummary, EmdDocument } from '../models/order.model';
-import { MOCK_ORDERS } from '../data/mock/orders.mock';
+
 
 
 export interface SearchSliceParams {
@@ -730,53 +730,6 @@ export class RetailApiService {
   }
 
   /**
-   * POST /v1/checkin/{bookingRef}
-   * Submit check-in and generate boarding cards.
-   */
-  submitCheckIn(bookingRef: string, passengerIds: string[]): Observable<BoardingPass[]> {
-    const order = MOCK_ORDERS[bookingRef.toUpperCase()];
-    if (!order) {
-      return throwError(() => ({ status: 404, message: 'Booking not found' })).pipe(delay(API_DELAY_MS));
-    }
-
-    const boardingPasses: BoardingPass[] = [];
-    order.passengers
-      .filter(p => passengerIds.includes(p.passengerId))
-      .forEach(pax => {
-        order.flightSegments.forEach(seg => {
-          const flightItem = order.orderItems.find(
-            oi => oi.type === 'Flight' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
-          );
-          const eTicket = flightItem?.eTickets?.find(t => t.passengerId === pax.passengerId);
-          const seatItem = order.orderItems.find(
-            oi => oi.type === 'Seat' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
-          );
-
-          const seqNum = String(boardingPasses.length + 1).padStart(4, '0');
-          boardingPasses.push({
-            bookingReference: order.bookingReference,
-            passengerId: pax.passengerId,
-            givenName: pax.givenName,
-            surname: pax.surname,
-            flightNumber: seg.flightNumber,
-            origin: seg.origin,
-            destination: seg.destination,
-            departureDateTime: seg.departureDateTime,
-            seatNumber: seatItem?.seatNumber ?? 'TBA',
-            cabinCode: seg.cabinCode,
-            eTicketNumber: eTicket?.eTicketNumber ?? 'N/A',
-            sequenceNumber: seqNum,
-            bcbpBarcode: buildBcbp(pax.surname, pax.givenName, order.bookingReference, seg, seatItem?.seatNumber ?? '001A', seqNum),
-            gate: 'B45',
-            boardingTime: getBoardingTime(seg.departureDateTime)
-          });
-        });
-      });
-
-    return of(boardingPasses).pipe(delay(API_DELAY_MS));
-  }
-
-  /**
    * POST /v1/oci/checkin (Operations API)
    * Complete online check-in for a departure airport; calls the Delivery MS to update
    * coupon status to C for all tickets on the booking departing from that airport.
@@ -1067,15 +1020,3 @@ export class RetailApiService {
   }
 }
 
-function buildBcbp(surname: string, givenName: string, bookingRef: string, seg: { flightNumber: string; origin: string; destination: string }, seatNumber: string, seq: string): string {
-  const name = `${surname}/${givenName}`.substring(0, 20).padEnd(20);
-  const fn = seg.flightNumber.replace('AX', '').padStart(4, '0');
-  const seat = seatNumber.padStart(4, '0');
-  return `M1${name}E${bookingRef} ${seg.origin}${seg.destination}AX ${fn} ${new Date().toISOString().split('T')[0]}J${seat}${seq}1`;
-}
-
-function getBoardingTime(departureDateTime: string): string {
-  const d = new Date(departureDateTime);
-  d.setMinutes(d.getMinutes() - 30);
-  return d.toISOString();
-}

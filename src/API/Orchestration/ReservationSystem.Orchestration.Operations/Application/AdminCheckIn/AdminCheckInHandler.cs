@@ -1,9 +1,8 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
-namespace ReservationSystem.Orchestration.Retail.Application.AdminCheckIn;
+namespace ReservationSystem.Orchestration.Operations.Application.AdminCheckIn;
 
 public sealed record AdminCheckInTravelDocument(
     string Type,
@@ -26,8 +25,8 @@ public sealed record AdminCheckInCommand(
 
 public sealed record AdminCheckInResult(
     string BookingReference,
-    IReadOnlyList<AdminOciBoardingCard> BoardingCards,
-    IReadOnlyList<AdminOciTimaticNote> TimaticNotes);
+    IReadOnlyList<OciBoardingCard> BoardingCards,
+    IReadOnlyList<OciTimaticNote> TimaticNotes);
 
 public sealed class AdminCheckInHandler
 {
@@ -38,7 +37,7 @@ public sealed class AdminCheckInHandler
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
     public AdminCheckInHandler(
@@ -53,7 +52,7 @@ public sealed class AdminCheckInHandler
 
     public async Task<AdminCheckInResult?> HandleAsync(AdminCheckInCommand command, CancellationToken ct)
     {
-        var order = await _orderServiceClient.GetOrderByRefAsync(command.BookingReference, ct);
+        var order = await _orderServiceClient.GetOrderAsync(command.BookingReference, ct);
         if (order is null)
         {
             _logger.LogWarning("Admin check-in: order not found for {BookingReference}", command.BookingReference);
@@ -94,10 +93,7 @@ public sealed class AdminCheckInHandler
         }
 
         if (passengerUpdates.Count > 0)
-        {
-            var paxJson = JsonSerializer.Serialize(new { passengers = passengerUpdates }, JsonOptions);
-            await _orderServiceClient.UpdateOrderPassengersAsync(command.BookingReference, paxJson, ct);
-        }
+            await _orderServiceClient.UpdateOrderPassengersAsync(command.BookingReference, new { passengers = passengerUpdates }, ct);
 
         // Build ticket → passenger name lookup for note formatting
         var ticketToName = ticketToPaxId.ToDictionary(
@@ -107,12 +103,11 @@ public sealed class AdminCheckInHandler
                 : string.Empty,
             StringComparer.OrdinalIgnoreCase);
 
-        // Build OCI check-in ticket list using pax names from the order
         var checkInTickets = command.Passengers.Select(pax =>
         {
             ticketToPaxId.TryGetValue(pax.TicketNumber, out var paxId);
             paxIdToName.TryGetValue(paxId ?? string.Empty, out var name);
-            return new AdminOciCheckInTicket
+            return new OciCheckInTicket
             {
                 TicketNumber = pax.TicketNumber,
                 PassengerId = paxId ?? string.Empty,
@@ -125,15 +120,13 @@ public sealed class AdminCheckInHandler
             };
         }).ToList();
 
-        AdminOciCheckInResult checkInResult;
+        OciCheckInResult checkInResult;
         try
         {
-            checkInResult = await _deliveryServiceClient.OciCheckInAsync(
-                command.DepartureAirport, checkInTickets, ct);
+            checkInResult = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, checkInTickets, ct);
         }
-        catch (AdminOciTimaticBlockedException ex)
+        catch (OciTimaticBlockedException ex)
         {
-            // Timatic rejected — write audit notes to the order
             if (ex.TimaticNotes.Count > 0)
             {
                 try
@@ -154,7 +147,6 @@ public sealed class AdminCheckInHandler
             if (!command.OverrideTimatic)
                 throw;
 
-            // Agent-authorised override — write override notes then bypass Timatic
             _logger.LogWarning(
                 "Admin check-in: Timatic override authorised for {BookingReference} — reason: {Reason}",
                 command.BookingReference, command.OverrideReason);
@@ -173,11 +165,9 @@ public sealed class AdminCheckInHandler
                     command.BookingReference);
             }
 
-            checkInResult = await _deliveryServiceClient.OciCheckInAsync(
-                command.DepartureAirport, checkInTickets, ct, bypassTimatic: true);
+            checkInResult = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, checkInTickets, ct, bypassTimatic: true);
         }
 
-        // Write Timatic pass notes to the order
         if (checkInResult.TimaticNotes.Count > 0)
         {
             try
@@ -209,7 +199,7 @@ public sealed class AdminCheckInHandler
             return new AdminCheckInResult(command.BookingReference, [], checkInResult.TimaticNotes);
         }
 
-        var boardingDocsResult = await _deliveryServiceClient.GetOciBoardingDocsAsync(
+        var boardingDocsResult = await _deliveryServiceClient.GetBoardingDocsAsync(
             command.DepartureAirport, checkedInTickets, ct);
 
         return new AdminCheckInResult(command.BookingReference, boardingDocsResult.BoardingCards, checkInResult.TimaticNotes);
@@ -255,7 +245,7 @@ public sealed class AdminCheckInHandler
 
     private sealed record PaxName(string GivenName, string Surname);
 
-    private static List<AdminCheckInOrderNote> BuildOverrideNotes(
+    private static List<OrderTimaticNote> BuildOverrideNotes(
         IReadOnlyList<AdminCheckInPassenger> passengers,
         IReadOnlyDictionary<string, string>? ticketToName,
         string? overrideReason,
@@ -271,7 +261,7 @@ public sealed class AdminCheckInHandler
                 ? $"{paxName} (ticket {p.TicketNumber})"
                 : $"ticket {p.TicketNumber}";
             var paxIdStr = ticketToPaxId is not null && ticketToPaxId.TryGetValue(p.TicketNumber, out var pid) ? pid : null;
-            return new AdminCheckInOrderNote
+            return new OrderTimaticNote
             {
                 DateTime = timestamp,
                 Type     = "TIMATIC_OVERRIDE",
@@ -281,8 +271,8 @@ public sealed class AdminCheckInHandler
         }).ToList();
     }
 
-    private static List<AdminCheckInOrderNote> BuildOrderNotes(
-        IReadOnlyList<AdminOciTimaticNote> notes,
+    private static List<OrderTimaticNote> BuildOrderNotes(
+        IReadOnlyList<OciTimaticNote> notes,
         IReadOnlyDictionary<string, string>? ticketToName = null,
         IReadOnlyDictionary<string, string>? ticketToPaxId = null)
         => notes.Select(n =>
@@ -304,7 +294,7 @@ public sealed class AdminCheckInHandler
                 ? $"{checkLabel} {statusText} for {subject}"
                 : $"{checkLabel} {statusText} for {subject}: {n.Detail}";
             var paxIdStr = ticketToPaxId is not null && ticketToPaxId.TryGetValue(n.TicketNumber, out var pid) ? pid : null;
-            return new AdminCheckInOrderNote
+            return new OrderTimaticNote
             {
                 DateTime = n.Timestamp,
                 Type     = "TIMATIC",

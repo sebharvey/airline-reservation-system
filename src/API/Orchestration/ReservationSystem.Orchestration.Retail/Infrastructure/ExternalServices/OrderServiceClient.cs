@@ -239,24 +239,6 @@ public sealed class OrderServiceClient
         }
     }
 
-    public async Task AddOrderNotesAsync(
-        string bookingReference,
-        IReadOnlyList<AdminCheckInOrderNote> notes,
-        CancellationToken ct)
-    {
-        var notesPayload = notes.Select(n => (object)new { dateTime = n.DateTime, type = n.Type, message = n.Message, paxId = n.PaxId }).ToList();
-        var payload = new { notes = notesPayload };
-        var json = JsonSerializer.Serialize(payload, JsonOptions);
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
-        using var response = await _httpClient.PatchAsync(
-            $"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/notes", content, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.ReadErrorMessageAsync(ct);
-            throw new InvalidOperationException($"Failed to add order notes: {error}");
-        }
-    }
-
     public async Task UpdateOrderSsrsAsync(string bookingReference, string ssrsJson, CancellationToken ct)
     {
         using var content = new StringContent(ssrsJson, Encoding.UTF8, "application/json");
@@ -602,10 +584,3 @@ public sealed class OrderRefItem
     public string? BookingReference { get; init; }
 }
 
-public sealed class AdminCheckInOrderNote
-{
-    public string DateTime { get; init; } = string.Empty;
-    public string Type     { get; init; } = string.Empty;
-    public string Message  { get; init; } = string.Empty;
-    public int?   PaxId    { get; init; }
-}
