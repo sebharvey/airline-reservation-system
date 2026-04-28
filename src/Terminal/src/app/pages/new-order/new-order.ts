@@ -9,6 +9,7 @@ import {
   BasketSummary,
   BasketFlight,
   ConfirmResponse,
+  ConfirmedETicket,
   BasketPassenger,
   SeatOffer,
   CabinSeatmap,
@@ -236,6 +237,10 @@ export class NewOrderComponent {
   // ── Confirmation ─────────────────────────────────────────────────────────
   confirmed = signal<ConfirmResponse | null>(null);
   copiedPnr = signal<string | null>(null);
+
+  readonly confirmedETickets = computed((): ConfirmedETicket[] =>
+    this.confirmed()?.orderItems.flatMap(item => item.eTickets ?? []) ?? []
+  );
 
   // ── Search ───────────────────────────────────────────────────────────────
 

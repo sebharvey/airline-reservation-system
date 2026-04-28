@@ -127,16 +127,22 @@ export interface BasketSummary {
   flights: BasketFlight[];
 }
 
+export interface ConfirmedETicket {
+  eTicketNumber: string;
+  passengerId: string;
+}
+
+export interface ConfirmedOrderItem {
+  type: string;
+  eTickets?: ConfirmedETicket[];
+}
+
 export interface ConfirmResponse {
   bookingReference: string;
-  status: string;
-  totalPrice: number;
+  orderStatus: string;
+  totalAmount: number;
   currency: string;
-  eTickets: Array<{
-    eTicketNumber: string;
-    passengerId: string;
-    segmentIds: string[];
-  }>;
+  orderItems: ConfirmedOrderItem[];
 }
 
 // ── Products ─────────────────────────────────────────────────────────────────

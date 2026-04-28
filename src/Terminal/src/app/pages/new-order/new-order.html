@@ -928,8 +928,8 @@
                 <div class="standby-confirmed-badge">STANDBY</div>
               }
               <p class="confirmed-sub">
-                {{ formatAmount(conf.totalPrice, conf.currency) }}
-                &nbsp;·&nbsp; {{ conf.eTickets.length }} ticket{{ conf.eTickets.length !== 1 ? 's' : '' }} issued
+                {{ formatAmount(conf.totalAmount, conf.currency) }}
+                &nbsp;·&nbsp; {{ confirmedETickets().length }} ticket{{ confirmedETickets().length !== 1 ? 's' : '' }} issued
               </p>
 
               <div class="pnr-box">
@@ -946,9 +946,9 @@
                 </span>
               </div>
 
-              @if (conf.eTickets.length > 0) {
+              @if (confirmedETickets().length > 0) {
                 <div class="ticket-list">
-                  @for (ticket of conf.eTickets; track ticket.eTicketNumber) {
+                  @for (ticket of confirmedETickets(); track ticket.eTicketNumber) {
                     <div class="ticket-row">
                       <span class="ticket-num mono">{{ ticket.eTicketNumber }}</span>
                       <span class="ticket-pax">{{ ticket.passengerId }}</span>
