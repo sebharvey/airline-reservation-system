@@ -167,4 +167,29 @@ public static class CheckInHelper
         var dash = paxId.LastIndexOf('-');
         return dash >= 0 && int.TryParse(paxId[(dash + 1)..], out var n) ? n : null;
     }
+
+    /// <summary>
+    /// Parses the inventory ID from order items whose origin matches <paramref name="departureAirport"/>.
+    /// Returns null when no matching item is found.
+    /// </summary>
+    public static Guid? ParseInventoryIdForDeparture(JsonElement? orderData, string departureAirport)
+    {
+        if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return null;
+
+        if (!el.TryGetProperty("orderItems", out var orderItems) || orderItems.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var item in orderItems.EnumerateArray())
+        {
+            var origin = item.TryGetProperty("origin", out var orig) ? orig.GetString() : null;
+            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (item.TryGetProperty("inventoryId", out var invEl) && Guid.TryParse(invEl.GetString(), out var id))
+                return id;
+        }
+
+        return null;
+    }
 }

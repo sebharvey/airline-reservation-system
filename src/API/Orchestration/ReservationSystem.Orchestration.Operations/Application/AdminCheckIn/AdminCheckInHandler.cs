@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
 
 namespace ReservationSystem.Orchestration.Operations.Application.AdminCheckIn;
 
@@ -32,6 +33,8 @@ public sealed class AdminCheckInHandler
 {
     private readonly OrderServiceClient _orderServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
+    private readonly OfferServiceClient _offerServiceClient;
+    private readonly SeatServiceClient _seatServiceClient;
     private readonly CheckInNoteService _noteService;
     private readonly WatchlistService _watchlistService;
     private readonly ILogger<AdminCheckInHandler> _logger;
@@ -39,12 +42,16 @@ public sealed class AdminCheckInHandler
     public AdminCheckInHandler(
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
+        OfferServiceClient offerServiceClient,
+        SeatServiceClient seatServiceClient,
         CheckInNoteService noteService,
         WatchlistService watchlistService,
         ILogger<AdminCheckInHandler> logger)
     {
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
+        _offerServiceClient = offerServiceClient;
+        _seatServiceClient = seatServiceClient;
         _noteService = noteService;
         _watchlistService = watchlistService;
         _logger = logger;
@@ -153,10 +160,30 @@ public sealed class AdminCheckInHandler
                 ct);
         }
 
+        // Fetch seatmap cabin configs so the Delivery MS allocator uses the actual aircraft layout.
+        // Non-fatal: if the seatmap cannot be resolved, check-in proceeds but seats are not auto-assigned.
+        IReadOnlyDictionary<string, SeatCabinConfigDto>? cabinConfigs = null;
+        var inventoryIdForSeatmap = CheckInHelper.ParseInventoryIdForDeparture(order.OrderData, command.DepartureAirport);
+        if (inventoryIdForSeatmap.HasValue)
+        {
+            try
+            {
+                var flight = await _offerServiceClient.GetFlightByInventoryIdAsync(inventoryIdForSeatmap.Value, ct);
+                if (!string.IsNullOrWhiteSpace(flight?.AircraftType))
+                    cabinConfigs = await _seatServiceClient.GetSeatmapCabinConfigsAsync(flight.AircraftType, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Failed to fetch seatmap for inventory {InventoryId} on {BookingReference} — seats will not be auto-assigned",
+                    inventoryIdForSeatmap.Value, command.BookingReference);
+            }
+        }
+
         OciCheckInResult checkInResult;
         try
         {
-            checkInResult = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, checkInTickets, ct);
+            checkInResult = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, checkInTickets, ct, cabinConfigs: cabinConfigs);
         }
         catch (OciTimaticBlockedException ex)
         {
@@ -179,7 +206,7 @@ public sealed class AdminCheckInHandler
                 "Admin check-in",
                 ct);
 
-            checkInResult = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, checkInTickets, ct, bypassTimatic: true);
+            checkInResult = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, checkInTickets, ct, bypassTimatic: true, cabinConfigs: cabinConfigs);
         }
 
         await _noteService.SaveAsync(

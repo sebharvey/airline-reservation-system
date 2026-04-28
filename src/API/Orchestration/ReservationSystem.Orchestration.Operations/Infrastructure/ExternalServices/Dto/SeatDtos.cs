@@ -16,3 +16,9 @@ public sealed class CabinCountDto
     public string Cabin { get; init; } = string.Empty;
     public int Count { get; init; }
 }
+
+/// <summary>Column layout and row range for one cabin, extracted from the active seatmap.</summary>
+public sealed record SeatCabinConfigDto(
+    IReadOnlyList<string> Columns,
+    int StartRow,
+    int EndRow);
