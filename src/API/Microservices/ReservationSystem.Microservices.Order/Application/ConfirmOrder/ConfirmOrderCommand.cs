@@ -4,4 +4,5 @@ public sealed record ConfirmOrderCommand(
     Guid OrderId,
     Guid BasketId,
     string PaymentReferencesJson,
-    string? EnrichedOffersJson = null);
+    string? EnrichedOffersJson = null,
+    string? GdsBookingReference = null);

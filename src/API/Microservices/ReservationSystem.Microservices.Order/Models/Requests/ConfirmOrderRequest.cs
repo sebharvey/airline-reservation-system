@@ -15,6 +15,9 @@ public sealed class ConfirmOrderRequest
 
     [JsonPropertyName("enrichedOffers")]
     public List<EnrichedOfferItem>? EnrichedOffers { get; init; }
+
+    [JsonPropertyName("gdsBookingReference")]
+    public string? GdsBookingReference { get; init; }
 }
 
 public sealed class EnrichedOfferItem

@@ -273,6 +273,7 @@ export interface OrderData {
   history: OrderHistoryEvent[];
   notes: OrderNote[];
   itemTotals: ItemTotals | null;
+  gdsBookingReference: string | null;
 }
 
 export interface OrderDetail {

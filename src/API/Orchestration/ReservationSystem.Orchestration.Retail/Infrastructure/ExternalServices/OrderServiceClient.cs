@@ -151,9 +151,10 @@ public sealed class OrderServiceClient
     public async Task<OrderMsConfirmOrderResult> ConfirmOrderAsync(
         Guid orderId, Guid basketId, List<object> paymentReferences,
         CancellationToken ct,
-        object? enrichedOffers = null)
+        object? enrichedOffers = null,
+        string? gdsBookingReference = null)
     {
-        var payload = new { orderId, basketId, paymentReferences, enrichedOffers };
+        var payload = new { orderId, basketId, paymentReferences, enrichedOffers, gdsBookingReference };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/orders/confirm", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {

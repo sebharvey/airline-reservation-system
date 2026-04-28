@@ -9,4 +9,5 @@ public sealed record ConfirmBasketCommand(
     string? Cvv,
     string? CardholderName,
     decimal? LoyaltyPointsToRedeem,
-    string? BookingType = null);
+    string? BookingType = null,
+    string? GdsBookingReference = null);

@@ -109,7 +109,8 @@ public sealed class ConfirmBasketHandler
                 command.BasketId,
                 paymentRefs,
                 cancellationToken,
-                enrichedOffers: enrichedOffers.Count > 0 ? enrichedOffers : null);
+                enrichedOffers: enrichedOffers.Count > 0 ? enrichedOffers : null,
+                gdsBookingReference: command.GdsBookingReference);
         }
         catch
         {

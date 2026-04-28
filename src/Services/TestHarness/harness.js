@@ -446,6 +446,9 @@
         const tomorrowDateObj = new Date(today); tomorrowDateObj.setDate(today.getDate() + 1);
         const tomorrowDate    = isoDate(tomorrowDateObj);
 
+        const gdsRefChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const gdsRef = Array.from({ length: 6 }, () => gdsRefChars[Math.floor(Math.random() * gdsRefChars.length)]).join('');
+
         const genderCode     = gender === 'Female' ? 'F' : 'M';
         const docNumber      = randDigits(9);
         const docExpiryDateObj = new Date(today);
@@ -469,7 +472,7 @@
             pax6GivenName: pax6.givenName, pax6Surname: pax6.surname, pax6Gender: pax6.gender,
             pax6DateOfBirth: pax6.dateOfBirth, pax6Email: pax6.email, pax6Phone: pax6.phone,
             outboundOrigin, outboundDest, returnOrigin, returnDest, departDate, returnDate,
-            tomorrowDate
+            tomorrowDate, gdsRef
         };
         journeyRuntimeVars[forConfig !== undefined ? forConfig : config] = runtimeVars;
     }
@@ -534,7 +537,8 @@
                 .replace(/__RAND_RETURN_DEST__/g,     runtimeVars.returnDest)
                 .replace(/__RAND_DEPART_DATE__/g,     runtimeVars.departDate)
                 .replace(/__RAND_RETURN_DATE__/g,     runtimeVars.returnDate)
-                .replace(/__TOMORROW_DATE__/g,         runtimeVars.tomorrowDate);
+                .replace(/__TOMORROW_DATE__/g,         runtimeVars.tomorrowDate)
+                .replace(/__RAND_GDS_REF__/g,          runtimeVars.gdsRef);
         }
         if (Array.isArray(obj)) {
             // Filter out items whose __PAX_MIN__ exceeds the current paxCount, then strip the marker
