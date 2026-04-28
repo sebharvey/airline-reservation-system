@@ -20,6 +20,7 @@ using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionCanc
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionChange;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionGetOrders;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionRebookOrder;
+using ReservationSystem.Orchestration.Operations.Application.AdminCheckIn;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionTime;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Business.Middleware;
@@ -108,6 +109,7 @@ var host = new HostBuilder()
         services.AddScoped<GetFlightStatusHandler>();
         services.AddScoped<ImportSsimHandler>();
         services.AddScoped<ImportSchedulesToInventoryHandler>();
+        services.AddScoped<AdminCheckInHandler>();
         services.AddScoped<OciRetrieveHandler>();
         services.AddScoped<OciPaxHandler>();
         services.AddScoped<OciCheckInHandler>();

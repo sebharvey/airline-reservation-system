@@ -23,7 +23,6 @@ using ReservationSystem.Orchestration.Retail.Application.CancelOrder;
 using ReservationSystem.Orchestration.Retail.Application.AddOrderBags;
 using ReservationSystem.Orchestration.Retail.Application.UpdateOrderSeats;
 using ReservationSystem.Orchestration.Retail.Application.ChangeOrder;
-using ReservationSystem.Orchestration.Retail.Application.AdminCheckIn;
 using ReservationSystem.Orchestration.Retail.Application.CheckInAncillaries;
 using ReservationSystem.Orchestration.Retail.Application.NdcAirShopping;
 using ReservationSystem.Orchestration.Retail.Application.NdcOfferPrice;
@@ -139,7 +138,6 @@ var host = new HostBuilder()
         services.AddScoped<AddOrderBagsHandler>();
         services.AddScoped<UpdateOrderSeatsHandler>();
         services.AddScoped<ChangeOrderHandler>();
-        services.AddScoped<AdminCheckInHandler>();
         services.AddScoped<CheckInAncillariesHandler>();
         services.AddScoped<NdcAirShoppingHandler>();
         services.AddScoped<NdcOfferPriceHandler>();

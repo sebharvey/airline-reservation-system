@@ -3,16 +3,16 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using ReservationSystem.Orchestration.Retail.Application.AdminCheckIn;
-using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Operations.Application.AdminCheckIn;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
 using System.Text.Json;
 
-namespace ReservationSystem.Orchestration.Retail.Functions;
+namespace ReservationSystem.Orchestration.Operations.Functions;
 
 /// <summary>
-/// Staff-facing check-in endpoint. The "Admin" function name prefix activates
+/// Staff-facing agent check-in endpoint. The "Admin" function name prefix activates
 /// <see cref="ReservationSystem.Shared.Business.Middleware.TerminalAuthenticationMiddleware"/>,
 /// requiring a valid staff JWT for all calls.
 /// </summary>
@@ -33,13 +33,13 @@ public sealed class AdminCheckInFunction
 
     [Function("AdminCheckIn")]
     [OpenApiOperation(operationId: "AdminCheckIn", tags: new[] { "Admin CheckIn" },
-        Summary = "Complete check-in for all passengers on a booking (staff)")]
+        Summary = "Complete agent check-in for one or more passengers on a booking (staff)")]
     [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string),
         Description = "The 6-character booking reference")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
-        Description = "{ departureAirport, passengers: [{ ticketNumber, travelDocument: { type, number, issuingCountry, nationality, issueDate, expiryDate } }] }")]
+        Description = "{ departureAirport, passengers: [{ ticketNumber, travelDocument: { type, number, issuingCountry, nationality, issueDate, expiryDate } }], overrideTimatic?, overrideReason? }")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object),
-        Description = "{ bookingReference, boardingCards: [...] }")]
+        Description = "{ bookingReference, timaticNotes: [...], boardingCards: [...] }")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Booking not found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Staff JWT required")]
@@ -72,12 +72,12 @@ public sealed class AdminCheckInFunction
             if (!p.TryGetProperty("travelDocument", out var docEl) || docEl.ValueKind != JsonValueKind.Object)
                 return await req.BadRequestAsync($"Passenger '{ticketNumber}' is missing 'travelDocument'.");
 
-            var type = docEl.TryGetProperty("type", out var typeEl) ? typeEl.GetString() ?? "PASSPORT" : "PASSPORT";
-            var number = docEl.TryGetProperty("number", out var numEl) ? numEl.GetString() ?? "" : "";
-            var issuingCountry = docEl.TryGetProperty("issuingCountry", out var icEl) ? icEl.GetString() ?? "" : "";
-            var nationality = docEl.TryGetProperty("nationality", out var natEl) ? natEl.GetString() ?? "" : "";
-            var issueDate = docEl.TryGetProperty("issueDate", out var isEl) ? isEl.GetString() ?? "" : "";
-            var expiryDate = docEl.TryGetProperty("expiryDate", out var exEl) ? exEl.GetString() ?? "" : "";
+            var type           = docEl.TryGetProperty("type",           out var typeEl) ? typeEl.GetString() ?? "PASSPORT" : "PASSPORT";
+            var number         = docEl.TryGetProperty("number",         out var numEl)  ? numEl.GetString()  ?? ""         : "";
+            var issuingCountry = docEl.TryGetProperty("issuingCountry", out var icEl)   ? icEl.GetString()   ?? ""         : "";
+            var nationality    = docEl.TryGetProperty("nationality",    out var natEl)  ? natEl.GetString()  ?? ""         : "";
+            var issueDate      = docEl.TryGetProperty("issueDate",      out var isEl)   ? isEl.GetString()   ?? ""         : "";
+            var expiryDate     = docEl.TryGetProperty("expiryDate",     out var exEl)   ? exEl.GetString()   ?? ""         : "";
 
             passengers.Add(new AdminCheckInPassenger(
                 ticketNumber,
@@ -88,7 +88,7 @@ public sealed class AdminCheckInFunction
             return await req.BadRequestAsync("At least one passenger is required.");
 
         var overrideTimatic = body.TryGetProperty("overrideTimatic", out var otEl) && otEl.ValueKind == JsonValueKind.True;
-        var overrideReason = body.TryGetProperty("overrideReason", out var orEl) ? orEl.GetString() : null;
+        var overrideReason  = body.TryGetProperty("overrideReason",  out var orEl) ? orEl.GetString() : null;
 
         try
         {
@@ -108,42 +108,42 @@ public sealed class AdminCheckInFunction
                 bookingReference = result.BookingReference,
                 timaticNotes = result.TimaticNotes.Select(n => new
                 {
-                    checkType = n.CheckType,
+                    checkType    = n.CheckType,
                     ticketNumber = n.TicketNumber,
-                    status = n.Status,
-                    detail = n.Detail,
+                    status       = n.Status,
+                    detail       = n.Detail,
                 }),
                 boardingCards = result.BoardingCards.Select(c => new
                 {
-                    ticketNumber = c.TicketNumber,
-                    passengerId = c.PassengerId,
-                    givenName = c.GivenName,
-                    surname = c.Surname,
-                    flightNumber = c.FlightNumber,
-                    departureDate = c.DepartureDate,
-                    seatNumber = c.SeatNumber,
-                    cabinCode = c.CabinCode,
+                    ticketNumber   = c.TicketNumber,
+                    passengerId    = c.PassengerId,
+                    givenName      = c.GivenName,
+                    surname        = c.Surname,
+                    flightNumber   = c.FlightNumber,
+                    departureDate  = c.DepartureDate,
+                    seatNumber     = c.SeatNumber,
+                    cabinCode      = c.CabinCode,
                     sequenceNumber = c.SequenceNumber,
-                    origin = c.Origin,
-                    destination = c.Destination,
-                    bcbpString = c.BcbpString,
+                    origin         = c.Origin,
+                    destination    = c.Destination,
+                    bcbpString     = c.BcbpString,
                 })
             });
         }
-        catch (AdminOciTimaticBlockedException ex)
+        catch (OciTimaticBlockedException ex)
         {
             _logger.LogWarning("Admin check-in blocked by Timatic for {BookingRef}: {Message}", bookingRef, ex.Message);
-            var blocked = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+            var blocked = req.CreateResponse(HttpStatusCode.BadRequest);
             blocked.Headers.Add("Content-Type", "application/json");
             await blocked.WriteStringAsync(JsonSerializer.Serialize(new
             {
-                error = ex.Message,
+                error        = ex.Message,
                 timaticNotes = ex.TimaticNotes.Select(n => new
                 {
-                    checkType = n.CheckType,
+                    checkType    = n.CheckType,
                     ticketNumber = n.TicketNumber,
-                    status = n.Status,
-                    detail = n.Detail,
+                    status       = n.Status,
+                    detail       = n.Detail,
                 }),
             }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
             return blocked;
