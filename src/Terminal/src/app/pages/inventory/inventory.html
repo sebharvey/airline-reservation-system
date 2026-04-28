@@ -82,11 +82,11 @@
             <th>Flight</th>
             <th>Route</th>
             <th>Dep / Arr</th>
+            <th>Aircraft</th>
             <th class="cabin-col">F</th>
             <th class="cabin-col">J</th>
             <th class="cabin-col">W</th>
             <th class="cabin-col">Y</th>
-            <th>Aircraft</th>
             <th class="load-col">Load</th>
             <th>Status</th>
             <th></th>
@@ -111,6 +111,7 @@
                   <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
                 }
               </td>
+              <td class="mono muted">{{ flight.aircraftType }}</td>
               <td class="cabin-col">
                 <span class="cabin-badge" [class]="cabinClass(flight.f)">{{ cabinDisplay(flight.f) }}</span>
               </td>
@@ -123,7 +124,6 @@
               <td class="cabin-col">
                 <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
               </td>
-              <td class="mono muted">{{ flight.aircraftType }}</td>
               <td class="load-col">
                 <div class="load-bar-wrap">
                   <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
