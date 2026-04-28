@@ -15,7 +15,7 @@ This guide describes how to build the Apex Air Angular web application. Read `..
 | Styling | CSS (component-scoped via Angular's encapsulation) |
 | HTTP | Angular `HttpClient` (injected via services) |
 | Routing | Angular Router with lazy-loaded components |
-| State | Service-based state with RxJS `BehaviorSubject` |
+| State | Angular signals (`signal`, `computed`, `asReadonly`) |
 
 ---
 
@@ -185,11 +185,11 @@ HTTP client for the Loyalty API (authentication, registration, profile, points).
 
 ## State Management
 
-Multi-step flows use dedicated state services with `BehaviorSubject` to share data across route boundaries without passing it through route params.
+Multi-step flows use dedicated state services with Angular signals to share data across route boundaries without passing it through route params.
 
 | Service | Flow |
 |---------|------|
-| `booking-state.service.ts` | Search → Basket → Passengers → Seats → Bags → Payment → Confirmation |
+| `booking-state.service.ts` | Search → Basket → Passengers → Seats → Bags → Products → Payment → Confirmation |
 | `manage-booking-state.service.ts` | Retrieve order → Detail → Seat/Bag/Change/Cancel actions |
 | `check-in-state.service.ts` | Retrieve booking → Details → Bags → Seats → Payment → Boarding pass |
 | `loyalty-state.service.ts` | Login → Account → Points |
@@ -199,15 +199,17 @@ Follow this pattern for new flows:
 ```typescript
 @Injectable({ providedIn: 'root' })
 export class NewFlowStateService {
-  private _state = new BehaviorSubject<NewFlowState | null>(null);
-  state$ = this._state.asObservable();
+  private readonly _data = signal<NewFlowState | null>(null);
 
-  setState(state: NewFlowState) { this._state.next(state); }
-  clearState() { this._state.next(null); }
+  readonly data = this._data.asReadonly();
+  readonly isReady = computed(() => this._data() !== null);
+
+  setState(state: NewFlowState): void { this._data.set(state); }
+  clearState(): void { this._data.set(null); }
 }
 ```
 
-State services should hold only the data needed to progress through the flow. Do not store sensitive card data in state.
+State services should hold only the data needed to progress through the flow. Do not store sensitive card data in state. Do not use `BehaviorSubject` or other RxJS subjects for state — use signals throughout.
 
 ---
 
