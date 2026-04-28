@@ -38,6 +38,8 @@ public sealed class FlightInventory
     public string Origin { get; private set; } = string.Empty;
     public string Destination { get; private set; } = string.Empty;
     public string AircraftType { get; private set; } = string.Empty;
+    public string? DepartureGate { get; private set; }
+    public string? AircraftRegistration { get; private set; }
     public TimeOnly? DepartureTimeUtc { get; private set; }
     public TimeOnly? ArrivalTimeUtc { get; private set; }
     public int? ArrivalDayOffsetUtc { get; private set; }
@@ -85,7 +87,8 @@ public sealed class FlightInventory
         TimeOnly arrivalTime, int arrivalDayOffset, string origin, string destination,
         string aircraftType, IReadOnlyList<CabinInventory> cabins,
         int totalSeats, int seatsAvailable, string status, DateTimeOffset createdAt, DateTimeOffset updatedAt,
-        TimeOnly? departureTimeUtc = null, TimeOnly? arrivalTimeUtc = null, int? arrivalDayOffsetUtc = null)
+        TimeOnly? departureTimeUtc = null, TimeOnly? arrivalTimeUtc = null, int? arrivalDayOffsetUtc = null,
+        string? departureGate = null, string? aircraftRegistration = null)
     {
         var inv = new FlightInventory
         {
@@ -94,7 +97,8 @@ public sealed class FlightInventory
             Origin = origin, Destination = destination, AircraftType = aircraftType,
             TotalSeats = totalSeats, SeatsAvailable = seatsAvailable, Status = status,
             CreatedAt = createdAt, UpdatedAt = updatedAt,
-            DepartureTimeUtc = departureTimeUtc, ArrivalTimeUtc = arrivalTimeUtc, ArrivalDayOffsetUtc = arrivalDayOffsetUtc
+            DepartureTimeUtc = departureTimeUtc, ArrivalTimeUtc = arrivalTimeUtc, ArrivalDayOffsetUtc = arrivalDayOffsetUtc,
+            DepartureGate = departureGate, AircraftRegistration = aircraftRegistration
         };
         inv._cabins.AddRange(cabins);
         return inv;
@@ -127,6 +131,10 @@ public sealed class FlightInventory
     public void Cancel() { Status = InventoryStatus.Cancelled; SeatsAvailable = 0; }
 
     public void ChangeAircraftType(string newAircraftType) { AircraftType = newAircraftType; }
+
+    public void SetDepartureGate(string? gate) { DepartureGate = gate; }
+
+    public void SetAircraftRegistration(string? registration) { AircraftRegistration = registration; }
 }
 
 public static class InventoryStatus

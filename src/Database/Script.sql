@@ -211,6 +211,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[F
     ALTER TABLE [offer].[FlightInventory] ADD ArrivalDayOffsetUtc TINYINT NULL;
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FlightInventory]') AND name = 'DepartureGate')
+    ALTER TABLE [offer].[FlightInventory] ADD DepartureGate VARCHAR(10) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[FlightInventory]') AND name = 'AircraftRegistration')
+    ALTER TABLE [offer].[FlightInventory] ADD AircraftRegistration VARCHAR(20) NULL;
+GO
+
 IF OBJECT_ID('[offer].[TR_FlightInventory_UpdatedAt]', 'TR') IS NULL
 BEGIN
     EXEC('

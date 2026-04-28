@@ -19,6 +19,24 @@
           {{ flight()!.departureTime }} – {{ flight()!.arrivalTime }}
         </span>
         <span class="badge" [class]="statusClass(flight()!.status)">{{ flight()!.status }}</span>
+        <div class="operational-data-btns">
+          <button class="op-data-btn" (click)="openGateModal()">
+            <lucide-icon name="door-open" [size]="13" />
+            @if (flight()!.departureGate) {
+              Gate {{ flight()!.departureGate }}
+            } @else {
+              Set Gate
+            }
+          </button>
+          <button class="op-data-btn" (click)="openRegModal()">
+            <lucide-icon name="plane" [size]="13" />
+            @if (flight()!.aircraftRegistration) {
+              {{ flight()!.aircraftRegistration }}
+            } @else {
+              Set Reg
+            }
+          </button>
+        </div>
       </div>
     }
 
@@ -283,6 +301,80 @@
         }
       </div>
 
+    </div>
+  }
+
+  <!-- Gate modal -->
+  @if (gateModalOpen()) {
+    <div class="modal-backdrop" (click)="closeGateModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title">Set Departure Gate</span>
+          <button class="modal-close-btn" (click)="closeGateModal()">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label" for="gate-input">Gate number</label>
+          <input
+            id="gate-input"
+            class="modal-input"
+            type="text"
+            placeholder="e.g. 21A"
+            maxlength="10"
+            [ngModel]="gateInput()"
+            (ngModelChange)="gateInput.set($event)"
+            (keydown.enter)="saveGate()"
+            autocomplete="off"
+          />
+          @if (gateOpError()) {
+            <p class="modal-error">{{ gateOpError() }}</p>
+          }
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" (click)="closeGateModal()" [disabled]="gateOpLoading()">Cancel</button>
+          <button class="modal-btn modal-btn-save" (click)="saveGate()" [disabled]="gateOpLoading()">
+            @if (gateOpLoading()) { <span class="btn-spinner"></span> } Save
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Aircraft registration modal -->
+  @if (regModalOpen()) {
+    <div class="modal-backdrop" (click)="closeRegModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title">Set Aircraft Registration</span>
+          <button class="modal-close-btn" (click)="closeRegModal()">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label" for="reg-input">Registration number</label>
+          <input
+            id="reg-input"
+            class="modal-input"
+            type="text"
+            placeholder="e.g. G-XLEB"
+            maxlength="20"
+            [ngModel]="regInput()"
+            (ngModelChange)="regInput.set($event)"
+            (keydown.enter)="saveReg()"
+            autocomplete="off"
+          />
+          @if (regOpError()) {
+            <p class="modal-error">{{ regOpError() }}</p>
+          }
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" (click)="closeRegModal()" [disabled]="regOpLoading()">Cancel</button>
+          <button class="modal-btn modal-btn-save" (click)="saveReg()" [disabled]="regOpLoading()">
+            @if (regOpLoading()) { <span class="btn-spinner"></span> } Save
+          </button>
+        </div>
+      </div>
     </div>
   }
 

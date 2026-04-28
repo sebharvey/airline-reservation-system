@@ -41,7 +41,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
                    ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
                    Origin, Destination, AircraftType,
-                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt,
+                   DepartureGate, AircraftRegistration
             FROM   [offer].[FlightInventory]
             WHERE  InventoryId = @InventoryId;
             """;
@@ -61,7 +62,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
                    ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
                    Origin, Destination, AircraftType,
-                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt,
+                   DepartureGate, AircraftRegistration
             FROM   [offer].[FlightInventory]
             WHERE  FlightNumber = @FlightNumber
               AND  DepartureDate = @DepartureDate;
@@ -87,7 +89,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
                    fi.ArrivalDayOffset, fi.DepartureTimeUtc, fi.ArrivalTimeUtc, fi.ArrivalDayOffsetUtc,
                    fi.Origin, fi.Destination, fi.AircraftType,
-                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
+                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt,
+                   fi.DepartureGate, fi.AircraftRegistration
             FROM   [offer].[FlightInventory] fi
             CROSS APPLY OPENJSON(fi.Cabins) WITH (
                 cabinCode CHAR(1)  '$.cabinCode',
@@ -127,7 +130,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
                    fi.ArrivalDayOffset, fi.DepartureTimeUtc, fi.ArrivalTimeUtc, fi.ArrivalDayOffsetUtc,
                    fi.Origin, fi.Destination, fi.AircraftType,
-                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
+                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt,
+                   fi.DepartureGate, fi.AircraftRegistration
             FROM   [offer].[FlightInventory] fi
             WHERE  fi.Origin        = @Origin
               AND  fi.Destination   = @Destination
@@ -159,7 +163,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
                    fi.ArrivalDayOffset, fi.DepartureTimeUtc, fi.ArrivalTimeUtc, fi.ArrivalDayOffsetUtc,
                    fi.Origin, fi.Destination, fi.AircraftType,
-                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
+                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt,
+                   fi.DepartureGate, fi.AircraftRegistration
             FROM   [offer].[FlightInventory] fi
             WHERE  fi.Origin        = @Origin
               AND  fi.Destination   = @Destination
@@ -189,7 +194,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SELECT fi.InventoryId, fi.FlightNumber, fi.DepartureDate, fi.DepartureTime, fi.ArrivalTime,
                    fi.ArrivalDayOffset, fi.DepartureTimeUtc, fi.ArrivalTimeUtc, fi.ArrivalDayOffsetUtc,
                    fi.Origin, fi.Destination, fi.AircraftType,
-                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt
+                   fi.Cabins, fi.TotalSeats, fi.SeatsAvailable, fi.Status, fi.CreatedAt, fi.UpdatedAt,
+                   fi.DepartureGate, fi.AircraftRegistration
             FROM   [offer].[FlightInventory] fi
             WHERE  fi.Origin        = @Origin
               AND  fi.Destination   = @Destination
@@ -221,7 +227,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
                    ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
                    Origin, Destination, AircraftType,
-                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt,
+                   DepartureGate, AircraftRegistration
             FROM   [offer].[FlightInventory]
             WHERE  FlightNumber = @FlightNumber
               AND  DepartureDate = @DepartureDate;
@@ -246,7 +253,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
                    ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
                    Origin, Destination, AircraftType,
-                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt,
+                   DepartureGate, AircraftRegistration
             FROM  [offer].[FlightInventory]
             WHERE DepartureDate = @DepartureDate
             ORDER BY LEFT(FlightNumber, PATINDEX('%[0-9]%', FlightNumber) - 1),
@@ -346,6 +354,26 @@ public sealed class SqlOfferRepository : IOfferRepository
 
         if (rowsAffected == 0)
             _logger.LogWarning("UpdateInventoryAsync found no row for FlightInventory {InventoryId}", inventory.InventoryId);
+    }
+
+    public async Task UpdateInventoryOperationalDataAsync(
+        Guid inventoryId, string? departureGate, string? aircraftRegistration, CancellationToken ct = default)
+    {
+        const string sql = """
+            UPDATE [offer].[FlightInventory]
+            SET    DepartureGate        = @DepartureGate,
+                   AircraftRegistration = @AircraftRegistration
+            WHERE  InventoryId = @InventoryId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rowsAffected = await connection.ExecuteAsync(
+            new CommandDefinition(sql, new { InventoryId = inventoryId, DepartureGate = departureGate, AircraftRegistration = aircraftRegistration },
+                commandTimeout: _options.CommandTimeoutSeconds));
+
+        if (rowsAffected == 0)
+            _logger.LogWarning("UpdateInventoryOperationalDataAsync found no row for FlightInventory {InventoryId}", inventoryId);
     }
 
     // -------------------------------------------------------------------------
@@ -1173,18 +1201,20 @@ public sealed class SqlOfferRepository : IOfferRepository
 
         return new FlightInventoryGroup
         {
-            InventoryId         = (Guid)row.InventoryId,
-            FlightNumber        = (string)row.FlightNumber,
-            DepartureDate       = ToDateOnly((DateTime)row.DepartureDate),
-            DepartureTime       = ToTimeOnly((TimeSpan)row.DepartureTime),
-            ArrivalTime         = ToTimeOnly((TimeSpan)row.ArrivalTime),
-            ArrivalDayOffset    = (int)row.ArrivalDayOffset,
-            Origin              = (string)row.Origin,
-            Destination         = (string)row.Destination,
-            AircraftType        = (string)row.AircraftType,
-            Status              = (string)row.Status,
-            TotalSeats          = (int)row.TotalSeats,
-            TotalSeatsAvailable = (int)row.SeatsAvailable,
+            InventoryId           = (Guid)row.InventoryId,
+            FlightNumber          = (string)row.FlightNumber,
+            DepartureDate         = ToDateOnly((DateTime)row.DepartureDate),
+            DepartureTime         = ToTimeOnly((TimeSpan)row.DepartureTime),
+            ArrivalTime           = ToTimeOnly((TimeSpan)row.ArrivalTime),
+            ArrivalDayOffset      = (int)row.ArrivalDayOffset,
+            Origin                = (string)row.Origin,
+            Destination           = (string)row.Destination,
+            AircraftType          = (string)row.AircraftType,
+            Status                = (string)row.Status,
+            TotalSeats            = (int)row.TotalSeats,
+            TotalSeatsAvailable   = (int)row.SeatsAvailable,
+            DepartureGate         = (string?)row.DepartureGate,
+            AircraftRegistration  = (string?)row.AircraftRegistration,
             F = MapCabin("F"),
             J = MapCabin("J"),
             W = MapCabin("W"),
@@ -1213,7 +1243,9 @@ public sealed class SqlOfferRepository : IOfferRepository
             updatedAt: new DateTimeOffset((DateTime)row.UpdatedAt, TimeSpan.Zero),
             departureTimeUtc: row.DepartureTimeUtc is TimeSpan dtu ? ToTimeOnly(dtu) : null,
             arrivalTimeUtc: row.ArrivalTimeUtc is TimeSpan atu ? ToTimeOnly(atu) : null,
-            arrivalDayOffsetUtc: (int?)row.ArrivalDayOffsetUtc);
+            arrivalDayOffsetUtc: (int?)row.ArrivalDayOffsetUtc,
+            departureGate: (string?)row.DepartureGate,
+            aircraftRegistration: (string?)row.AircraftRegistration);
     }
 
     private static Fare MapToFare(dynamic row)

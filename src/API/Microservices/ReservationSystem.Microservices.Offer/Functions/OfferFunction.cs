@@ -22,6 +22,7 @@ using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
 using ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
 using ReservationSystem.Microservices.Offer.Application.UpdateHoldSeat;
 using ReservationSystem.Microservices.Offer.Application.UpdateInventoryAircraftType;
+using ReservationSystem.Microservices.Offer.Application.SetInventoryOperationalData;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -56,6 +57,7 @@ public sealed class OfferFunction
     private readonly RepriceStoredOfferHandler _repriceHandler;
     private readonly UpdateHoldSeatHandler _updateHoldSeatHandler;
     private readonly UpdateInventoryAircraftTypeHandler _updateAircraftTypeHandler;
+    private readonly SetInventoryOperationalDataHandler _setOperationalDataHandler;
     private readonly ILogger<OfferFunction> _logger;
 
     public OfferFunction(
@@ -80,6 +82,7 @@ public sealed class OfferFunction
         RepriceStoredOfferHandler repriceHandler,
         UpdateHoldSeatHandler updateHoldSeatHandler,
         UpdateInventoryAircraftTypeHandler updateAircraftTypeHandler,
+        SetInventoryOperationalDataHandler setOperationalDataHandler,
         ILogger<OfferFunction> logger)
     {
         _createFlightHandler = createFlightHandler;
@@ -103,6 +106,7 @@ public sealed class OfferFunction
         _repriceHandler = repriceHandler;
         _updateHoldSeatHandler = updateHoldSeatHandler;
         _updateAircraftTypeHandler = updateAircraftTypeHandler;
+        _setOperationalDataHandler = setOperationalDataHandler;
         _logger = logger;
     }
 
@@ -985,19 +989,21 @@ public sealed class OfferFunction
             var g = r.Group;
             return new FlightInventoryGroupResponse
             {
-                InventoryId         = g.InventoryId,
-                FlightNumber        = g.FlightNumber,
-                DepartureDate       = g.DepartureDate.ToString("yyyy-MM-dd"),
-                DepartureTime       = g.DepartureTime.ToString("HH:mm"),
-                ArrivalTime         = g.ArrivalTime.ToString("HH:mm"),
-                ArrivalDayOffset    = g.ArrivalDayOffset,
-                Origin              = g.Origin,
-                Destination         = g.Destination,
-                AircraftType        = g.AircraftType,
-                Status              = r.EffectiveStatus,
-                TotalSeats          = g.TotalSeats,
-                TotalSeatsAvailable = g.TotalSeatsAvailable,
-                LoadFactor          = r.LoadFactor,
+                InventoryId          = g.InventoryId,
+                FlightNumber         = g.FlightNumber,
+                DepartureDate        = g.DepartureDate.ToString("yyyy-MM-dd"),
+                DepartureTime        = g.DepartureTime.ToString("HH:mm"),
+                ArrivalTime          = g.ArrivalTime.ToString("HH:mm"),
+                ArrivalDayOffset     = g.ArrivalDayOffset,
+                Origin               = g.Origin,
+                Destination          = g.Destination,
+                AircraftType         = g.AircraftType,
+                Status               = r.EffectiveStatus,
+                DepartureGate        = g.DepartureGate,
+                AircraftRegistration = g.AircraftRegistration,
+                TotalSeats           = g.TotalSeats,
+                TotalSeatsAvailable  = g.TotalSeatsAvailable,
+                LoadFactor           = r.LoadFactor,
                 F = MapCabinData(g.F),
                 J = MapCabinData(g.J),
                 W = MapCabinData(g.W),
@@ -1108,6 +1114,35 @@ public sealed class OfferFunction
                 newAircraftType = command.NewAircraftType,
                 inventoriesUpdated = count
             });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+    }
+
+    // PATCH /v1/inventory/{inventoryId}/operational-data
+    [Function("SetInventoryOperationalData")]
+    [OpenApiOperation(operationId: "SetInventoryOperationalData", tags: new[] { "Inventory" }, Summary = "Set departure gate and/or aircraft registration for a flight inventory record")]
+    [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ departureGate, aircraftRegistration }")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> SetOperationalData(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/{inventoryId:guid}/operational-data")] HttpRequestData req,
+        Guid inventoryId,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
+
+        var departureGate       = body.TryGetProperty("departureGate",       out var gEl) ? gEl.GetString() : null;
+        var aircraftRegistration = body.TryGetProperty("aircraftRegistration", out var rEl) ? rEl.GetString() : null;
+
+        var command = new SetInventoryOperationalDataCommand(inventoryId, departureGate, aircraftRegistration);
+
+        try
+        {
+            await _setOperationalDataHandler.HandleAsync(command, ct);
+            return req.CreateResponse(HttpStatusCode.NoContent);
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
     }

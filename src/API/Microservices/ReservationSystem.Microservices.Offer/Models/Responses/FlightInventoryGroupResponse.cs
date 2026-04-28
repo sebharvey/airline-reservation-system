@@ -34,6 +34,12 @@ public sealed class FlightInventoryGroupResponse
     [JsonPropertyName("status")]
     public string Status { get; init; } = string.Empty;
 
+    [JsonPropertyName("departureGate")]
+    public string? DepartureGate { get; init; }
+
+    [JsonPropertyName("aircraftRegistration")]
+    public string? AircraftRegistration { get; init; }
+
     [JsonPropertyName("f")]
     public CabinInventory? F { get; init; }
 

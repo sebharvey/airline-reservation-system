@@ -26,6 +26,8 @@ public sealed class FlightInventoryGroupDto
     public string Destination { get; init; } = string.Empty;
     public string AircraftType { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
+    public string? DepartureGate { get; init; }
+    public string? AircraftRegistration { get; init; }
     public CabinInventoryDto? F { get; init; }
     public CabinInventoryDto? J { get; init; }
     public CabinInventoryDto? W { get; init; }

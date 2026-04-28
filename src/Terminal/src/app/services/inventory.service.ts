@@ -23,6 +23,8 @@ export interface FlightInventoryGroup {
   destination: string;
   aircraftType: string;
   status: string;
+  departureGate: string | null;
+  aircraftRegistration: string | null;
   f: CabinInventory | null;
   j: CabinInventory | null;
   w: CabinInventory | null;
@@ -292,6 +294,19 @@ export class InventoryService {
       this.#http.post<void>(
         `${this.#operationsBaseUrl}/disruption/change`,
         { flightNumber, departureDate, newAircraftType }
+      )
+    );
+  }
+
+  async setInventoryOperationalData(
+    inventoryId: string,
+    departureGate: string | null,
+    aircraftRegistration: string | null,
+  ): Promise<void> {
+    await firstValueFrom(
+      this.#http.patch<void>(
+        `${this.#operationsBaseUrl}/inventory/${inventoryId}/operational-data`,
+        { departureGate, aircraftRegistration }
       )
     );
   }

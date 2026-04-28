@@ -217,6 +217,22 @@ public sealed class OfferServiceClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task SetInventoryOperationalDataAsync(
+        Guid inventoryId,
+        string? departureGate,
+        string? aircraftRegistration,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { departureGate, aircraftRegistration };
+        var response = await _httpClient.PatchAsJsonAsync(
+            $"/api/v1/inventory/{inventoryId}/operational-data", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No inventory found for id {inventoryId}.");
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<FlightAvailabilityResponse> GetFlightAvailabilityAsync(
         string origin,
         string destination,
