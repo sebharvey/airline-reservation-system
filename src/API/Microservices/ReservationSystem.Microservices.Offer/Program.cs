@@ -38,6 +38,7 @@ using ReservationSystem.Microservices.Offer.Application.GetFareFamily;
 using ReservationSystem.Microservices.Offer.Application.CreateFareFamily;
 using ReservationSystem.Microservices.Offer.Application.UpdateFareFamily;
 using ReservationSystem.Microservices.Offer.Application.DeleteFareFamily;
+using ReservationSystem.Microservices.Offer.Application.SetInventoryOperationalData;
 using ReservationSystem.Microservices.Offer.Domain.ExternalServices;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 using ReservationSystem.Microservices.Offer.Infrastructure.ExternalServices;
@@ -129,6 +130,7 @@ var host = new HostBuilder()
         services.AddScoped<CreateFareFamilyHandler>();
         services.AddScoped<UpdateFareFamilyHandler>();
         services.AddScoped<DeleteFareFamilyHandler>();
+        services.AddScoped<SetInventoryOperationalDataHandler>();
     })
     .Build();
 
