@@ -1,0 +1,193 @@
+<div class="swap-page fade-in">
+
+  <!-- Page header -->
+  <div class="swap-header">
+    <a [routerLink]="['/inventory']" class="back-btn">
+      <lucide-icon name="chevron-left" [size]="16" />
+      Back to Stock Keeper
+    </a>
+
+    @if (flight()) {
+      <div class="swap-flight-info">
+        <div class="swap-flight-title-row">
+          <span class="swap-flight-num mono">{{ flight()!.flightNumber }}</span>
+          <span class="swap-route">{{ flight()!.origin }} → {{ flight()!.destination }}</span>
+          <span class="swap-date muted">{{ flight()!.departureDate }}</span>
+        </div>
+        <h1 class="swap-title">Aircraft Equipment Change</h1>
+        <p class="swap-subtitle">Select a replacement aircraft type and validate seat assignments. Seats that cannot transfer to the new aircraft will be flagged for manual reassignment.</p>
+      </div>
+    } @else {
+      <div class="swap-flight-title-row">
+        <span class="swap-flight-num mono">{{ flightNumber() }}</span>
+        <span class="swap-date muted">{{ departureDate() }}</span>
+      </div>
+      <h1 class="swap-title">Aircraft Equipment Change</h1>
+    }
+  </div>
+
+  <!-- Aircraft selection card -->
+  <div class="swap-selection-card">
+
+    <!-- Current / new aircraft display -->
+    <div class="swap-aircraft-display">
+      <div class="swap-aircraft-slot">
+        <span class="swap-slot-label">Current aircraft</span>
+        <span class="aircraft-badge">{{ flight()?.aircraftType ?? '—' }}</span>
+      </div>
+      @if (confirmedType()) {
+        <lucide-icon name="arrow-right" [size]="20" class="swap-arrow" />
+        <div class="swap-aircraft-slot">
+          <span class="swap-slot-label">New aircraft</span>
+          <span class="aircraft-badge aircraft-badge-new">{{ confirmedType() }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- Select + confirm controls -->
+    <div class="swap-controls">
+      @if (aircraftTypesLoading()) {
+        <div class="swap-types-loading">
+          <span class="spin-sm"></span>
+          Loading aircraft types…
+        </div>
+      } @else if (aircraftTypesError()) {
+        <div class="error-banner" role="alert">
+          <lucide-icon name="triangle-alert" [size]="14" /> {{ aircraftTypesError() }}
+        </div>
+      } @else {
+        <label class="swap-select-label" for="aircraft-select">New aircraft type</label>
+        <div class="swap-select-row">
+          <select
+            id="aircraft-select"
+            class="swap-select"
+            [value]="selectedType()"
+            (change)="selectedType.set($any($event.target).value)"
+          >
+            @for (type of aircraftTypes(); track type.aircraftTypeCode) {
+              <option [value]="type.aircraftTypeCode">
+                {{ type.aircraftTypeCode }}{{ type.friendlyName ? ' — ' + type.friendlyName : '' }}{{ type.aircraftTypeCode === flight()?.aircraftType ? ' (current)' : '' }}
+              </option>
+            }
+          </select>
+          <button
+            class="btn-confirm"
+            (click)="confirmAircraftChange()"
+            [disabled]="seatmapLoading() || !selectedType()">
+            @if (seatmapLoading()) {
+              <span class="spin-sm spin-light"></span>
+              Confirming…
+            } @else {
+              <lucide-icon name="check" [size]="15" />
+              Confirm aircraft change
+            }
+          </button>
+        </div>
+      }
+
+      @if (seatmapError()) {
+        <div class="error-banner" role="alert" style="margin-top:12px">
+          <lucide-icon name="triangle-alert" [size]="14" /> {{ seatmapError() }}
+        </div>
+      }
+    </div>
+
+  </div>
+
+  <!-- Seat validation summary bar -->
+  @if (seatCheckDone()) {
+    <div class="swap-summary-bar">
+      <span class="summary-ok">
+        <lucide-icon name="check-circle" [size]="14" />
+        {{ seatsOkCount() }} seat{{ seatsOkCount() !== 1 ? 's' : '' }} reassigned
+      </span>
+      @if (seatsUnavailableCount() > 0) {
+        <span class="summary-warn">
+          <lucide-icon name="alert-circle" [size]="14" />
+          {{ seatsUnavailableCount() }} need{{ seatsUnavailableCount() !== 1 ? '' : 's' }} manual reassignment
+        </span>
+      }
+      @if (holds().length - seatsWithAssignment() > 0) {
+        <span class="summary-muted">
+          {{ holds().length - seatsWithAssignment() }} no seat assigned
+        </span>
+      }
+    </div>
+  }
+
+  <!-- Hold load error -->
+  @if (holdsError()) {
+    <div class="error-banner" role="alert">
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ holdsError() }}
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (holdsLoading()) {
+    <div class="swap-loading">
+      <span class="btn-spinner"></span>
+      <p>Loading passengers…</p>
+    </div>
+  }
+
+  <!-- Passenger table -->
+  @if (!holdsLoading() && !holdsError() && holds().length > 0) {
+    <div class="swap-table-card">
+      <table class="swap-table">
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th>Booking ref</th>
+            <th>Passenger</th>
+            <th>Cabin</th>
+            <th>Current seat</th>
+            <th>Seat status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (hold of holds(); track hold.holdId; let i = $index) {
+            <tr [class.row-unavailable]="seatStatus(hold) === 'unavailable'">
+              <td class="col-num muted">{{ i + 1 }}</td>
+              <td class="mono booking-ref">
+                @if (hold.bookingReference) {
+                  <span class="pnr-copy-wrap">
+                    <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                  </span>
+                } @else {
+                  —
+                }
+              </td>
+              <td>{{ hold.passengerName ?? '—' }}</td>
+              <td>
+                <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
+              </td>
+              <td class="mono">{{ hold.seatNumber ?? '—' }}</td>
+              <td>
+                @switch (seatStatus(hold)) {
+                  @case ('no-seat') { <span class="status-muted">No seat</span> }
+                  @case ('unchecked') { <span class="status-muted">—</span> }
+                  @case ('ok') { <span class="badge badge-ok">Reassigned</span> }
+                  @case ('unavailable') { <span class="badge badge-warn">Needs reassignment</span> }
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="results-count">
+      {{ holds().length }} passenger{{ holds().length !== 1 ? 's' : '' }}
+      @if (!seatCheckDone()) {
+        · Select a new aircraft type above and confirm to validate seat assignments
+      }
+    </p>
+  }
+
+  @if (!holdsLoading() && !holdsError() && holds().length === 0) {
+    <div class="swap-empty">
+      <lucide-icon name="users" [size]="32" />
+      <p>No confirmed passengers found on this flight.</p>
+    </div>
+  }
+
+</div>
