@@ -337,6 +337,14 @@ public static class NdcXmlParser
             return null;
         }
 
+        // ── GDS booking reference (optional) ─────────────────────────────────
+        var gdsBookingReference = query
+            .Element(ns + "BookingReferences")
+            ?.Element(ns + "BookingReference")
+            ?.Element(ns + "ID")?.Value?.Trim();
+        if (string.IsNullOrWhiteSpace(gdsBookingReference))
+            gdsBookingReference = null;
+
         // ── Payment ───────────────────────────────────────────────────────────
         NdcOrderCreatePaymentCard? paymentCard = null;
         var paymentsEl = query.Element(ns + "Payments");
@@ -375,7 +383,8 @@ public static class NdcXmlParser
             string.IsNullOrWhiteSpace(offerItemRefId) ? null : offerItemRefId,
             string.IsNullOrWhiteSpace(shoppingResponseId) ? null : shoppingResponseId,
             passengers,
-            paymentCard);
+            paymentCard,
+            gdsBookingReference);
     }
 
     // ── SeatAvailability parser ───────────────────────────────────────────────

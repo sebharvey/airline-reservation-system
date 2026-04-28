@@ -198,6 +198,9 @@ public sealed class ConfirmOrderHandler
             ["orderItems"] = flightOrderItems,
             ["payments"] = paymentsNode?.DeepClone() ?? new JsonArray(),
             ["bookingType"] = bookingType,
+            ["gdsBookingReference"] = !string.IsNullOrWhiteSpace(command.GdsBookingReference)
+                ? command.GdsBookingReference
+                : null,
             ["history"] = new JsonArray
             {
                 draftData["history"]?[0]?.DeepClone() ?? new JsonObject

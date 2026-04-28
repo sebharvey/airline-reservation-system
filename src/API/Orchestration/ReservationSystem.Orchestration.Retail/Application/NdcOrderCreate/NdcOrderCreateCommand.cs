@@ -28,10 +28,12 @@ public sealed record NdcOrderCreatePaymentCard(
 /// <summary>
 /// Parsed parameters from an IATA NDC 21.3 OrderCreateRQ.
 /// OfferRefId identifies the stored offer GUID published in a prior AirShoppingRS or OfferPriceRS.
+/// GdsBookingReference carries the upstream GDS record locator from Query/BookingReferences/BookingReference/ID.
 /// </summary>
 public sealed record NdcOrderCreateCommand(
     Guid OfferRefId,
     string? OfferItemRefId,
     string? ShoppingResponseId,
     IReadOnlyList<NdcOrderCreatePassenger> Passengers,
-    NdcOrderCreatePaymentCard? PaymentCard);
+    NdcOrderCreatePaymentCard? PaymentCard,
+    string? GdsBookingReference = null);

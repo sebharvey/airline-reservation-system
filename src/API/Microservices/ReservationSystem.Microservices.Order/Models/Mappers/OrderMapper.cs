@@ -34,7 +34,10 @@ public static class OrderMapper
                 : "[]",
             EnrichedOffersJson: request.EnrichedOffers is not null
                 ? JsonSerializer.Serialize(request.EnrichedOffers)
-                : null);
+                : null,
+            GdsBookingReference: string.IsNullOrWhiteSpace(request.GdsBookingReference)
+                ? null
+                : request.GdsBookingReference);
 
     public static BasketResponse ToResponse(Basket basket) =>
         new()

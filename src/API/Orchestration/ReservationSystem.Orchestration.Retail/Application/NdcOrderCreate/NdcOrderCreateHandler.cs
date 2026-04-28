@@ -140,7 +140,8 @@ public sealed class NdcOrderCreateHandler
             ExpiryDate            : expiryDate,
             Cvv                   : cvv,
             CardholderName        : cardholderName,
-            LoyaltyPointsToRedeem : null);
+            LoyaltyPointsToRedeem : null,
+            GdsBookingReference   : command.GdsBookingReference);
 
         var order = await _confirmBasketHandler.HandleAsync(confirmCommand, cancellationToken);
 
