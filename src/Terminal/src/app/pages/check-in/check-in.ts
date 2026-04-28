@@ -59,6 +59,8 @@ export class CheckInComponent {
   checkingInIndex = signal<number | null>(null);
   checkInResult = signal<CheckInResult | null>(null);
 
+  scanning = signal(false);
+
   overrideMode = signal(false);
   overrideReason = signal('');
   overridingIndex = signal<number | null>(null);
@@ -258,6 +260,13 @@ export class CheckInComponent {
       if (typeof e['message'] === 'string') return e['message'];
     }
     return '';
+  }
+
+  async scanPassport(index: number): Promise<void> {
+    this.scanning.set(true);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    this.scanning.set(false);
+    this.fillTestData(index);
   }
 
   fillTestData(index: number): void {
