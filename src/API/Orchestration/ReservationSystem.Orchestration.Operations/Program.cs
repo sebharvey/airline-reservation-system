@@ -21,6 +21,7 @@ using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionChan
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionGetOrders;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionRebookOrder;
 using ReservationSystem.Orchestration.Operations.Application.AdminCheckIn;
+using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionTime;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Business.Middleware;
@@ -104,6 +105,9 @@ var host = new HostBuilder()
         services.AddScoped<OrderServiceClient>();
         services.AddScoped<DeliveryServiceClient>();
         services.AddScoped<CustomerServiceClient>();
+
+        // ── Shared check-in services ───────────────────────────────────────────
+        services.AddScoped<CheckInNoteService>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<GetFlightStatusHandler>();
