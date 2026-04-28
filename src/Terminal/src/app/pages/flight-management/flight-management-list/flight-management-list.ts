@@ -2,7 +2,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { InventoryService, FlightInventoryGroup, CabinInventory } from '../../../services/inventory.service';
+import { InventoryService, FlightInventoryGroup } from '../../../services/inventory.service';
 
 @Component({
   selector: 'app-flight-management-list',
@@ -15,12 +15,17 @@ export class FlightManagementListComponent implements OnInit {
   #inventoryService = inject(InventoryService);
   #router = inject(Router);
 
-  readonly today = new Date().toISOString().slice(0, 10);
-  readonly todayDisplay = new Date().toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+  selectedDate = signal(new Date().toISOString().slice(0, 10));
+
+  selectedDateDisplay = computed(() => {
+    const d = new Date(this.selectedDate() + 'T00:00:00Z');
+    return d.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
   });
 
   flights = signal<FlightInventoryGroup[]>([]);
@@ -47,14 +52,27 @@ export class FlightManagementListComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     try {
-      const result = await this.#inventoryService.getFlightInventory(this.today);
+      const result = await this.#inventoryService.getFlightInventory(this.selectedDate());
       this.flights.set(result);
       this.loaded.set(true);
     } catch {
-      this.error.set("Failed to load today's flights. Please try again.");
+      this.error.set('Failed to load flights. Please try again.');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  onDateChange(val: string): void {
+    this.selectedDate.set(val);
+    this.load();
+  }
+
+  changeDay(offset: number): void {
+    const d = new Date(this.selectedDate() + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + offset);
+    const next = d.toISOString().slice(0, 10);
+    this.selectedDate.set(next);
+    this.load();
   }
 
   openFlight(flight: FlightInventoryGroup): void {
@@ -78,19 +96,6 @@ export class FlightManagementListComponent implements OnInit {
     if (loadFactor >= 70) return 'bar-high';
     if (loadFactor >= 40) return 'bar-medium';
     return 'bar-low';
-  }
-
-  cabinDisplay(cabin: CabinInventory | null): string {
-    if (!cabin || cabin.totalSeats === 0) return '—';
-    return `${cabin.seatsAvailable}/${cabin.totalSeats}`;
-  }
-
-  cabinClass(cabin: CabinInventory | null): string {
-    if (!cabin || cabin.totalSeats === 0) return 'cabin-empty';
-    const pct = cabin.seatsAvailable / cabin.totalSeats;
-    if (pct <= 0.1) return 'cabin-critical';
-    if (pct <= 0.3) return 'cabin-low';
-    return 'cabin-ok';
   }
 
   paxOnBoard(flight: FlightInventoryGroup): number {
