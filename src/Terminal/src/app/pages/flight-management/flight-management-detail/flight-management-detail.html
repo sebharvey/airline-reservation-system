@@ -100,8 +100,26 @@
     </div>
   }
 
-  <!-- Split pane body -->
+  <!-- Tabs -->
   @if (!loading() && !error()) {
+    <div class="detail-tabs">
+      <button
+        class="detail-tab"
+        [class.detail-tab-active]="activeTab() === 'details'"
+        (click)="activeTab.set('details')">
+        Details
+      </button>
+      <button
+        class="detail-tab"
+        [class.detail-tab-active]="activeTab() === 'disruption'"
+        (click)="activeTab.set('disruption')">
+        Disruption
+      </button>
+    </div>
+  }
+
+  <!-- Details tab: pax list + seatmap -->
+  @if (!loading() && !error() && activeTab() === 'details') {
     <div class="detail-body">
 
       <!-- ── PAX list (left) ──────────────────────────────────────── -->
@@ -301,6 +319,12 @@
         }
       </div>
 
+    </div>
+  }
+
+  <!-- Disruption tab -->
+  @if (!loading() && !error() && activeTab() === 'disruption') {
+    <div class="disruption-panel">
     </div>
   }
 
