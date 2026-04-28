@@ -213,6 +213,10 @@ export class InventoryComponent implements OnInit {
     return flight.status !== 'Ticketing Closed';
   }
 
+  openFlightDetail(flight: FlightInventoryGroup): void {
+    this.#router.navigate(['/inventory', flight.inventoryId]);
+  }
+
   openDisruptionModal(flight: FlightInventoryGroup): void {
     if (flight.status === 'Cancelled') {
       this.#router.navigate(['/disruption', flight.flightNumber, flight.departureDate]);

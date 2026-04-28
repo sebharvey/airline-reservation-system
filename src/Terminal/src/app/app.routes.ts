@@ -41,6 +41,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/inventory/inventory').then(m => m.InventoryComponent),
       },
       {
+        path: 'inventory/:inventoryId',
+        loadComponent: () => import('./pages/inventory/inventory-detail/inventory-detail').then(m => m.InventoryDetailComponent),
+      },
+      {
         path: 'disruption/:flightNumber/:departureDate',
         loadComponent: () => import('./pages/disruption/disruption').then(m => m.DisruptionComponent),
       },

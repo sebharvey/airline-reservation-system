@@ -94,7 +94,11 @@
         </thead>
         <tbody>
           @for (flight of flights(); track flight.flightNumber + flight.departureDate) {
-            <tr [class.row-cancelled]="flight.status === 'Cancelled'">
+            <tr
+              class="row-clickable"
+              [class.row-cancelled]="flight.status === 'Cancelled'"
+              (click)="openFlightDetail(flight)"
+              title="View orders for {{ flight.flightNumber }}">
               <td class="mono flight-num">{{ flight.flightNumber }}</td>
               <td>
                 <span class="route">
@@ -134,13 +138,13 @@
                 <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
               </td>
               <td class="action-col">
-                <button class="holds-btn" (click)="openHoldsModal(flight)" title="View holds for this flight">
+                <button class="holds-btn" (click)="$event.stopPropagation(); openHoldsModal(flight)" title="View holds for this flight">
                   Holds
                 </button>
                 <button
                   class="disruption-btn"
                   [class.disruption-btn-cancelled]="flight.status === 'Cancelled'"
-                  (click)="openDisruptionModal(flight)"
+                  (click)="$event.stopPropagation(); openDisruptionModal(flight)"
                   [disabled]="!canDisrupt(flight)"
                   [title]="flight.status === 'Cancelled' ? 'View IROPS rebooking for this flight' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
                   {{ flight.status === 'Cancelled' ? 'IROPS' : 'Disruption' }}
@@ -161,7 +165,11 @@
     <!-- Mobile card list -->
     <div class="flight-cards">
       @for (flight of flights(); track flight.flightNumber + flight.departureDate) {
-        <div class="flight-card" [class.flight-card-cancelled]="flight.status === 'Cancelled'">
+        <div
+          class="flight-card row-clickable"
+          [class.flight-card-cancelled]="flight.status === 'Cancelled'"
+          (click)="openFlightDetail(flight)"
+          title="View orders for {{ flight.flightNumber }}">
           <div class="fc-header">
             <span class="fc-flight mono">{{ flight.flightNumber }}</span>
             <span class="fc-route">{{ flight.origin }}<span class="route-arrow"> → </span>{{ flight.destination }}</span>
@@ -199,11 +207,11 @@
             <span class="load-pct muted">{{ flight.totalSeatsAvailable }}/{{ flight.totalSeats }} avail · {{ availPct(flight) }}% load</span>
           </div>
           <div class="fc-actions">
-            <button class="holds-btn fc-btn" (click)="openHoldsModal(flight)">Holds</button>
+            <button class="holds-btn fc-btn" (click)="$event.stopPropagation(); openHoldsModal(flight)">Holds</button>
             <button
               class="disruption-btn fc-btn"
               [class.disruption-btn-cancelled]="flight.status === 'Cancelled'"
-              (click)="openDisruptionModal(flight)"
+              (click)="$event.stopPropagation(); openDisruptionModal(flight)"
               [disabled]="!canDisrupt(flight)"
               [title]="flight.status === 'Cancelled' ? 'View IROPS rebooking for this flight' : flight.status === 'Ticketing Closed' ? 'Ticketing is closed for this flight' : 'Manage disruption for this flight'">
               {{ flight.status === 'Cancelled' ? 'IROPS' : 'Disruption' }}
