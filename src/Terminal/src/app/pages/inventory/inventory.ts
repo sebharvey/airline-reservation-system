@@ -2,7 +2,10 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap, DisruptionCancelResponse } from '../../services/inventory.service';
+import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap, DisruptionCancelResponse, AircraftType } from '../../services/inventory.service';
+
+type DisruptionStep = 'action' | 'confirm' | 'aircraft-swap-passengers' | 'aircraft-swap-select';
+type SeatStatus = 'no-seat' | 'unchecked' | 'ok' | 'unavailable';
 
 @Component({
   selector: 'app-inventory',
@@ -96,7 +99,7 @@ export class InventoryComponent implements OnInit {
     return 'badge-inactive';
   }
 
-  // Holds modal
+  // ── Holds modal ──────────────────────────────────────────────────────────────
   holdsModalFlight = signal<FlightInventoryGroup | null>(null);
   holds = signal<InventoryHold[]>([]);
   holdsLoading = signal(false);
@@ -104,7 +107,6 @@ export class InventoryComponent implements OnInit {
   holdsTab = signal<'confirmed' | 'standby' | 'seatmap'>('confirmed');
   copiedHoldRef = signal<string | null>(null);
 
-  // Holds filters
   holdsFilterRef = signal('');
   holdsFilterName = signal('');
   holdsFilterCabin = signal('');
@@ -156,7 +158,6 @@ export class InventoryComponent implements OnInit {
       .sort((a, b) => (b.standbyPriority ?? 0) - (a.standbyPriority ?? 0));
   });
 
-  // Seat map tab
   seatmap = signal<FlightSeatmap | null>(null);
   seatmapLoading = signal(false);
   seatmapError = signal('');
@@ -203,14 +204,15 @@ export class InventoryComponent implements OnInit {
     this.holdsModalFlight.set(null);
   }
 
-  // Disruption modal
+  // ── Disruption modal ─────────────────────────────────────────────────────────
   disruptionModalFlight = signal<FlightInventoryGroup | null>(null);
-  disruptionStep = signal<'action' | 'confirm'>('action');
+  disruptionStep = signal<DisruptionStep>('action');
   disruptionLoading = signal(false);
   disruptionError = signal('');
 
-  // Any active flight (non-cancelled) can show the disruption action menu.
-  // Cancelled flights navigate directly to the IROPS rebooking page.
+  // Wide modal needed for the passenger list step
+  isWideDisruptionModal = computed(() => this.disruptionStep() === 'aircraft-swap-passengers');
+
   canDisrupt(flight: FlightInventoryGroup): boolean {
     return flight.status !== 'Ticketing Closed';
   }
@@ -254,6 +256,135 @@ export class InventoryComponent implements OnInit {
     }
   }
 
+  // ── Aircraft swap ─────────────────────────────────────────────────────────────
+  aircraftSwapHolds = signal<InventoryHold[]>([]);
+  aircraftSwapHoldsLoading = signal(false);
+  aircraftSwapHoldsError = signal('');
+
+  aircraftTypes = signal<AircraftType[]>([]);
+  aircraftTypesLoading = signal(false);
+  aircraftTypesError = signal('');
+
+  aircraftSwapSelectedType = signal('');
+  aircraftSwapConfirmedType = signal('');
+
+  aircraftSwapSeatmap = signal<FlightSeatmap | null>(null);
+  aircraftSwapSeatmapLoading = signal(false);
+  aircraftSwapSeatmapError = signal('');
+
+  seatCheckDone = signal(false);
+
+  // Set of seat numbers that exist on the newly selected aircraft
+  newAircraftSeatNumbers = computed(() => {
+    const sm = this.aircraftSwapSeatmap();
+    if (!sm) return new Set<string>();
+    const nums = new Set<string>();
+    for (const cabin of sm.cabins) {
+      for (const seat of cabin.seats) {
+        nums.add(seat.seatNumber);
+      }
+    }
+    return nums;
+  });
+
+  seatsWithAssignment = computed(() =>
+    this.aircraftSwapHolds().filter(h => !!h.seatNumber).length
+  );
+
+  seatsOkCount = computed(() => {
+    if (!this.seatCheckDone()) return 0;
+    const nums = this.newAircraftSeatNumbers();
+    return this.aircraftSwapHolds().filter(h => h.seatNumber && nums.has(h.seatNumber)).length;
+  });
+
+  seatsUnavailableCount = computed(() => {
+    if (!this.seatCheckDone()) return 0;
+    const nums = this.newAircraftSeatNumbers();
+    return this.aircraftSwapHolds().filter(h => h.seatNumber && !nums.has(h.seatNumber)).length;
+  });
+
+  seatStatus(hold: InventoryHold): SeatStatus {
+    if (!hold.seatNumber) return 'no-seat';
+    if (!this.seatCheckDone()) return 'unchecked';
+    return this.newAircraftSeatNumbers().has(hold.seatNumber) ? 'ok' : 'unavailable';
+  }
+
+  async startAircraftSwap(): Promise<void> {
+    const flight = this.disruptionModalFlight();
+    if (!flight) return;
+    this.disruptionStep.set('aircraft-swap-passengers');
+    this.aircraftSwapHolds.set([]);
+    this.aircraftSwapHoldsError.set('');
+    this.aircraftSwapHoldsLoading.set(true);
+    this.seatCheckDone.set(false);
+    this.aircraftSwapSeatmap.set(null);
+    this.aircraftSwapConfirmedType.set('');
+    this.aircraftSwapSeatmapError.set('');
+    try {
+      const result = await this.#inventoryService.getInventoryHolds(flight.inventoryId);
+      // Show only confirmed (revenue) holds — standby have no seat assignments
+      this.aircraftSwapHolds.set(result.filter(h => h.holdType === 'Revenue'));
+    } catch {
+      this.aircraftSwapHoldsError.set('Failed to load passenger holds. Please try again.');
+    } finally {
+      this.aircraftSwapHoldsLoading.set(false);
+    }
+  }
+
+  async openAircraftSelectModal(): Promise<void> {
+    const flight = this.disruptionModalFlight();
+    if (!flight) return;
+    // Default to current aircraft type each time this modal is opened
+    this.aircraftSwapSelectedType.set(flight.aircraftType);
+    this.aircraftSwapSeatmapError.set('');
+    this.disruptionStep.set('aircraft-swap-select');
+    // Only fetch aircraft types once per disruption modal session
+    if (this.aircraftTypes().length > 0) return;
+    this.aircraftTypesLoading.set(true);
+    this.aircraftTypesError.set('');
+    try {
+      const types = await this.#inventoryService.getAircraftTypes();
+      // Always include current type even if inactive
+      const filtered = types.filter(t => t.isActive || t.aircraftTypeCode === flight.aircraftType);
+      this.aircraftTypes.set(filtered);
+    } catch {
+      this.aircraftTypesError.set('Failed to load aircraft types. Please try again.');
+    } finally {
+      this.aircraftTypesLoading.set(false);
+    }
+  }
+
+  async confirmAircraftChange(): Promise<void> {
+    const flight = this.disruptionModalFlight();
+    if (!flight) return;
+    const newType = this.aircraftSwapSelectedType();
+    this.aircraftSwapSeatmapLoading.set(true);
+    this.aircraftSwapSeatmapError.set('');
+    try {
+      // Update the FlightInventory record in the database and fetch the new seatmap in parallel
+      const [sm] = await Promise.all([
+        this.#inventoryService.getFlightSeatmap(flight.inventoryId, flight.flightNumber, newType),
+        this.#inventoryService.changeAircraftType(flight.flightNumber, flight.departureDate, newType),
+      ]);
+      this.aircraftSwapSeatmap.set(sm);
+      this.aircraftSwapConfirmedType.set(newType);
+      this.seatCheckDone.set(true);
+      // Update the aircraftType shown in the inventory list for this flight
+      this.flights.update(list =>
+        list.map(f =>
+          f.inventoryId === flight.inventoryId ? { ...f, aircraftType: newType } : f
+        )
+      );
+      this.disruptionModalFlight.update(f => f ? { ...f, aircraftType: newType } : f);
+      this.disruptionStep.set('aircraft-swap-passengers');
+    } catch {
+      this.aircraftSwapSeatmapError.set('Failed to confirm aircraft change. Please try again.');
+    } finally {
+      this.aircraftSwapSeatmapLoading.set(false);
+    }
+  }
+
+  // ── Holds modal helpers ──────────────────────────────────────────────────────
   holdStatusClass(status: string): string {
     return status === 'Confirmed' ? 'badge-active' : 'badge-held';
   }
@@ -287,9 +418,5 @@ export class InventoryComponent implements OnInit {
       if (colIndex === count - 1) return true;
     }
     return false;
-  }
-
-  #todayIso(): string {
-    return new Date().toISOString().slice(0, 10);
   }
 }

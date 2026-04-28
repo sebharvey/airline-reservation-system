@@ -522,10 +522,21 @@
 <!-- Disruption modal -->
 @if (disruptionModalFlight()) {
   <div class="modal-backdrop" (click)="closeDisruptionModal()"></div>
-  <div class="modal disruption-modal" role="dialog" aria-modal="true" aria-labelledby="disruption-modal-title">
+  <div
+    class="modal"
+    [class.disruption-modal]="!isWideDisruptionModal()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="disruption-modal-title">
     <div class="modal-header">
       <div class="modal-title-group">
-        <h2 class="modal-title" id="disruption-modal-title">Flight Disruption</h2>
+        <h2 class="modal-title" id="disruption-modal-title">
+          @if (disruptionStep() === 'aircraft-swap-passengers' || disruptionStep() === 'aircraft-swap-select') {
+            Equipment Change
+          } @else {
+            Flight Disruption
+          }
+        </h2>
         <p class="modal-subtitle">
           {{ disruptionModalFlight()!.flightNumber }} &nbsp;·&nbsp;
           {{ disruptionModalFlight()!.origin }} → {{ disruptionModalFlight()!.destination }} &nbsp;·&nbsp;
@@ -542,6 +553,7 @@
         </div>
       }
 
+      <!-- Action selection step -->
       @if (disruptionStep() === 'action') {
         <p class="disruption-intro">Select the disruption action to apply to this flight.</p>
 
@@ -576,24 +588,23 @@
             </div>
           </div>
 
-          <!-- Equipment change — coming soon -->
-          <div class="disruption-action-card disruption-action-disabled">
+          <!-- Equipment change -->
+          <div class="disruption-action-card">
             <div class="disruption-action-header">
               <div class="disruption-action-icon disruption-icon-equipment">
                 <lucide-icon name="plane" [size]="20" />
               </div>
               <div class="disruption-action-text">
-                <div class="disruption-action-title">
-                  Equipment change
-                  <span class="badge-coming-soon">Coming soon</span>
-                </div>
-                <div class="disruption-action-desc">Switch the aircraft type for this flight. Seats will be remapped and affected passengers notified.</div>
+                <div class="disruption-action-title">Equipment change</div>
+                <div class="disruption-action-desc">Switch the aircraft type for this flight. Seat assignments will be validated against the new aircraft configuration and any that cannot be transferred will be highlighted for manual reassignment.</div>
               </div>
             </div>
+            <button class="btn-primary" (click)="startAircraftSwap()">Review passengers</button>
           </div>
         </div>
       }
 
+      <!-- Cancellation confirmation step -->
       @if (disruptionStep() === 'confirm') {
         <div class="disruption-confirm">
           <div class="disruption-warn-icon">
@@ -615,6 +626,162 @@
           </ul>
         </div>
       }
+
+      <!-- Aircraft swap — passenger review step -->
+      @if (disruptionStep() === 'aircraft-swap-passengers') {
+        <!-- Header bar: current/new aircraft + change button -->
+        <div class="swap-header-bar">
+          <div class="swap-aircraft-info">
+            <span class="swap-aircraft-label">Current aircraft</span>
+            <span class="aircraft-type-badge">{{ disruptionModalFlight()!.aircraftType }}</span>
+            @if (aircraftSwapConfirmedType()) {
+              <lucide-icon name="arrow-right" [size]="14" class="swap-arrow-icon" />
+              <span class="aircraft-type-badge aircraft-type-badge-new">{{ aircraftSwapConfirmedType() }}</span>
+            }
+          </div>
+          <button
+            class="btn-primary"
+            (click)="openAircraftSelectModal()"
+            [disabled]="aircraftSwapHoldsLoading()">
+            <lucide-icon name="plane" [size]="14" />
+            Change aircraft
+          </button>
+        </div>
+
+        <!-- Seat check summary bar (shown after validation) -->
+        @if (seatCheckDone()) {
+          <div class="swap-summary-bar">
+            <span class="swap-summary-item swap-summary-ok">
+              <lucide-icon name="check-circle" [size]="13" />
+              {{ seatsOkCount() }} seat{{ seatsOkCount() !== 1 ? 's' : '' }} reassigned
+            </span>
+            @if (seatsUnavailableCount() > 0) {
+              <span class="swap-summary-item swap-summary-warn">
+                <lucide-icon name="alert-circle" [size]="13" />
+                {{ seatsUnavailableCount() }} need{{ seatsUnavailableCount() !== 1 ? '' : 's' }} reassignment
+              </span>
+            }
+            @if (aircraftSwapHolds().length - seatsWithAssignment() > 0) {
+              <span class="swap-summary-item swap-summary-muted">
+                {{ aircraftSwapHolds().length - seatsWithAssignment() }} no seat assigned
+              </span>
+            }
+          </div>
+        }
+
+        @if (aircraftSwapHoldsError()) {
+          <div class="error-banner" role="alert">
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ aircraftSwapHoldsError() }}
+          </div>
+        }
+
+        @if (aircraftSwapHoldsLoading()) {
+          <div class="modal-loading">
+            <span class="btn-spinner modal-spinner"></span>
+            <span>Loading passengers…</span>
+          </div>
+        } @else if (!aircraftSwapHoldsError()) {
+          @if (aircraftSwapHolds().length === 0) {
+            <p class="modal-empty">No confirmed holds found for this flight.</p>
+          } @else {
+            <div class="holds-table-wrap">
+              <table class="holds-table">
+                <thead>
+                  <tr>
+                    <th>Booking ref</th>
+                    <th>Passenger</th>
+                    <th>Cabin</th>
+                    <th>Current seat</th>
+                    <th>Seat status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (hold of aircraftSwapHolds(); track hold.holdId) {
+                    <tr [class.hold-row-unavailable]="seatStatus(hold) === 'unavailable'">
+                      <td class="mono booking-ref">
+                        @if (hold.bookingReference) {
+                          <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                        } @else {
+                          —
+                        }
+                      </td>
+                      <td>{{ hold.passengerName ?? '—' }}</td>
+                      <td class="cabin-col">
+                        <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
+                      </td>
+                      <td class="mono">{{ hold.seatNumber ?? '—' }}</td>
+                      <td>
+                        @switch (seatStatus(hold)) {
+                          @case ('no-seat') {
+                            <span class="swap-no-seat">No seat</span>
+                          }
+                          @case ('unchecked') {
+                            <span class="swap-unchecked">—</span>
+                          }
+                          @case ('ok') {
+                            <span class="badge badge-seat-ok">Reassigned</span>
+                          }
+                          @case ('unavailable') {
+                            <span class="badge badge-seat-unavailable">Needs reassignment</span>
+                          }
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <p class="modal-count">
+              {{ aircraftSwapHolds().length }} passenger{{ aircraftSwapHolds().length !== 1 ? 's' : '' }}
+              @if (!seatCheckDone()) {
+                &nbsp;· Click <strong>Change aircraft</strong> to validate seat assignments
+              }
+            </p>
+          }
+        }
+      }
+
+      <!-- Aircraft swap — aircraft type selection step -->
+      @if (disruptionStep() === 'aircraft-swap-select') {
+        @if (aircraftSwapSeatmapError()) {
+          <div class="error-banner" role="alert">
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ aircraftSwapSeatmapError() }}
+          </div>
+        }
+
+        <p class="disruption-intro">Select the replacement aircraft type. Seat assignments will be validated against the new configuration once you confirm.</p>
+
+        @if (aircraftTypesLoading()) {
+          <div class="modal-loading">
+            <span class="btn-spinner modal-spinner"></span>
+            <span>Loading aircraft types…</span>
+          </div>
+        } @else if (aircraftTypesError()) {
+          <div class="error-banner" role="alert">
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ aircraftTypesError() }}
+          </div>
+        } @else {
+          <div class="aircraft-select-wrap">
+            <label class="aircraft-select-label" for="aircraft-type-select">New aircraft type</label>
+            <select
+              id="aircraft-type-select"
+              class="aircraft-select"
+              [value]="aircraftSwapSelectedType()"
+              (change)="aircraftSwapSelectedType.set($any($event.target).value)"
+            >
+              @for (type of aircraftTypes(); track type.aircraftTypeCode) {
+                <option [value]="type.aircraftTypeCode">
+                  {{ type.aircraftTypeCode }}{{ type.friendlyName ? ' — ' + type.friendlyName : '' }}
+                  {{ type.aircraftTypeCode === disruptionModalFlight()!.aircraftType ? ' (current)' : '' }}
+                </option>
+              }
+            </select>
+            <p class="aircraft-select-note">
+              Current aircraft: <strong>{{ disruptionModalFlight()!.aircraftType }}</strong>
+            </p>
+          </div>
+        }
+      }
     </div>
 
     <div class="modal-footer disruption-modal-footer">
@@ -631,6 +798,28 @@
             Processing&hellip;
           } @else {
             Yes, take off sale
+          }
+        </button>
+      }
+      @if (disruptionStep() === 'aircraft-swap-passengers') {
+        <button class="btn-secondary" (click)="disruptionStep.set('action')">
+          Back to options
+        </button>
+        <button class="btn-secondary" (click)="closeDisruptionModal()">Close</button>
+      }
+      @if (disruptionStep() === 'aircraft-swap-select') {
+        <button class="btn-secondary" (click)="disruptionStep.set('aircraft-swap-passengers')" [disabled]="aircraftSwapSeatmapLoading()">
+          Cancel
+        </button>
+        <button
+          class="btn-primary"
+          (click)="confirmAircraftChange()"
+          [disabled]="aircraftSwapSeatmapLoading() || aircraftTypesLoading() || !!aircraftTypesError()">
+          @if (aircraftSwapSeatmapLoading()) {
+            <span class="btn-spinner-white"></span>
+            Validating…
+          } @else {
+            Confirm aircraft change
           }
         </button>
       }

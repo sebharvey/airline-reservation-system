@@ -180,6 +180,24 @@ public sealed class OfferServiceClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task UpdateInventoryAircraftTypeAsync(
+        string flightNumber,
+        string departureDate,
+        string newAircraftType,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { flightNumber, departureDate, newAircraftType };
+        var response = await _httpClient.PatchAsJsonAsync("/api/v1/inventory/aircraft-type", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No inventory found for flight {flightNumber} on {departureDate}.");
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<FlightAvailabilityResponse> GetFlightAvailabilityAsync(
         string origin,
         string destination,

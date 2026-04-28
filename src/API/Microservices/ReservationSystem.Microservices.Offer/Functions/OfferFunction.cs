@@ -20,6 +20,7 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
 using ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
+using ReservationSystem.Microservices.Offer.Application.UpdateInventoryAircraftType;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
@@ -52,6 +53,7 @@ public sealed class OfferFunction
     private readonly GetFlightByInventoryIdHandler _getFlightByInventoryIdHandler;
     private readonly GetInventoryHoldsHandler _getInventoryHoldsHandler;
     private readonly RepriceStoredOfferHandler _repriceHandler;
+    private readonly UpdateInventoryAircraftTypeHandler _updateAircraftTypeHandler;
     private readonly ILogger<OfferFunction> _logger;
 
     public OfferFunction(
@@ -74,6 +76,7 @@ public sealed class OfferFunction
         GetFlightByInventoryIdHandler getFlightByInventoryIdHandler,
         GetInventoryHoldsHandler getInventoryHoldsHandler,
         RepriceStoredOfferHandler repriceHandler,
+        UpdateInventoryAircraftTypeHandler updateAircraftTypeHandler,
         ILogger<OfferFunction> logger)
     {
         _createFlightHandler = createFlightHandler;
@@ -95,6 +98,7 @@ public sealed class OfferFunction
         _getFlightByInventoryIdHandler = getFlightByInventoryIdHandler;
         _getInventoryHoldsHandler = getInventoryHoldsHandler;
         _repriceHandler = repriceHandler;
+        _updateAircraftTypeHandler = updateAircraftTypeHandler;
         _logger = logger;
     }
 
@@ -1037,6 +1041,39 @@ public sealed class OfferFunction
             standbyPriority = h.StandbyPriority,
             createdAt       = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }));
+    }
+
+    // PATCH /v1/inventory/aircraft-type
+    [Function("UpdateInventoryAircraftType")]
+    [OpenApiOperation(operationId: "UpdateInventoryAircraftType", tags: new[] { "Inventory" }, Summary = "Update the aircraft type on all inventory records for a flight")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ flightNumber, departureDate, newAircraftType }")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateAircraftType(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/aircraft-type")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
+
+        var command = new UpdateInventoryAircraftTypeCommand(
+            FlightNumber: body.GetProperty("flightNumber").GetString()!,
+            DepartureDate: body.GetProperty("departureDate").GetString()!,
+            NewAircraftType: body.GetProperty("newAircraftType").GetString()!);
+
+        try
+        {
+            var count = await _updateAircraftTypeHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(new
+            {
+                flightNumber = command.FlightNumber,
+                departureDate = command.DepartureDate,
+                newAircraftType = command.NewAircraftType,
+                inventoriesUpdated = count
+            });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
     }
 
     private static int CalculateDurationMinutes(FlightInventory inv)
