@@ -434,9 +434,9 @@ The Delivery microservice manages three distinct record types: **Tickets** (fina
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/manifest` | Write operational manifest entries (`delivery.Manifest` records) at booking confirmation or after rebooking |
+| `POST` | `/v1/manifest` | Write operational manifest entries (`delivery.Manifest` records) at booking confirmation or after rebooking; each passenger entry accepts an optional `ssrCodes` array that is persisted to `delivery.Manifest.SsrCodes` |
 | `PUT` | `/v1/manifest` | Update manifest entries following a post-booking seat change |
-| `PATCH` | `/v1/manifest/{bookingRef}` | Update manifest entries for a booking; used to record check-in status (OLCI) and to update SSR codes following a self-serve SSR change |
+| `PATCH` | `/v1/manifest/{bookingRef}` | Replace SSR codes on manifest entries for a booking; body contains an `entries` array of `{ eTicketNumber, ssrCodes }`; an empty `ssrCodes` array clears SSRs for that entry; returns `{ updated }` count |
 | `PATCH` | `/v1/manifest/{bookingRef}/flight` | Update departure/arrival times on manifest entries (used by Operations API for flight delay handling) |
 | `DELETE` | `/v1/manifest/{bookingRef}/flight/{flightNumber}/{departureDate}` | Remove all manifest entries for a specific flight and booking (used on change or cancellation) |
 | `GET` | `/v1/manifest` | Retrieve the full passenger manifest for a flight (used by Operations API for IROPS cancellation rebooking and by DCS for check-in validation) |

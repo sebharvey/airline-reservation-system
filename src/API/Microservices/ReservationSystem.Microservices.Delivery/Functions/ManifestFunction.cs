@@ -9,6 +9,7 @@ using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
+using System.Text.Json;
 
 namespace ReservationSystem.Microservices.Delivery.Functions;
 
@@ -168,6 +169,39 @@ public sealed class ManifestFunction
             return req.CreateResponse(HttpStatusCode.NotFound);
 
         return req.CreateResponse(HttpStatusCode.OK);
+    }
+
+    // PATCH /v1/manifest/{bookingReference}
+    [Function("UpdateManifestSsrs")]
+    [OpenApiOperation(operationId: "UpdateManifestSsrs", tags: new[] { "Manifest" }, Summary = "Replace SSR codes on manifest entries for a booking; accepts one entry per e-ticket number; an empty ssrCodes array clears all SSRs for that entry")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — returns count of updated entries")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no manifest entries matched")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    public async Task<HttpResponseData> UpdateManifestSsrs(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/{bookingReference}")] HttpRequestData req,
+        string bookingReference,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(bookingReference))
+            return await req.BadRequestAsync("bookingReference is required.");
+
+        var (request, error) = await req.TryDeserializeBodyAsync<UpdateManifestSsrsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (request.Entries.Count == 0)
+            return await req.BadRequestAsync("entries must contain at least one entry.");
+
+        var ssrsByETicket = request.Entries.ToDictionary(
+            e => e.ETicketNumber,
+            e => e.SsrCodes.Count > 0 ? JsonSerializer.Serialize(e.SsrCodes) : (string?)null);
+
+        var updated = await _manifestRepository.UpdateSsrCodesByBookingAsync(
+            bookingReference, ssrsByETicket, cancellationToken);
+
+        if (updated == 0)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        return await req.OkJsonAsync(new { updated });
     }
 
     // PATCH /v1/manifest/{bookingReference}/flight/{flightNumber}/{departureDate}

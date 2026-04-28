@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Entities;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
@@ -64,6 +65,10 @@ public sealed class WriteManifestHandler
                 continue;
             }
 
+            var ssrCodesJson = entry.SsrCodes is { Count: > 0 }
+                ? JsonSerializer.Serialize(entry.SsrCodes)
+                : null;
+
             var manifest = Manifest.Create(
                 ticketId:        ticket.TicketId,
                 orderId:         request.OrderId,
@@ -83,6 +88,7 @@ public sealed class WriteManifestHandler
                 departureTime:   departureTime,
                 arrivalTime:     arrivalTime,
                 bookingType:     request.BookingType,
+                ssrCodes:        ssrCodesJson,
                 gender:          entry.Gender,
                 dateOfBirth:     DateOnly.TryParse(entry.DateOfBirth, out var dob) ? dob : null,
                 ptcCode:         entry.PtcCode);
