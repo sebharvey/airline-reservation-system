@@ -4,16 +4,38 @@
   <div class="page-header">
     <div class="page-title-group">
       <h1 class="page-title">Flight Management</h1>
-      <p class="page-subtitle">{{ todayDisplay }}</p>
+      <p class="page-subtitle">{{ selectedDateDisplay() }}</p>
     </div>
-    <button class="refresh-btn" (click)="load()" [disabled]="loading()" title="Refresh">
-      @if (loading()) {
-        <span class="btn-spinner"></span>
-      } @else {
-        <lucide-icon name="rotate-ccw" [size]="15" />
-      }
-      Refresh
-    </button>
+    <div class="header-controls">
+      <div class="date-filter">
+        <label class="date-label" for="flight-date">Departure date</label>
+        <div class="date-nav">
+          <button class="day-nav-btn" (click)="changeDay(-1)" [disabled]="loading()"
+                  title="Previous day" aria-label="Previous day">
+            <lucide-icon name="chevron-left" [size]="14" />
+          </button>
+          <input
+            id="flight-date"
+            class="date-input"
+            type="date"
+            [value]="selectedDate()"
+            (change)="onDateChange($any($event.target).value)"
+          />
+          <button class="day-nav-btn" (click)="changeDay(1)" [disabled]="loading()"
+                  title="Next day" aria-label="Next day">
+            <lucide-icon name="chevron-right" [size]="14" />
+          </button>
+        </div>
+      </div>
+      <button class="refresh-btn" (click)="load()" [disabled]="loading()" title="Refresh">
+        @if (loading()) {
+          <span class="btn-spinner"></span>
+        } @else {
+          <lucide-icon name="rotate-ccw" [size]="15" />
+        }
+        Refresh
+      </button>
+    </div>
   </div>
 
   <!-- Error -->
@@ -28,7 +50,7 @@
     <div class="stats-row">
       <div class="stat-card">
         <span class="stat-value">{{ stats().total }}</span>
-        <span class="stat-label">Flights today</span>
+        <span class="stat-label">Flights</span>
       </div>
       <div class="stat-card">
         <span class="stat-value stat-value-active">{{ stats().active }}</span>
@@ -56,10 +78,6 @@
             <th>Flight</th>
             <th>Route</th>
             <th>Dep / Arr</th>
-            <th class="cabin-col">F</th>
-            <th class="cabin-col">J</th>
-            <th class="cabin-col">W</th>
-            <th class="cabin-col">Y</th>
             <th>Aircraft</th>
             <th class="load-col">Load</th>
             <th>Status</th>
@@ -85,18 +103,6 @@
                   <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
                 }
               </td>
-              <td class="cabin-col">
-                <span class="cabin-badge" [class]="cabinClass(flight.f)">{{ cabinDisplay(flight.f) }}</span>
-              </td>
-              <td class="cabin-col">
-                <span class="cabin-badge" [class]="cabinClass(flight.j)">{{ cabinDisplay(flight.j) }}</span>
-              </td>
-              <td class="cabin-col">
-                <span class="cabin-badge" [class]="cabinClass(flight.w)">{{ cabinDisplay(flight.w) }}</span>
-              </td>
-              <td class="cabin-col">
-                <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
-              </td>
               <td class="mono muted">{{ flight.aircraftType }}</td>
               <td class="load-col">
                 <div class="load-bar-wrap">
@@ -117,7 +123,7 @@
 
           @if (flights().length === 0) {
             <tr>
-              <td colspan="11" class="empty-row">No flights scheduled for today.</td>
+              <td colspan="7" class="empty-row">No flights scheduled.</td>
             </tr>
           }
         </tbody>
@@ -140,24 +146,6 @@
             }
             <span class="fc-aircraft"> · {{ flight.aircraftType }}</span>
           </div>
-          <div class="fc-cabins">
-            <span class="fc-cabin-item">
-              <span class="fc-cabin-label">F</span>
-              <span class="cabin-badge" [class]="cabinClass(flight.f)">{{ cabinDisplay(flight.f) }}</span>
-            </span>
-            <span class="fc-cabin-item">
-              <span class="fc-cabin-label">J</span>
-              <span class="cabin-badge" [class]="cabinClass(flight.j)">{{ cabinDisplay(flight.j) }}</span>
-            </span>
-            <span class="fc-cabin-item">
-              <span class="fc-cabin-label">W</span>
-              <span class="cabin-badge" [class]="cabinClass(flight.w)">{{ cabinDisplay(flight.w) }}</span>
-            </span>
-            <span class="fc-cabin-item">
-              <span class="fc-cabin-label">Y</span>
-              <span class="cabin-badge" [class]="cabinClass(flight.y)">{{ cabinDisplay(flight.y) }}</span>
-            </span>
-          </div>
           <div class="fc-load">
             <div class="load-bar-wrap">
               <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
@@ -170,18 +158,18 @@
         </div>
       }
       @if (flights().length === 0) {
-        <p class="empty-row">No flights scheduled for today.</p>
+        <p class="empty-row">No flights scheduled.</p>
       }
     </div>
 
-    <p class="results-count">{{ flights().length }} flight{{ flights().length !== 1 ? 's' : '' }} · {{ today }}</p>
+    <p class="results-count">{{ flights().length }} flight{{ flights().length !== 1 ? 's' : '' }} · {{ selectedDate() }}</p>
   }
 
   <!-- Loading -->
   @if (loading()) {
     <div class="empty-state">
       <span class="btn-spinner loading-spinner"></span>
-      <p>Loading today's flights…</p>
+      <p>Loading flights…</p>
     </div>
   }
 

@@ -25,6 +25,71 @@
   font-size: 0.875rem;
 }
 
+/* ── Header controls — date picker + refresh button ────────────────────── */
+.header-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.date-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.day-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--input-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.day-nav-btn:hover:not(:disabled) {
+  border-color: var(--grad-start, #6366f1);
+  color: var(--grad-start, #6366f1);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.day-nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.date-input {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+  cursor: pointer;
+  height: 36px;
+}
+
+.date-input:focus { border-color: var(--grad-start); }
+
 .refresh-btn {
   display: inline-flex;
   align-items: center;
