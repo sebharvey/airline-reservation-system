@@ -45,7 +45,8 @@ public sealed class OciCheckInHandler
             return null;
         }
 
-        var tickets = BuildCheckInTickets(order.OrderData);
+        var (ticketToPaxId, paxIdToInfo) = CheckInHelper.ParseOrderLookups(order.OrderData);
+        var tickets = BuildCheckInTickets(ticketToPaxId, paxIdToInfo);
 
         var paxNameByTicket = tickets.ToDictionary(
             t => t.TicketNumber,
@@ -65,7 +66,11 @@ public sealed class OciCheckInHandler
 
         // Watchlist check — runs before Timatic; blocks OLCI completely on any match
         var watchlistMatches = await _watchlistService.CheckAsync(
-            tickets.Select(t => (t.PassengerId, t.TicketNumber, t.GivenName, t.Surname, (string?)t.DocNumber)),
+            tickets.Select(t =>
+            {
+                paxIdToInfo.TryGetValue(t.PassengerId, out var info);
+                return (t.PassengerId, t.TicketNumber, t.GivenName, t.Surname, (string?)t.DocNumber, (string?)info?.Dob);
+            }),
             ct);
 
         if (watchlistMatches.Count > 0)
@@ -169,9 +174,10 @@ public sealed class OciCheckInHandler
         }).ToList();
     }
 
-    private static List<OciCheckInTicket> BuildCheckInTickets(System.Text.Json.JsonElement? orderData)
+    private static List<OciCheckInTicket> BuildCheckInTickets(
+        Dictionary<string, string> ticketToPaxId,
+        Dictionary<string, PaxInfo> paxIdToInfo)
     {
-        var (ticketToPaxId, paxIdToInfo) = CheckInHelper.ParseOrderLookups(orderData);
         return ticketToPaxId.Select(kvp =>
         {
             paxIdToInfo.TryGetValue(kvp.Value, out var info);

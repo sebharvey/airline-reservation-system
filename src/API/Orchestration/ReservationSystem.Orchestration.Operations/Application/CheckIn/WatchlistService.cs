@@ -24,9 +24,10 @@ public sealed class OciWatchlistBlockedException : Exception
 }
 
 /// <summary>
-/// Checks passengers against the security watchlist by passport number.
-/// A match failure is non-fatal to note recording — if the watchlist cannot be reached
-/// the check is skipped and check-in proceeds (fail-open), logged as a warning.
+/// Checks passengers against the security watchlist.
+/// A passenger matches if their passport number equals a watchlist entry's passport number,
+/// OR if their given name, surname, and date of birth all match a watchlist entry.
+/// If the watchlist cannot be reached the check is skipped and check-in proceeds (fail-open).
 /// </summary>
 public sealed class WatchlistService
 {
@@ -40,7 +41,7 @@ public sealed class WatchlistService
     }
 
     public async Task<IReadOnlyList<WatchlistMatch>> CheckAsync(
-        IEnumerable<(string PassengerId, string TicketNumber, string GivenName, string Surname, string? PassportNumber)> passengers,
+        IEnumerable<(string PassengerId, string TicketNumber, string GivenName, string Surname, string? PassportNumber, string? Dob)> passengers,
         CancellationToken ct)
     {
         IReadOnlyList<Infrastructure.ExternalServices.Dto.WatchlistEntryDto> entries;
@@ -59,24 +60,46 @@ public sealed class WatchlistService
         var matches = new List<WatchlistMatch>();
         foreach (var pax in passengers)
         {
-            if (string.IsNullOrWhiteSpace(pax.PassportNumber)) continue;
-
-            var passportNormalized = pax.PassportNumber.Trim().ToUpperInvariant();
-            var entry = entries.FirstOrDefault(e =>
-                string.Equals(e.PassportNumber, passportNormalized, StringComparison.OrdinalIgnoreCase));
-
+            var entry = FindMatch(entries, pax.GivenName, pax.Surname, pax.Dob, pax.PassportNumber);
             if (entry is null) continue;
 
             _logger.LogWarning(
-                "Watchlist match: passenger {PassengerId} ticket {TicketNumber} passport {PassportNumber}",
-                pax.PassengerId, pax.TicketNumber, passportNormalized);
+                "Watchlist match: passenger {PassengerId} ticket {TicketNumber}",
+                pax.PassengerId, pax.TicketNumber);
 
             matches.Add(new WatchlistMatch(
                 pax.PassengerId, pax.TicketNumber,
                 pax.GivenName, pax.Surname,
-                passportNormalized, entry.Notes));
+                pax.PassportNumber ?? string.Empty, entry.Notes));
         }
 
         return matches;
+    }
+
+    private static Infrastructure.ExternalServices.Dto.WatchlistEntryDto? FindMatch(
+        IReadOnlyList<Infrastructure.ExternalServices.Dto.WatchlistEntryDto> entries,
+        string givenName,
+        string surname,
+        string? dob,
+        string? passportNumber)
+    {
+        foreach (var entry in entries)
+        {
+            // Match on passport number
+            if (!string.IsNullOrWhiteSpace(passportNumber) &&
+                string.Equals(entry.PassportNumber, passportNumber.Trim(), StringComparison.OrdinalIgnoreCase))
+                return entry;
+
+            // Match on given name + surname + date of birth
+            if (!string.IsNullOrWhiteSpace(dob) &&
+                DateOnly.TryParse(dob, out var paxDob) &&
+                DateOnly.TryParse(entry.DateOfBirth, out var entryDob) &&
+                paxDob == entryDob &&
+                string.Equals(entry.GivenName, givenName.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(entry.Surname, surname.Trim(), StringComparison.OrdinalIgnoreCase))
+                return entry;
+        }
+
+        return null;
     }
 }

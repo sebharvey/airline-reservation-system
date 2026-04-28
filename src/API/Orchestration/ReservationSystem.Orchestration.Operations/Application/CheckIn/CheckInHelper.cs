@@ -10,6 +10,7 @@ namespace ReservationSystem.Orchestration.Operations.Application.CheckIn;
 public sealed record PaxInfo(
     string GivenName,
     string Surname,
+    string? Dob,
     string? DocNationality,
     string? DocNumber,
     string? DocIssuingCountry,
@@ -39,8 +40,9 @@ public static class CheckInHelper
                 var pid = pax.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() : null;
                 if (pid is null) continue;
 
-                var gn = pax.TryGetProperty("givenName", out var gnEl) ? gnEl.GetString() ?? "" : "";
-                var sn = pax.TryGetProperty("surname", out var snEl) ? snEl.GetString() ?? "" : "";
+                var gn  = pax.TryGetProperty("givenName", out var gnEl) ? gnEl.GetString() ?? "" : "";
+                var sn  = pax.TryGetProperty("surname",   out var snEl) ? snEl.GetString() ?? "" : "";
+                var dob = pax.TryGetProperty("dob",       out var dobEl) ? dobEl.GetString() : null;
 
                 string? docNationality = null, docNumber = null, docIssuingCountry = null, docExpiryDate = null;
                 if (pax.TryGetProperty("docs", out var docs) &&
@@ -54,7 +56,7 @@ public static class CheckInHelper
                     docExpiryDate    = doc.TryGetProperty("expiryDate",     out var ed)  ? ed.GetString()  : null;
                 }
 
-                paxIdToInfo[pid] = new PaxInfo(gn, sn, docNationality, docNumber, docIssuingCountry, docExpiryDate);
+                paxIdToInfo[pid] = new PaxInfo(gn, sn, dob, docNationality, docNumber, docIssuingCountry, docExpiryDate);
             }
         }
 
