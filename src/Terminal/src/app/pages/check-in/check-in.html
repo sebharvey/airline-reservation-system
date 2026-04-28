@@ -213,11 +213,10 @@
               @if (paxStatuses()[selectedPaxIndex()!] !== 'checked-in') {
                 <button
                   class="secondary-btn"
-                  (click)="fillTestData(selectedPaxIndex()!)"
-                  [disabled]="checkingInIndex() !== null"
-                  title="Populate blank fields with random test data"
+                  (click)="scanPassport(selectedPaxIndex()!)"
+                  [disabled]="checkingInIndex() !== null || scanning()"
                 >
-                  Fill Test Data
+                  Scan Passport
                 </button>
               }
               <button
@@ -246,6 +245,16 @@
   }
 
 </div>
+
+<!-- ── PASSPORT SCAN OVERLAY ── -->
+@if (scanning()) {
+  <div class="scan-overlay" role="status" aria-live="polite">
+    <div class="scan-card">
+      <div class="scan-spinner"></div>
+      <p class="scan-label">Scanning…</p>
+    </div>
+  </div>
+}
 
 <!-- ── CHECK-IN RESULT MODAL ── -->
 @if (checkInResult()) {
