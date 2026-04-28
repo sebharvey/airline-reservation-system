@@ -122,7 +122,11 @@ public sealed class AdminCheckInHandler
 
         // Watchlist check — runs before Timatic; surfaces to agent for override
         var watchlistMatches = await _watchlistService.CheckAsync(
-            checkInTickets.Select(t => (t.PassengerId, t.TicketNumber, t.GivenName, t.Surname, (string?)t.DocNumber)),
+            checkInTickets.Select(t =>
+            {
+                paxIdToInfo.TryGetValue(t.PassengerId, out var info);
+                return (t.PassengerId, t.TicketNumber, t.GivenName, t.Surname, (string?)t.DocNumber, (string?)info?.Dob);
+            }),
             ct);
 
         if (watchlistMatches.Count > 0)
