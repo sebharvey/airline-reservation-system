@@ -29,13 +29,13 @@ interface EntryGroup {
 }
 
 @Component({
-  selector: 'app-flight-departure-detail',
+  selector: 'app-flight-management-detail',
   standalone: true,
   imports: [LucideAngularModule, RouterLink],
-  templateUrl: './flight-departure-detail.html',
-  styleUrl: './flight-departure-detail.css',
+  templateUrl: './flight-management-detail.html',
+  styleUrl: './flight-management-detail.css',
 })
-export class FlightDepartureDetailComponent implements OnInit {
+export class FlightManagementDetailComponent implements OnInit {
   #route = inject(ActivatedRoute);
   #router = inject(Router);
   #inventoryService = inject(InventoryService);
@@ -213,7 +213,7 @@ export class FlightDepartureDetailComponent implements OnInit {
   }
 
   goBack(): void {
-    this.#router.navigate(['/flight-departure']);
+    this.#router.navigate(['/flight-management']);
   }
 
   selectEntry(entry: ManifestEntry): void {

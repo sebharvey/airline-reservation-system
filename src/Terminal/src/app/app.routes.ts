@@ -17,24 +17,24 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/check-in/check-in').then(m => m.CheckInComponent),
       },
       {
-        path: 'flight-departure',
-        loadComponent: () => import('./pages/flight-departure/flight-departure').then(m => m.FlightDepartureComponent),
+        path: 'flight-management',
+        loadComponent: () => import('./pages/flight-management/flight-management').then(m => m.FlightManagementComponent),
         children: [
           {
             path: '',
             loadComponent: () =>
-              import('./pages/flight-departure/flight-departure-list/flight-departure-list').then(m => m.FlightDepartureListComponent),
+              import('./pages/flight-management/flight-management-list/flight-management-list').then(m => m.FlightManagementListComponent),
           },
           {
             path: ':inventoryId',
             loadComponent: () =>
-              import('./pages/flight-departure/flight-departure-detail/flight-departure-detail').then(m => m.FlightDepartureDetailComponent),
+              import('./pages/flight-management/flight-management-detail/flight-management-detail').then(m => m.FlightManagementDetailComponent),
           },
         ],
       },
       {
         path: 'watchlist',
-        loadComponent: () => import('./pages/flight-departure/watchlist/watchlist').then(m => m.WatchlistComponent),
+        loadComponent: () => import('./pages/flight-management/watchlist/watchlist').then(m => m.WatchlistComponent),
       },
       {
         path: 'inventory',
