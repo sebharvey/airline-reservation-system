@@ -38,11 +38,11 @@
           <div class="payload-panels">
             <div class="payload-col">
               <span class="payload-label">Request XML</span>
-              <pre class="xml-block">{{ ep.requestXml }}</pre>
+              <pre class="xml-block" [innerHTML]="ep.requestXml | xmlHighlight"></pre>
             </div>
             <div class="payload-col">
               <span class="payload-label">Response XML</span>
-              <pre class="xml-block">{{ ep.responseXml }}</pre>
+              <pre class="xml-block" [innerHTML]="ep.responseXml | xmlHighlight"></pre>
             </div>
           </div>
         } @else {

@@ -186,6 +186,13 @@ h2 {
   max-height: 320px;
 }
 
+/* ── XML syntax highlight tokens ── */
+.xh-p  { color: #7a8fa6; }          /* punctuation: < > / = ? */
+.xh-dn { color: #9b59b6; }          /* xml declaration name */
+.xh-t  { color: #2471a3; }          /* element name */
+.xh-an { color: #ca6f1e; }          /* attribute name */
+.xh-av { color: #1e8449; }          /* attribute value */
+
 /* ── Coming-soon placeholder ── */
 .payload-placeholder {
   display: flex;

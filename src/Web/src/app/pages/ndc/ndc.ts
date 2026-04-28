@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { XmlHighlightPipe } from './xml-highlight.pipe';
 
 interface NdcEndpoint {
   name: string;
@@ -833,7 +834,7 @@ const NDC_ENDPOINTS: NdcEndpoint[] = [
 @Component({
   selector: 'app-ndc',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, XmlHighlightPipe],
   templateUrl: './ndc.html',
   styleUrl: './ndc.css'
 })
