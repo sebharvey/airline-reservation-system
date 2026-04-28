@@ -273,9 +273,9 @@ Read-only staff endpoints for viewing payment transactions. All routes require a
 | `POST` | `/v1/oci/pax` | Submit or update travel document details for each passenger on the booking; validates passport expiry and persists documents to the order via the Order microservice |
 | `POST` | `/v1/oci/seats` | Submit seat selection during check-in (not implemented — returns success) |
 | `POST` | `/v1/oci/bags` | Submit baggage selection during check-in (not implemented — returns success) |
-| `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; retrieves the order to resolve ticket numbers, calls the Delivery microservice to update each ticket coupon status to `C`, and returns the list of checked-in ticket numbers |
+| `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; runs a watchlist check (blocks with 422 if any passport matches), then calls the Delivery microservice to update each ticket coupon status to `C`; watchlist matches write an OCI note (type `OCI`) with pax ID and watchlist entry notes |
 | `POST` | `/v1/oci/boarding-docs` | Request boarding documents for a set of checked-in ticket numbers and departure airport; proxies to the Delivery microservice and returns an array of boarding cards with BCBP strings |
-| `POST` | `/v1/admin/checkin/{bookingRef}` | Agent check-in for one or more passengers on a booking; accepts travel documents per passenger, persists docs to the order, calls the Delivery microservice to update coupon status to `C` with Timatic validation, and returns boarding cards with BCBP strings; supports `overrideTimatic` flag with mandatory `overrideReason` for agent-authorised bypasses — override and Timatic check results are written as audit notes on the order; staff JWT required |
+| `POST` | `/v1/admin/checkin/{bookingRef}` | Agent check-in for one or more passengers on a booking; runs watchlist check then Timatic, persists docs, updates coupon status to `C`, returns boarding cards with BCBP strings; watchlist match writes an OCI note and returns 400 with `timaticNotes` (checkType `WATCHLIST`) unless `overrideTimatic` is set; `overrideTimatic` with `overrideReason` bypasses both watchlist and Timatic failures; all results written as audit notes on the order; staff JWT required |
 
 ### Fare family management
 

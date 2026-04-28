@@ -18,17 +18,20 @@ public sealed class OciCheckInHandler
     private readonly OrderServiceClient _orderServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly CheckInNoteService _noteService;
+    private readonly WatchlistService _watchlistService;
     private readonly ILogger<OciCheckInHandler> _logger;
 
     public OciCheckInHandler(
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
         CheckInNoteService noteService,
+        WatchlistService watchlistService,
         ILogger<OciCheckInHandler> logger)
     {
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
         _noteService = noteService;
+        _watchlistService = watchlistService;
         _logger = logger;
     }
 
@@ -58,6 +61,23 @@ public sealed class OciCheckInHandler
         {
             _logger.LogWarning("OCI check-in: no tickets found for {BookingReference}", command.BookingReference);
             return new OciCheckInResult(command.BookingReference, [], false);
+        }
+
+        // Watchlist check — runs before Timatic; blocks OLCI completely on any match
+        var watchlistMatches = await _watchlistService.CheckAsync(
+            tickets.Select(t => (t.PassengerId, t.TicketNumber, t.GivenName, t.Surname, (string?)t.DocNumber)),
+            ct);
+
+        if (watchlistMatches.Count > 0)
+        {
+            await _noteService.SaveAsync(
+                command.BookingReference,
+                CheckInHelper.BuildWatchlistNotes(watchlistMatches),
+                "OCI check-in",
+                ct);
+
+            throw new InvalidOperationException(
+                "Online check-in is not available for this booking. Please visit the airport check-in desk.");
         }
 
         ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.OciCheckInResult result;

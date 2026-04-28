@@ -108,6 +108,7 @@ var host = new HostBuilder()
 
         // ── Shared check-in services ───────────────────────────────────────────
         services.AddScoped<CheckInNoteService>();
+        services.AddScoped<WatchlistService>();
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<GetFlightStatusHandler>();

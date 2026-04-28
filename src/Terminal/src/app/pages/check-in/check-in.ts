@@ -82,6 +82,12 @@ export class CheckInComponent {
     return result.timaticNotes.some(n => n.status !== 'PASS');
   });
 
+  hasWatchlistFailure = computed(() => {
+    const result = this.checkInResult();
+    if (!result || result.success) return false;
+    return result.timaticNotes.some(n => n.checkType === 'WATCHLIST' && n.status !== 'PASS');
+  });
+
   allAttempted = computed(() => {
     const s = this.paxStatuses();
     return s.length > 0 && s.every(st => st !== 'pending');

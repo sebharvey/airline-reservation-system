@@ -306,7 +306,7 @@
       </div>
 
       <div class="modal-timatic">
-        <p class="confirm-label" style="margin-bottom: 8px;">Timatic</p>
+        <p class="confirm-label" style="margin-bottom: 8px;">Security checks</p>
         @if (checkInResult()!.timaticNotes.length > 0) {
           @for (note of checkInResult()!.timaticNotes; track $index) {
             <div class="timatic-note" [class.timatic-pass]="note.status === 'PASS'" [class.timatic-fail]="note.status !== 'PASS'">
@@ -326,7 +326,11 @@
         <div class="modal-override">
           <p class="confirm-label" style="margin-bottom: 8px;">Override</p>
           @if (!overrideMode()) {
-            <p class="override-hint">Timatic check failed. A supervisor-authorised override allows check-in to proceed with the reason recorded against this booking.</p>
+            @if (hasWatchlistFailure()) {
+              <p class="override-hint">This passenger is flagged on the security watchlist. A supervisor-authorised override allows check-in to proceed with the reason recorded against this booking.</p>
+            } @else {
+              <p class="override-hint">Timatic check failed. A supervisor-authorised override allows check-in to proceed with the reason recorded against this booking.</p>
+            }
             <button class="override-btn" (click)="showOverride()">Override</button>
           } @else {
             <div class="override-form">
