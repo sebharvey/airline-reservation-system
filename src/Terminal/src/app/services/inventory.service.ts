@@ -163,6 +163,14 @@ export interface IropsRebookOrderResponse {
   failureReason?: string;
 }
 
+export interface AircraftType {
+  aircraftTypeCode: string;
+  manufacturer: string;
+  friendlyName: string | null;
+  totalSeats: number;
+  isActive: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
   #http = inject(HttpClient);
@@ -270,6 +278,12 @@ export class InventoryService {
       this.#http.get<FlightSeatmap>(
         `${environment.retailApiUrl}/api/v1/flights/${inventoryId}/seatmap?${params}`
       )
+    );
+  }
+
+  async getAircraftTypes(): Promise<AircraftType[]> {
+    return firstValueFrom(
+      this.#http.get<AircraftType[]>(`${this.#baseUrl}/aircraft-types`)
     );
   }
 }

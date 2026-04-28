@@ -1253,3 +1253,169 @@
   font-size: 0.8rem;
   flex: 1;
 }
+
+/* Primary button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--grad-start, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Aircraft swap — header bar above pax table */
+.swap-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.swap-aircraft-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.swap-aircraft-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.swap-arrow-icon {
+  color: var(--text-muted);
+}
+
+/* Aircraft type code badge */
+.aircraft-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  border-radius: 6px;
+  color: #58a6ff;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.aircraft-type-badge-new {
+  background: rgba(63, 185, 80, 0.1);
+  border-color: rgba(63, 185, 80, 0.3);
+  color: #3fb950;
+}
+
+/* Seat check summary bar */
+.swap-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.8rem;
+}
+
+.swap-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.swap-summary-ok   { color: #3fb950; }
+.swap-summary-warn { color: #f85149; }
+.swap-summary-muted { color: var(--text-muted); font-weight: 400; }
+
+/* Seat status cells in pax table */
+.badge-seat-ok {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+}
+
+.badge-seat-unavailable {
+  background: rgba(248, 81, 73, 0.12);
+  color: #f85149;
+}
+
+.swap-no-seat {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.swap-unchecked {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Row highlight for seats that cannot transfer */
+.hold-row-unavailable {
+  background: rgba(248, 81, 73, 0.04);
+}
+
+.hold-row-unavailable:hover {
+  background: rgba(248, 81, 73, 0.07);
+}
+
+/* Aircraft type select dropdown */
+.aircraft-select-wrap {
+  margin-top: 4px;
+}
+
+.aircraft-select-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.aircraft-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.aircraft-select:focus { border-color: var(--grad-start); }
+
+.aircraft-select-note {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.aircraft-select-note strong {
+  color: var(--text);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
