@@ -72,7 +72,9 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 | `documentation/service-urls.md` | When configuring downstream service calls. Live base URLs for all deployed APIs and microservices. |
 | `documentation/api-reference.md` | When adding or modifying endpoints. Every endpoint with verb, path, description. |
 | `documentation/api.md` | When building backend APIs. Clean architecture pattern, naming, conventions. |
-| `documentation/web.md` | When building Angular pages. Routing, state management, API integration. |
+| `documentation/web.md` | When building Angular pages (Web or Terminal). Routing, state management, API integration. |
+| `documentation/web-standards.md` | When building the customer Web app. UX/UI patterns, visual design, flows, accessibility. |
+| `documentation/terminal-standards.md` | When building the Terminal agent app. Layout, tables, forms, status display, operational UX. |
 | `documentation/tests.md` | When writing integration tests. Test structure, patterns, checklist. |
 | `documentation/authentication.md` | When working on auth flows. JWT, refresh tokens, middleware. |
 | `documentation/api-specs/<service>.md` | When implementing a specific service API. Request/response shapes, error codes. |
@@ -91,7 +93,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 2. **`documentation/design/<domain>.md`** — understand the specific domain you are working in.
 3. **`documentation/api-reference.md`** — understand what endpoints exist.
 4. **`documentation/principles/architecture-principals.md`** — confirm structural rules.
-5. **`documentation/api.md`** or **`documentation/web.md`** — follow the implementation guide.
+5. **`documentation/api.md`**, **`documentation/web.md`**, **`documentation/web-standards.md`**, or **`documentation/terminal-standards.md`** — follow the implementation and design guides for the relevant app.
 6. **Existing code in `src/`** — verify how patterns are applied before writing anything new.
 
 ---
