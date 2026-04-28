@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
+using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Operations.Application.OciCheckIn;
 
@@ -17,6 +18,7 @@ public sealed class OciCheckInHandler
 {
     private readonly OrderServiceClient _orderServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
+    private readonly OfferServiceClient _offerServiceClient;
     private readonly CheckInNoteService _noteService;
     private readonly WatchlistService _watchlistService;
     private readonly ILogger<OciCheckInHandler> _logger;
@@ -24,12 +26,14 @@ public sealed class OciCheckInHandler
     public OciCheckInHandler(
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
+        OfferServiceClient offerServiceClient,
         CheckInNoteService noteService,
         WatchlistService watchlistService,
         ILogger<OciCheckInHandler> logger)
     {
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
+        _offerServiceClient = offerServiceClient;
         _noteService = noteService;
         _watchlistService = watchlistService;
         _logger = logger;
@@ -115,6 +119,48 @@ public sealed class OciCheckInHandler
         // All passengers on this segment were already checked in — skip re-persisting to order
         var allAlreadyCheckedIn = newlyCheckedIn.Count == 0 && alreadyCheckedInTickets.Count > 0;
 
+        // Update inventory hold seat for any ticket that received an auto-assigned seat.
+        // Parse inventoryId from orderItems matching the departure airport, then patch each hold.
+        var ticketsWithNewSeat = result.Tickets
+            .Where(t => string.Equals(t.Status, "C", StringComparison.OrdinalIgnoreCase)
+                     && !string.IsNullOrWhiteSpace(t.SeatNumber))
+            .ToList();
+
+        if (ticketsWithNewSeat.Count > 0)
+        {
+            var inventoryId = ParseInventoryIdForDeparture(order.OrderData, command.DepartureAirport);
+            if (inventoryId.HasValue)
+            {
+                foreach (var ticketResult in ticketsWithNewSeat)
+                {
+                    if (!paxIdByTicket.TryGetValue(ticketResult.TicketNumber, out var passengerId))
+                        continue;
+
+                    try
+                    {
+                        await _offerServiceClient.UpdateHoldSeatAsync(
+                            inventoryId.Value, order.OrderId, passengerId, ticketResult.SeatNumber!, ct);
+
+                        _logger.LogInformation(
+                            "Updated inventory hold seat to {Seat} for passenger {PassengerId} on inventory {InventoryId}",
+                            ticketResult.SeatNumber, passengerId, inventoryId.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex,
+                            "Failed to update inventory hold seat for passenger {PassengerId} on inventory {InventoryId} — non-fatal",
+                            passengerId, inventoryId.Value);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Could not resolve inventoryId for departure {DepartureAirport} on booking {BookingReference} — inventory hold seats not updated",
+                    command.DepartureAirport, command.BookingReference);
+            }
+        }
+
         if (!allAlreadyCheckedIn)
         {
             var paxCheckIn = BuildPassengerCheckInEntries(tickets, checkedInSet);
@@ -148,6 +194,27 @@ public sealed class OciCheckInHandler
         // Return already-checked-in ticket numbers so the caller can retrieve boarding passes
         var checkedIn = allAlreadyCheckedIn ? alreadyCheckedInTickets : newlyCheckedIn;
         return new OciCheckInResult(command.BookingReference, checkedIn, allAlreadyCheckedIn);
+    }
+
+    private static Guid? ParseInventoryIdForDeparture(JsonElement? orderData, string departureAirport)
+    {
+        if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return null;
+
+        if (!el.TryGetProperty("orderItems", out var orderItems) || orderItems.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var item in orderItems.EnumerateArray())
+        {
+            var origin = item.TryGetProperty("origin", out var orig) ? orig.GetString() : null;
+            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (item.TryGetProperty("inventoryId", out var invEl) && Guid.TryParse(invEl.GetString(), out var id))
+                return id;
+        }
+
+        return null;
     }
 
     private static List<OrderCheckInPassenger> BuildPassengerCheckInEntries(

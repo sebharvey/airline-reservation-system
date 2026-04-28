@@ -20,6 +20,7 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
 using ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
+using ReservationSystem.Microservices.Offer.Application.UpdateHoldSeat;
 using ReservationSystem.Microservices.Offer.Application.UpdateInventoryAircraftType;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
@@ -53,6 +54,7 @@ public sealed class OfferFunction
     private readonly GetFlightByInventoryIdHandler _getFlightByInventoryIdHandler;
     private readonly GetInventoryHoldsHandler _getInventoryHoldsHandler;
     private readonly RepriceStoredOfferHandler _repriceHandler;
+    private readonly UpdateHoldSeatHandler _updateHoldSeatHandler;
     private readonly UpdateInventoryAircraftTypeHandler _updateAircraftTypeHandler;
     private readonly ILogger<OfferFunction> _logger;
 
@@ -76,6 +78,7 @@ public sealed class OfferFunction
         GetFlightByInventoryIdHandler getFlightByInventoryIdHandler,
         GetInventoryHoldsHandler getInventoryHoldsHandler,
         RepriceStoredOfferHandler repriceHandler,
+        UpdateHoldSeatHandler updateHoldSeatHandler,
         UpdateInventoryAircraftTypeHandler updateAircraftTypeHandler,
         ILogger<OfferFunction> logger)
     {
@@ -98,6 +101,7 @@ public sealed class OfferFunction
         _getFlightByInventoryIdHandler = getFlightByInventoryIdHandler;
         _getInventoryHoldsHandler = getInventoryHoldsHandler;
         _repriceHandler = repriceHandler;
+        _updateHoldSeatHandler = updateHoldSeatHandler;
         _updateAircraftTypeHandler = updateAircraftTypeHandler;
         _logger = logger;
     }
@@ -1041,6 +1045,38 @@ public sealed class OfferFunction
             standbyPriority = h.StandbyPriority,
             createdAt       = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }));
+    }
+
+    // PATCH /v1/inventory/holds/seat
+    [Function("UpdateHoldSeat")]
+    [OpenApiOperation(operationId: "UpdateHoldSeat", tags: new[] { "Inventory" }, Summary = "Update the seat number on an existing inventory hold — called after OLCI auto-seat assignment")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ inventoryId, orderId, passengerId, seatNumber }")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content — seat updated")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no matching hold")]
+    public async Task<HttpResponseData> UpdateHoldSeat(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/holds/seat")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
+
+        if (!body.TryGetProperty("inventoryId", out var invEl) || !Guid.TryParse(invEl.GetString(), out var inventoryId))
+            return await req.BadRequestAsync("'inventoryId' (GUID) is required.");
+        if (!body.TryGetProperty("orderId", out var orderEl) || !Guid.TryParse(orderEl.GetString(), out var orderId))
+            return await req.BadRequestAsync("'orderId' (GUID) is required.");
+        if (!body.TryGetProperty("passengerId", out var paxEl) || string.IsNullOrWhiteSpace(paxEl.GetString()))
+            return await req.BadRequestAsync("'passengerId' is required.");
+        if (!body.TryGetProperty("seatNumber", out var seatEl) || string.IsNullOrWhiteSpace(seatEl.GetString()))
+            return await req.BadRequestAsync("'seatNumber' is required.");
+
+        var command = new UpdateHoldSeatCommand(inventoryId, orderId, paxEl.GetString()!, seatEl.GetString()!);
+        var updated = await _updateHoldSeatHandler.HandleAsync(command, ct);
+
+        return updated
+            ? req.CreateResponse(HttpStatusCode.NoContent)
+            : await req.NotFoundAsync($"No hold found for passenger '{command.PassengerId}' on inventory '{inventoryId}' / order '{orderId}'.");
     }
 
     // PATCH /v1/inventory/aircraft-type

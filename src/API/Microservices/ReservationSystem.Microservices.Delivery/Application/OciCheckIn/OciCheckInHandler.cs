@@ -16,7 +16,7 @@ public sealed record OciCheckInTicket(
 
 public sealed record OciCheckInCommand(string DepartureAirport, IReadOnlyList<OciCheckInTicket> Tickets, bool BypassTimatic = false);
 
-public sealed record OciCheckInTicketResult(string TicketNumber, string Status);
+public sealed record OciCheckInTicketResult(string TicketNumber, string Status, string? SeatNumber = null);
 
 public sealed record TimaticNote(
     string CheckType,    // "DOC" or "APIS"
@@ -64,7 +64,7 @@ public sealed class OciCheckInHandler
         var timaticNotes = new List<TimaticNote>();
 
         // Tickets that were checked in but have no seat yet — collected for group allocation.
-        var pendingAssignment = new List<(Domain.Entities.Ticket Ticket, string FlightNumber, string CabinCode)>();
+        var pendingAssignment = new List<(Domain.Entities.Ticket Ticket, string FlightNumber, string CabinCode, string ETicketNumber)>();
 
         // ── Phase 1: Timatic validation ─────────────────────────────────────────
         // Run document check and APIS check for every ticket before touching any
@@ -250,7 +250,7 @@ public sealed class OciCheckInHandler
 
                 if (unseatedCoupon is not null)
                     // Defer save until after group seat allocation.
-                    pendingAssignment.Add((ticket, unseatedCoupon.FlightNumber, unseatedCoupon.ClassOfService));
+                    pendingAssignment.Add((ticket, unseatedCoupon.FlightNumber, unseatedCoupon.ClassOfService, ticketRequest.TicketNumber));
                 else
                     await _ticketRepository.UpdateAsync(ticket, cancellationToken);
 
@@ -271,6 +271,8 @@ public sealed class OciCheckInHandler
         // ── Phase 3: auto-assign seats, grouping by flight ───────────────────────
         // Grouping means passengers on the same flight are allocated together so
         // that the allocator can seat them in adjacent seats where possible.
+        var assignedSeats = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var flightGroup in pendingAssignment.GroupBy(t => (t.FlightNumber, t.CabinCode)))
         {
             var groupList = flightGroup.ToList();
@@ -283,12 +285,16 @@ public sealed class OciCheckInHandler
 
             for (var i = 0; i < groupList.Count; i++)
             {
-                var ticket = groupList[i].Ticket;
+                var (ticket, _, _, eTicketNumber) = groupList[i];
                 var seat = i < seats.Count ? seats[i] : null;
 
                 if (seat is not null)
                 {
                     ticket.AssignSeatForOrigin(command.DepartureAirport, seat, "OCI");
+                    assignedSeats[eTicketNumber] = seat;
+
+                    await _manifestRepository.UpdateSeatByETicketAsync(eTicketNumber, seat, cancellationToken);
+
                     _logger.LogInformation(
                         "Auto-assigned seat {Seat} to ticket {TicketNumber} on {FlightNumber}",
                         seat, ticket.TicketNumber, flightGroup.Key.FlightNumber);
@@ -304,7 +310,11 @@ public sealed class OciCheckInHandler
             }
         }
 
-        return new OciCheckInResult(checkedInCount, results, timaticNotes);
+        var finalResults = results
+            .Select(r => assignedSeats.TryGetValue(r.TicketNumber, out var s) ? r with { SeatNumber = s } : r)
+            .ToList();
+
+        return new OciCheckInResult(checkedInCount, finalResults, timaticNotes);
     }
 
     private static string NormaliseDate(string raw)

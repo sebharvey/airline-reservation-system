@@ -48,6 +48,7 @@ public interface IOfferRepository
     Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
     Task DeleteHoldsAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
     Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default);
+    Task<bool> UpdateHoldSeatAsync(Guid inventoryId, Guid orderId, string passengerId, string seatNumber, CancellationToken ct = default);
 
     // SeatReservation
     Task<IReadOnlyList<(string SeatNumber, string Status, Guid BasketId)>> GetSeatReservationsAsync(Guid inventoryId, CancellationToken ct = default);

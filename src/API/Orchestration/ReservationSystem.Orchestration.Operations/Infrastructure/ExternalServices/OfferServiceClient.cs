@@ -320,6 +320,23 @@ public sealed class OfferServiceClient
         return await response.Content.ReadFromJsonAsync<IReadOnlyList<InventoryHoldDto>>(JsonOptions, cancellationToken) ?? [];
     }
 
+    public async Task UpdateHoldSeatAsync(
+        Guid inventoryId,
+        Guid orderId,
+        string passengerId,
+        string seatNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new { inventoryId, orderId, passengerId, seatNumber };
+        var response = await _httpClient.PatchAsJsonAsync("/api/v1/inventory/holds/seat", body, JsonOptions, cancellationToken);
+
+        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
+        {
+            var error = await response.ReadErrorMessageAsync(cancellationToken);
+            throw new InvalidOperationException($"Failed to update hold seat for passenger {passengerId} on inventory {inventoryId}: {error}");
+        }
+    }
+
     public async Task ReleaseInventoryAsync(
         Guid inventoryId,
         string cabinCode,

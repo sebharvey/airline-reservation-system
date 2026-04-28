@@ -94,7 +94,7 @@ public sealed class OciFunction
             return await req.OkJsonAsync(new
             {
                 checkedIn = result.CheckedIn,
-                tickets = result.Tickets.Select(t => new { ticketNumber = t.TicketNumber, status = t.Status }),
+                tickets = result.Tickets.Select(t => new { ticketNumber = t.TicketNumber, status = t.Status, seatNumber = t.SeatNumber }),
                 timaticNotes = result.TimaticNotes.Select(n => new
                 {
                     checkType    = n.CheckType,
