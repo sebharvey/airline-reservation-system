@@ -26,6 +26,7 @@ public interface IOfferRepository
     Task CreateInventoryAsync(Entities.FlightInventory inventory, CancellationToken ct = default);
     Task<IReadOnlyList<Entities.FlightInventory>> BatchCreateInventoryAsync(IReadOnlyList<Entities.FlightInventory> inventories, CancellationToken ct = default);
     Task UpdateInventoryAsync(Entities.FlightInventory inventory, CancellationToken ct = default);
+    Task UpdateInventoryOperationalDataAsync(Guid inventoryId, string? departureGate, string? aircraftRegistration, CancellationToken ct = default);
 
     // Fare
     Task<Entities.Fare?> GetFareByIdAsync(Guid fareId, CancellationToken ct = default);

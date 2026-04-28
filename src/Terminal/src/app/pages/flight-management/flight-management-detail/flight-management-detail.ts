@@ -1,5 +1,6 @@
 import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   InventoryService,
@@ -31,7 +32,7 @@ interface EntryGroup {
 @Component({
   selector: 'app-flight-management-detail',
   standalone: true,
-  imports: [LucideAngularModule, RouterLink],
+  imports: [LucideAngularModule, RouterLink, FormsModule],
   templateUrl: './flight-management-detail.html',
   styleUrl: './flight-management-detail.css',
 })
@@ -156,6 +157,17 @@ export class FlightManagementDetailComponent implements OnInit {
     });
   });
 
+  // Operational data modal state
+  gateModalOpen = signal(false);
+  gateInput = signal('');
+  gateOpLoading = signal(false);
+  gateOpError = signal('');
+
+  regModalOpen = signal(false);
+  regInput = signal('');
+  regOpLoading = signal(false);
+  regOpError = signal('');
+
   // Params cached for seat operations
   #inventoryId = '';
   #flightNumber = '';
@@ -214,6 +226,62 @@ export class FlightManagementDetailComponent implements OnInit {
 
   goBack(): void {
     this.#router.navigate(['/flight-management']);
+  }
+
+  openGateModal(): void {
+    this.gateInput.set(this.flight()?.departureGate ?? '');
+    this.gateOpError.set('');
+    this.gateModalOpen.set(true);
+  }
+
+  closeGateModal(): void {
+    this.gateModalOpen.set(false);
+    this.gateOpError.set('');
+  }
+
+  async saveGate(): Promise<void> {
+    if (this.gateOpLoading()) return;
+    this.gateOpLoading.set(true);
+    this.gateOpError.set('');
+    try {
+      const gate = this.gateInput().trim() || null;
+      await this.#inventoryService.setInventoryOperationalData(
+        this.#inventoryId, gate, this.flight()?.aircraftRegistration ?? null);
+      this.flight.update(f => f ? { ...f, departureGate: gate } : f);
+      this.gateModalOpen.set(false);
+    } catch {
+      this.gateOpError.set('Failed to save gate. Please try again.');
+    } finally {
+      this.gateOpLoading.set(false);
+    }
+  }
+
+  openRegModal(): void {
+    this.regInput.set(this.flight()?.aircraftRegistration ?? '');
+    this.regOpError.set('');
+    this.regModalOpen.set(true);
+  }
+
+  closeRegModal(): void {
+    this.regModalOpen.set(false);
+    this.regOpError.set('');
+  }
+
+  async saveReg(): Promise<void> {
+    if (this.regOpLoading()) return;
+    this.regOpLoading.set(true);
+    this.regOpError.set('');
+    try {
+      const reg = this.regInput().trim() || null;
+      await this.#inventoryService.setInventoryOperationalData(
+        this.#inventoryId, this.flight()?.departureGate ?? null, reg);
+      this.flight.update(f => f ? { ...f, aircraftRegistration: reg } : f);
+      this.regModalOpen.set(false);
+    } catch {
+      this.regOpError.set('Failed to save registration. Please try again.');
+    } finally {
+      this.regOpLoading.set(false);
+    }
   }
 
   selectEntry(entry: ManifestEntry): void {

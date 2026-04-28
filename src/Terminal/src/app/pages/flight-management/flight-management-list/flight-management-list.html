@@ -79,6 +79,8 @@
             <th>Route</th>
             <th>Dep / Arr</th>
             <th>Aircraft</th>
+            <th>Gate</th>
+            <th>Reg</th>
             <th class="load-col">Load</th>
             <th>Status</th>
             <th></th>
@@ -104,6 +106,8 @@
                 }
               </td>
               <td class="mono muted">{{ flight.aircraftType }}</td>
+              <td class="mono">{{ flight.departureGate ?? '—' }}</td>
+              <td class="mono muted">{{ flight.aircraftRegistration ?? '—' }}</td>
               <td class="load-col">
                 <div class="load-bar-wrap">
                   <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
@@ -123,7 +127,7 @@
 
           @if (flights().length === 0) {
             <tr>
-              <td colspan="7" class="empty-row">No flights scheduled.</td>
+              <td colspan="9" class="empty-row">No flights scheduled.</td>
             </tr>
           }
         </tbody>
@@ -145,6 +149,12 @@
               <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
             }
             <span class="fc-aircraft"> · {{ flight.aircraftType }}</span>
+            @if (flight.departureGate) {
+              <span class="fc-gate"> · Gate {{ flight.departureGate }}</span>
+            }
+            @if (flight.aircraftRegistration) {
+              <span class="fc-reg"> · {{ flight.aircraftRegistration }}</span>
+            }
           </div>
           <div class="fc-load">
             <div class="load-bar-wrap">
