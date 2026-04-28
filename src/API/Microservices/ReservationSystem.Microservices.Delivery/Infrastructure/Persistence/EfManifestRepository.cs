@@ -101,6 +101,32 @@ public sealed class EfManifestRepository : IManifestRepository
         return updated;
     }
 
+    public async Task<bool> CheckInByETicketAndOriginAsync(
+        string eTicketNumber, string origin, DateTime checkedInAt, CancellationToken cancellationToken = default)
+    {
+        var entry = await _context.Manifests
+            .FirstOrDefaultAsync(
+                m => m.ETicketNumber == eTicketNumber && m.Origin == origin,
+                cancellationToken);
+
+        if (entry is null)
+        {
+            _logger.LogWarning(
+                "Manifest entry not found for e-ticket {ETicketNumber} / origin {Origin} — check-in flag not set",
+                eTicketNumber, origin);
+            return false;
+        }
+
+        entry.CheckIn(checkedInAt);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug(
+            "Marked manifest entry for e-ticket {ETicketNumber} / origin {Origin} as checked in at {CheckedInAt}",
+            eTicketNumber, origin, checkedInAt);
+
+        return true;
+    }
+
     public async Task<bool> UpdateSeatByETicketAsync(
         string eTicketNumber, string? newSeatNumber, CancellationToken cancellationToken = default)
     {
