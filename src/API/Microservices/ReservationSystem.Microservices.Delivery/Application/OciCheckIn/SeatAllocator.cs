@@ -5,34 +5,26 @@ namespace ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
 /// Attempts to assign a group of passengers in consecutive columns within the same row
 /// so travelling companions sit together. Falls back to individual sequential allocation
 /// if no single row can accommodate the full group.
+///
+/// Cabin configuration (columns, row range) must be supplied by the caller from the
+/// active seatmap — this class contains no hardcoded aircraft layout assumptions.
 /// </summary>
 internal static class SeatAllocator
 {
-    // Column orders match left-to-right physical layout per aircraft family.
-    // Business (J/F): 1-2-1 herringbone — four selectable columns per row.
-    // Premium Economy (W): 2-3-2 — seven columns, two blocks either side of centre.
-    // Economy (Y): 3-3-3 — nine columns, three blocks.
-    private static readonly IReadOnlyList<string> BusinessColumns         = ["A", "D", "G", "K"];
-    private static readonly IReadOnlyList<string> PremiumEconomyColumns   = ["A", "B", "D", "E", "F", "H", "K"];
-    private static readonly IReadOnlyList<string> EconomyColumns          = ["A", "B", "C", "D", "E", "F", "G", "H", "K"];
-
-    private static (IReadOnlyList<string> Columns, int StartRow, int EndRow) GetCabinConfig(string cabinCode) =>
-        cabinCode.ToUpperInvariant() switch
-        {
-            "J" or "F" => (BusinessColumns, 1, 10),
-            "W"        => (PremiumEconomyColumns, 20, 28),
-            _          => (EconomyColumns, 35, 62)
-        };
-
     /// <summary>
     /// Allocates <paramref name="count"/> seats for a group travelling together.
     /// Prefers consecutive columns in the same row; falls back to individual sequential
     /// seats across rows if no single row can fit the entire group.
     /// </summary>
+    /// <param name="columns">Left-to-right column letters for this cabin (e.g. ["A","B","C","D","E","F","G","H","K"]).</param>
+    /// <param name="startRow">First row number for this cabin.</param>
+    /// <param name="endRow">Last row number for this cabin (inclusive).</param>
+    /// <param name="count">Number of seats to allocate.</param>
+    /// <param name="takenSeats">Seats already assigned on this flight.</param>
     public static IReadOnlyList<string> AllocateGroupSeats(
-        string cabinCode, int count, IReadOnlyList<string> takenSeats)
+        IReadOnlyList<string> columns, int startRow, int endRow,
+        int count, IReadOnlyList<string> takenSeats)
     {
-        var (columns, startRow, endRow) = GetCabinConfig(cabinCode);
         var takenSet = new HashSet<string>(takenSeats, StringComparer.OrdinalIgnoreCase);
 
         // Try to find 'count' consecutive available columns in the same row.

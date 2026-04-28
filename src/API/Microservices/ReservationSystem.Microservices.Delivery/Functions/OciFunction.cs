@@ -86,9 +86,36 @@ public sealed class OciFunction
         if (tickets.Count == 0)
             return await req.BadRequestAsync("At least one valid ticket entry is required.");
 
+        // Parse optional cabin configs supplied by the orchestration layer from the active seatmap.
+        IReadOnlyDictionary<string, SeatCabinConfig>? cabinConfigs = null;
+        if (body.TryGetProperty("cabinConfigs", out var ccEl) && ccEl.ValueKind == JsonValueKind.Object)
+        {
+            var configs = new Dictionary<string, SeatCabinConfig>(StringComparer.OrdinalIgnoreCase);
+            foreach (var prop in ccEl.EnumerateObject())
+            {
+                var val = prop.Value;
+                if (!val.TryGetProperty("columns", out var colsEl) || colsEl.ValueKind != JsonValueKind.Array) continue;
+                if (!val.TryGetProperty("startRow", out var srEl) || !val.TryGetProperty("endRow", out var erEl)) continue;
+
+                var cols = colsEl.EnumerateArray()
+                    .Select(c => c.GetString())
+                    .Where(c => c is not null)
+                    .Select(c => c!)
+                    .ToList();
+
+                var startRow = srEl.GetInt32();
+                var endRow = erEl.GetInt32();
+
+                if (cols.Count > 0 && startRow > 0 && endRow >= startRow)
+                    configs[prop.Name] = new SeatCabinConfig(cols, startRow, endRow);
+            }
+            if (configs.Count > 0)
+                cabinConfigs = configs;
+        }
+
         try
         {
-            var command = new OciCheckInCommand(departureAirport, tickets, bypassTimatic);
+            var command = new OciCheckInCommand(departureAirport, tickets, bypassTimatic, cabinConfigs);
             var result = await _checkInHandler.HandleAsync(command, cancellationToken);
 
             return await req.OkJsonAsync(new

@@ -27,9 +27,18 @@ public sealed class DeliveryServiceClient
     /// Throws <see cref="OciTimaticBlockedException"/> when timatic rejects the check-in,
     /// carrying the accumulated per-check note messages for audit recording on the order.
     /// </summary>
-    public async Task<OciCheckInResult> CheckInAsync(string departureAirport, IReadOnlyList<OciCheckInTicket> tickets, CancellationToken ct, bool bypassTimatic = false)
+    public async Task<OciCheckInResult> CheckInAsync(
+        string departureAirport,
+        IReadOnlyList<OciCheckInTicket> tickets,
+        CancellationToken ct,
+        bool bypassTimatic = false,
+        IReadOnlyDictionary<string, SeatCabinConfigDto>? cabinConfigs = null)
     {
-        var payload = new { departureAirport, tickets, bypassTimatic };
+        var cabinConfigsPayload = cabinConfigs?.ToDictionary(
+            kv => kv.Key,
+            kv => new { columns = kv.Value.Columns, startRow = kv.Value.StartRow, endRow = kv.Value.EndRow });
+
+        var payload = new { departureAirport, tickets, bypassTimatic, cabinConfigs = cabinConfigsPayload };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/oci/checkin", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {

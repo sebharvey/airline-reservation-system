@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
 using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Operations.Application.OciCheckIn;
@@ -19,6 +20,7 @@ public sealed class OciCheckInHandler
     private readonly OrderServiceClient _orderServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly OfferServiceClient _offerServiceClient;
+    private readonly SeatServiceClient _seatServiceClient;
     private readonly CheckInNoteService _noteService;
     private readonly WatchlistService _watchlistService;
     private readonly ILogger<OciCheckInHandler> _logger;
@@ -27,6 +29,7 @@ public sealed class OciCheckInHandler
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
         OfferServiceClient offerServiceClient,
+        SeatServiceClient seatServiceClient,
         CheckInNoteService noteService,
         WatchlistService watchlistService,
         ILogger<OciCheckInHandler> logger)
@@ -34,6 +37,7 @@ public sealed class OciCheckInHandler
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
         _offerServiceClient = offerServiceClient;
+        _seatServiceClient = seatServiceClient;
         _noteService = noteService;
         _watchlistService = watchlistService;
         _logger = logger;
@@ -89,10 +93,30 @@ public sealed class OciCheckInHandler
                 "Online check-in is not available for this booking. Please visit the airport check-in desk.");
         }
 
+        // Fetch seatmap cabin configs so the Delivery MS allocator uses the actual aircraft layout.
+        // Non-fatal: if the seatmap cannot be resolved, check-in proceeds but seats are not auto-assigned.
+        IReadOnlyDictionary<string, SeatCabinConfigDto>? cabinConfigs = null;
+        var inventoryIdForSeatmap = CheckInHelper.ParseInventoryIdForDeparture(order.OrderData, command.DepartureAirport);
+        if (inventoryIdForSeatmap.HasValue)
+        {
+            try
+            {
+                var flight = await _offerServiceClient.GetFlightByInventoryIdAsync(inventoryIdForSeatmap.Value, ct);
+                if (!string.IsNullOrWhiteSpace(flight?.AircraftType))
+                    cabinConfigs = await _seatServiceClient.GetSeatmapCabinConfigsAsync(flight.AircraftType, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Failed to fetch seatmap for inventory {InventoryId} on {BookingReference} — seats will not be auto-assigned",
+                    inventoryIdForSeatmap.Value, command.BookingReference);
+            }
+        }
+
         ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.OciCheckInResult result;
         try
         {
-            result = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, tickets, ct);
+            result = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, tickets, ct, cabinConfigs: cabinConfigs);
         }
         catch (OciTimaticBlockedException ex)
         {
@@ -128,7 +152,7 @@ public sealed class OciCheckInHandler
 
         if (ticketsWithNewSeat.Count > 0)
         {
-            var inventoryId = ParseInventoryIdForDeparture(order.OrderData, command.DepartureAirport);
+            var inventoryId = CheckInHelper.ParseInventoryIdForDeparture(order.OrderData, command.DepartureAirport);
             if (inventoryId.HasValue)
             {
                 foreach (var ticketResult in ticketsWithNewSeat)
@@ -194,27 +218,6 @@ public sealed class OciCheckInHandler
         // Return already-checked-in ticket numbers so the caller can retrieve boarding passes
         var checkedIn = allAlreadyCheckedIn ? alreadyCheckedInTickets : newlyCheckedIn;
         return new OciCheckInResult(command.BookingReference, checkedIn, allAlreadyCheckedIn);
-    }
-
-    private static Guid? ParseInventoryIdForDeparture(JsonElement? orderData, string departureAirport)
-    {
-        if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
-            return null;
-
-        if (!el.TryGetProperty("orderItems", out var orderItems) || orderItems.ValueKind != JsonValueKind.Array)
-            return null;
-
-        foreach (var item in orderItems.EnumerateArray())
-        {
-            var origin = item.TryGetProperty("origin", out var orig) ? orig.GetString() : null;
-            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            if (item.TryGetProperty("inventoryId", out var invEl) && Guid.TryParse(invEl.GetString(), out var id))
-                return id;
-        }
-
-        return null;
     }
 
     private static List<OrderCheckInPassenger> BuildPassengerCheckInEntries(

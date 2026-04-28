@@ -14,7 +14,17 @@ public sealed record OciCheckInTicket(
     string? DocIssuingCountry = null,
     string? DocExpiryDate = null);
 
-public sealed record OciCheckInCommand(string DepartureAirport, IReadOnlyList<OciCheckInTicket> Tickets, bool BypassTimatic = false);
+/// <summary>Column layout and row range for one cabin, sourced from the active seatmap.</summary>
+public sealed record SeatCabinConfig(
+    IReadOnlyList<string> Columns,
+    int StartRow,
+    int EndRow);
+
+public sealed record OciCheckInCommand(
+    string DepartureAirport,
+    IReadOnlyList<OciCheckInTicket> Tickets,
+    bool BypassTimatic = false,
+    IReadOnlyDictionary<string, SeatCabinConfig>? CabinConfigs = null);
 
 public sealed record OciCheckInTicketResult(string TicketNumber, string Status, string? SeatNumber = null);
 
@@ -271,17 +281,35 @@ public sealed class OciCheckInHandler
         // ── Phase 3: auto-assign seats, grouping by flight ───────────────────────
         // Grouping means passengers on the same flight are allocated together so
         // that the allocator can seat them in adjacent seats where possible.
+        // CabinConfigs must be provided by the orchestration layer (sourced from the
+        // active seatmap) — without them, seat assignment is skipped to avoid
+        // assigning seat numbers that don't exist on the aircraft.
         var assignedSeats = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var flightGroup in pendingAssignment.GroupBy(t => (t.FlightNumber, t.CabinCode)))
         {
             var groupList = flightGroup.ToList();
 
+            // Resolve cabin config from the seatmap data passed in the command.
+            var cabinKey = flightGroup.Key.CabinCode.ToUpperInvariant();
+            if (command.CabinConfigs is null ||
+                !command.CabinConfigs.TryGetValue(cabinKey, out var cabinCfg))
+            {
+                _logger.LogWarning(
+                    "No cabin config provided for cabin {CabinCode} on {FlightNumber} — seat auto-assignment skipped",
+                    flightGroup.Key.CabinCode, flightGroup.Key.FlightNumber);
+
+                foreach (var (ticket, _, _, _) in groupList)
+                    await _ticketRepository.UpdateAsync(ticket, cancellationToken);
+
+                continue;
+            }
+
             var takenSeats = await _ticketRepository.GetAssignedSeatsForFlightAsync(
                 flightGroup.Key.FlightNumber, command.DepartureAirport, cancellationToken);
 
             var seats = SeatAllocator.AllocateGroupSeats(
-                flightGroup.Key.CabinCode, groupList.Count, takenSeats);
+                cabinCfg.Columns, cabinCfg.StartRow, cabinCfg.EndRow, groupList.Count, takenSeats);
 
             for (var i = 0; i < groupList.Count; i++)
             {
