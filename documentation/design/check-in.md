@@ -215,10 +215,10 @@ sequenceDiagram
 
     alt Timatic pass
         DeliveryMS -->> OperationsApi: Checked-in ticket list + Timatic PASS notes
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write Timatic PASS audit notes
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI notes (type: OCI) with Timatic PASS results
     else Timatic fail, no override
         DeliveryMS -->> OperationsApi: 422 with timaticNotes
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write Timatic FAIL audit notes
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI notes (type: OCI) with Timatic FAIL results
         OperationsApi -->> Terminal: 400 with timaticNotes — agent must review
     else Timatic fail, agent override
         OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write TIMATIC_OVERRIDE audit note with reason
