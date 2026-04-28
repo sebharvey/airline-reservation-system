@@ -9,8 +9,11 @@ namespace ReservationSystem.Simulator.Application.UpdateFlightOperationalData;
 /// <summary>
 /// Simulates pre-departure operational updates to flight inventory:
 /// <list type="bullet">
-///   <item>~24 hours before departure — assigns an aircraft registration (e.g. G-X123).</item>
-///   <item>~1 hour before departure  — assigns a random departure gate (1–50).</item>
+///   <item>1–26 hours before departure — assigns an aircraft registration (e.g. G-X123) if not already set.
+///         Primary assignment happens ~24 hours out; the wide lower bound catches any flight
+///         that was missed on a previous run.</item>
+///   <item>60–180 minutes before departure — assigns a random departure gate (1–50) if not already set.
+///         The 60-minute lower bound guarantees the gate is always set before the last hour.</item>
 /// </list>
 /// Runs on a timer trigger every 20 minutes. Each run authenticates with the Admin API,
 /// then queries today's and tomorrow's inventory via the Retail API and updates any flights
@@ -18,13 +21,15 @@ namespace ReservationSystem.Simulator.Application.UpdateFlightOperationalData;
 /// </summary>
 public sealed class UpdateFlightOperationalDataHandler
 {
-    // Window (hours before departure) within which aircraft registration is assigned.
+    // Any flight departing within this many hours that has no registration gets one assigned.
+    // Wide lower bound acts as a catch-up so no flight departs without a registration.
     private const int RegistrationWindowOpenHours  = 26;
-    private const int RegistrationWindowCloseHours = 20;
+    private const int RegistrationWindowCloseHours = 1;
 
-    // Window (minutes before departure) within which the departure gate is assigned.
-    private const int GateWindowOpenMinutes  = 90;
-    private const int GateWindowCloseMinutes = 40;
+    // Gate is assigned between 60 and 180 minutes before departure.
+    // The 60-minute floor guarantees the gate is always set before the last hour.
+    private const int GateWindowOpenMinutes  = 180;
+    private const int GateWindowCloseMinutes = 60;
 
     private const string Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
