@@ -14,15 +14,6 @@
     <span class="badge badge-onorder">ONE Order</span>
   </div>
 
-  <!-- Coming-soon notice -->
-  <div class="info-banner">
-    <span class="info-icon">&#9432;</span>
-    <div>
-      <p class="info-title">Endpoint invocation coming soon</p>
-      <p class="info-body">Each endpoint below will support inline XML request editing and one-click invocation directly from this page, along with live response display — similar to the services dashboard. XML schema documentation and example payloads will also be available here.</p>
-    </div>
-  </div>
-
   <!-- Endpoint cards -->
   <div class="endpoints-list">
     @for (ep of endpoints; track ep.name) {
@@ -34,30 +25,31 @@
             <span class="endpoint-name">{{ ep.name }}</span>
             <span class="version-tag">v{{ ep.version }}</span>
           </div>
-          <span class="endpoint-coming-soon">Coming soon</span>
+          @if (ep.implemented) {
+            <span class="status-badge status-live">Live</span>
+          } @else {
+            <span class="status-badge status-soon">Coming soon</span>
+          }
         </div>
 
         <p class="endpoint-description">{{ ep.description }}</p>
 
-        <div class="endpoint-body-placeholder">
-          <div class="placeholder-col">
-            <span class="placeholder-label">Request XML</span>
-            <div class="placeholder-editor">
-              <span class="placeholder-hint">XML request editor will appear here</span>
+        @if (ep.implemented && ep.requestXml && ep.responseXml) {
+          <div class="payload-panels">
+            <div class="payload-col">
+              <span class="payload-label">Request XML</span>
+              <pre class="xml-block">{{ ep.requestXml }}</pre>
+            </div>
+            <div class="payload-col">
+              <span class="payload-label">Response XML</span>
+              <pre class="xml-block">{{ ep.responseXml }}</pre>
             </div>
           </div>
-          <div class="placeholder-col">
-            <span class="placeholder-label">Response XML</span>
-            <div class="placeholder-editor">
-              <span class="placeholder-hint">Live XML response will appear here</span>
-            </div>
+        } @else {
+          <div class="payload-placeholder">
+            <span class="placeholder-hint">Example payloads will be available when this endpoint is implemented.</span>
           </div>
-        </div>
-
-        <div class="endpoint-actions">
-          <button class="btn-invoke" disabled>Send Request</button>
-          <button class="btn-copy-stub" disabled>Copy example</button>
-        </div>
+        }
 
       </div>
     }
