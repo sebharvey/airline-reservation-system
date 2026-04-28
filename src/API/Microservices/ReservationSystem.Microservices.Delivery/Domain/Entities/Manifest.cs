@@ -45,6 +45,13 @@ public sealed class Manifest
         Version++;
     }
 
+    public void UpdateSsrCodes(string? ssrCodesJson)
+    {
+        SsrCodes  = ssrCodesJson;
+        UpdatedAt = DateTime.UtcNow;
+        Version++;
+    }
+
     public void UpdateSeat(string? newSeatNumber)
     {
         SeatNumber = newSeatNumber;

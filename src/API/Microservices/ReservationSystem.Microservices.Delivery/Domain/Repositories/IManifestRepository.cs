@@ -20,6 +20,8 @@ public interface IManifestRepository
 
     Task<bool> UpdateSeatByETicketAsync(string eTicketNumber, string? newSeatNumber, CancellationToken cancellationToken = default);
 
+    Task<int> UpdateSsrCodesByBookingAsync(string bookingReference, IReadOnlyDictionary<string, string?> ssrsByETicket, CancellationToken cancellationToken = default);
+
     Task<int> RebookByBookingAndFlightAsync(
         string bookingReference,
         string fromFlightNumber,

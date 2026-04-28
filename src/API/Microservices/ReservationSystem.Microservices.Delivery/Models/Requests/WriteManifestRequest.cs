@@ -29,4 +29,5 @@ public sealed class ManifestEntryRequest
     [JsonPropertyName("gender")]        public string? Gender { get; init; }
     [JsonPropertyName("dateOfBirth")]   public string? DateOfBirth { get; init; }
     [JsonPropertyName("ptcCode")]       public string PtcCode { get; init; } = "ADT";
+    [JsonPropertyName("ssrCodes")]      public List<string>? SsrCodes { get; init; }
 }

@@ -146,6 +146,36 @@ public sealed class EfManifestRepository : IManifestRepository
         return true;
     }
 
+    public async Task<int> UpdateSsrCodesByBookingAsync(
+        string bookingReference,
+        IReadOnlyDictionary<string, string?> ssrsByETicket,
+        CancellationToken cancellationToken = default)
+    {
+        var eTicketNumbers = ssrsByETicket.Keys.ToList();
+
+        var entries = await _context.Manifests
+            .Where(m => m.BookingReference == bookingReference
+                     && eTicketNumbers.Contains(m.ETicketNumber))
+            .ToListAsync(cancellationToken);
+
+        if (entries.Count == 0)
+            return 0;
+
+        foreach (var entry in entries)
+        {
+            if (ssrsByETicket.TryGetValue(entry.ETicketNumber, out var ssrCodesJson))
+                entry.UpdateSsrCodes(ssrCodesJson);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug(
+            "Updated SSR codes on {Count} manifest entries for booking {BookingRef}",
+            entries.Count, bookingReference);
+
+        return entries.Count;
+    }
+
     public async Task<int> DeleteByBookingAndFlightAsync(
         string bookingReference,
         string flightNumber,
