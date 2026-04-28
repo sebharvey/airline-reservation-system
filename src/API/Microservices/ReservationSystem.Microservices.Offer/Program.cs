@@ -8,6 +8,7 @@ using ReservationSystem.Microservices.Offer.Application.BatchCreateFlights;
 using ReservationSystem.Microservices.Offer.Application.DeleteExpiredFlightInventory;
 using ReservationSystem.Microservices.Offer.Application.DeleteExpiredStoredOffers;
 using ReservationSystem.Microservices.Offer.Application.CancelInventory;
+using ReservationSystem.Microservices.Offer.Application.UpdateInventoryAircraftType;
 using ReservationSystem.Microservices.Offer.Application.CreateFare;
 using ReservationSystem.Microservices.Offer.Application.CreateFlight;
 using ReservationSystem.Microservices.Offer.Application.GetSeatAvailability;
@@ -107,6 +108,7 @@ var host = new HostBuilder()
         services.AddScoped<ReleaseInventoryHandler>();
         services.AddScoped<RebookInventoryHandler>();
         services.AddScoped<CancelInventoryHandler>();
+        services.AddScoped<UpdateInventoryAircraftTypeHandler>();
         services.AddScoped<GetSeatAvailabilityHandler>();
         services.AddScoped<ReserveSeatHandler>();
         services.AddScoped<UpdateSeatStatusHandler>();

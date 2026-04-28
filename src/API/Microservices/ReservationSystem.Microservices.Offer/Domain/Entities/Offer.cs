@@ -125,6 +125,8 @@ public sealed class FlightInventory
     }
 
     public void Cancel() { Status = InventoryStatus.Cancelled; SeatsAvailable = 0; }
+
+    public void ChangeAircraftType(string newAircraftType) { AircraftType = newAircraftType; }
 }
 
 public static class InventoryStatus

@@ -361,16 +361,24 @@ export class InventoryComponent implements OnInit {
     this.aircraftSwapSeatmapLoading.set(true);
     this.aircraftSwapSeatmapError.set('');
     try {
-      // Fetch the seatmap for the new aircraft type on this flight to determine which seat numbers exist
-      const sm = await this.#inventoryService.getFlightSeatmap(
-        flight.inventoryId, flight.flightNumber, newType
-      );
+      // Update the FlightInventory record in the database and fetch the new seatmap in parallel
+      const [sm] = await Promise.all([
+        this.#inventoryService.getFlightSeatmap(flight.inventoryId, flight.flightNumber, newType),
+        this.#inventoryService.changeAircraftType(flight.flightNumber, flight.departureDate, newType),
+      ]);
       this.aircraftSwapSeatmap.set(sm);
       this.aircraftSwapConfirmedType.set(newType);
       this.seatCheckDone.set(true);
+      // Update the aircraftType shown in the inventory list for this flight
+      this.flights.update(list =>
+        list.map(f =>
+          f.inventoryId === flight.inventoryId ? { ...f, aircraftType: newType } : f
+        )
+      );
+      this.disruptionModalFlight.update(f => f ? { ...f, aircraftType: newType } : f);
       this.disruptionStep.set('aircraft-swap-passengers');
     } catch {
-      this.aircraftSwapSeatmapError.set('Failed to load seatmap for the selected aircraft. Please try again.');
+      this.aircraftSwapSeatmapError.set('Failed to confirm aircraft change. Please try again.');
     } finally {
       this.aircraftSwapSeatmapLoading.set(false);
     }
