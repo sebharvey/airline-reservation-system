@@ -41,6 +41,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/disruption/disruption').then(m => m.DisruptionComponent),
       },
       {
+        path: 'aircraft-swap/:flightNumber/:departureDate',
+        loadComponent: () => import('./pages/aircraft-swap/aircraft-swap').then(m => m.AircraftSwapComponent),
+      },
+      {
         path: 'new-order',
         loadComponent: () => import('./pages/new-order/new-order').then(m => m.NewOrderComponent),
       },

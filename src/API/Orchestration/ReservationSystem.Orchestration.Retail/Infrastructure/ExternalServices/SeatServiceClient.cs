@@ -48,6 +48,14 @@ public sealed class SeatServiceClient
 
     // ── Admin CRUD ────────────────────────────────────────────────────────────
 
+    public async Task<IReadOnlyList<AircraftTypeDto>> GetAllAircraftTypesAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync("/api/v1/aircraft-types", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var wrapper = await response.Content.ReadFromJsonAsync<AircraftTypeListWrapper>(JsonOptions, cancellationToken);
+        return wrapper?.AircraftTypes ?? Array.Empty<AircraftTypeDto>();
+    }
+
     public async Task<IReadOnlyList<SeatPricingDto>> GetAllSeatPricingsAsync(CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.GetAsync("/api/v1/seat-pricing", cancellationToken);
