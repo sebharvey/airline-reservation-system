@@ -1,0 +1,184 @@
+<div class="detail-page fade-in">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="header-left">
+      <a class="back-link" routerLink="/inventory">
+        <lucide-icon name="arrow-left" [size]="16" />
+        Stock Keeper
+      </a>
+      @if (data(); as d) {
+        <div class="page-title-group">
+          <h1 class="page-title">
+            {{ d.flightNumber }}
+            <span class="header-route">{{ d.origin }} → {{ d.destination }}</span>
+          </h1>
+          <p class="page-subtitle">
+            {{ d.departureDate }} &nbsp;·&nbsp;
+            {{ d.departureTime }} – {{ d.arrivalTime }} &nbsp;·&nbsp;
+            {{ d.aircraftType }}
+            &nbsp;·&nbsp;
+            <span class="badge" [class]="d.status === 'Active' ? 'badge-active' : d.status === 'Ticketing Closed' ? 'badge-warning' : 'badge-inactive'">{{ d.status }}</span>
+          </p>
+        </div>
+      } @else if (!loading()) {
+        <h1 class="page-title">Flight Orders</h1>
+      }
+    </div>
+  </div>
+
+  <!-- Error state -->
+  @if (error()) {
+    <div class="error-banner" role="alert">
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="empty-state">
+      <span class="btn-spinner"></span>
+      <p>Loading flight orders…</p>
+    </div>
+  }
+
+  @if (!loading() && data(); as d) {
+
+    <!-- ── Cabin donut charts ─────────────────────────────────────────────── -->
+    @if (cabinRows().length > 0) {
+      <section class="cabin-charts-section">
+        <h2 class="section-heading">Cabin availability</h2>
+        <div class="cabin-charts">
+          @for (cabin of cabinRows(); track cabin.code) {
+            <div class="cabin-chart-card">
+              <!-- CSS-only donut: conic-gradient on outer ring, inner circle masks to hole -->
+              <div
+                class="donut"
+                [style.--sold-deg]="donutDeg(cabin.data) + 'deg'"
+                [attr.aria-label]="cabin.label + ': ' + soldPct(cabin.data) + '% filled'">
+                <div class="donut-hole">
+                  <span class="donut-pct">{{ soldPct(cabin.data) }}%</span>
+                  <span class="donut-sub">sold</span>
+                </div>
+              </div>
+              <div class="cabin-chart-meta">
+                <div class="cabin-chart-label">{{ cabin.label }} ({{ cabin.code }})</div>
+                <div class="cabin-chart-stats">
+                  <span class="stat-chip stat-sold">{{ cabin.data.seatsSold + cabin.data.seatsHeld }} sold/held</span>
+                  <span class="stat-chip stat-avail">{{ cabin.data.seatsAvailable }} avail</span>
+                  <span class="stat-chip stat-total">{{ cabin.data.totalSeats }} total</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ── Orders table ───────────────────────────────────────────────────── -->
+    <section class="orders-section">
+      <h2 class="section-heading">
+        Fares &amp; ancillaries
+        <span class="section-count">{{ d.orders.length }} passenger{{ d.orders.length !== 1 ? 's' : '' }}</span>
+      </h2>
+
+      @if (d.orders.length === 0) {
+        <div class="empty-state">
+          <lucide-icon name="inbox" [size]="24" />
+          <p>No revenue passengers on this flight.</p>
+        </div>
+      } @else {
+        <div class="table-card">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Booking Ref</th>
+                <th>Passenger</th>
+                <th class="text-center">Cabin</th>
+                <th>Seat</th>
+                <th>Fare family</th>
+                <th>Basis</th>
+                <th class="text-right">Fare</th>
+                <th class="text-right">Tax</th>
+                <th class="text-right">Total</th>
+                <th>Ancillaries</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of d.orders; track row.orderId + row.cabinCode + (row.passengerName ?? '')) {
+                <tr>
+                  <!-- Booking reference with copy button -->
+                  <td class="mono booking-ref-cell">
+                    <span class="pnr-copy-wrap">
+                      <a [routerLink]="['/order', row.bookingReference]" class="booking-ref-link">{{ row.bookingReference }}</a>
+                      <button
+                        class="copy-btn"
+                        [class.copied]="copiedRef() === row.bookingReference"
+                        (click)="copyBookingRef(row.bookingReference, $event)"
+                        [title]="copiedRef() === row.bookingReference ? 'Copied!' : 'Copy booking reference'"
+                      >
+                        @if (copiedRef() === row.bookingReference) {
+                          <lucide-icon name="check" [size]="13" />
+                        } @else {
+                          <lucide-icon name="copy" [size]="13" />
+                        }
+                      </button>
+                    </span>
+                  </td>
+
+                  <!-- Passenger name + type -->
+                  <td class="pax-cell">
+                    <span class="pax-name">{{ row.passengerName ?? '—' }}</span>
+                    @if (row.passengerType) {
+                      <span class="ptc-badge">{{ ptcLabel(row.passengerType) }}</span>
+                    }
+                  </td>
+
+                  <!-- Cabin -->
+                  <td class="text-center">
+                    <span class="cabin-badge cabin-ok">{{ row.cabinCode }}</span>
+                  </td>
+
+                  <!-- Seat -->
+                  <td class="mono muted">{{ row.seatNumber ?? '—' }}</td>
+
+                  <!-- Fare family -->
+                  <td>{{ row.fareFamily ?? '—' }}</td>
+
+                  <!-- Fare basis code -->
+                  <td class="mono muted">{{ row.fareBasisCode ?? '—' }}</td>
+
+                  <!-- Fare amounts -->
+                  <td class="text-right mono">{{ formatAmount(row.baseFareAmount, row.currency) }}</td>
+                  <td class="text-right mono muted">{{ formatAmount(row.taxAmount, row.currency) }}</td>
+                  <td class="text-right mono fw-semibold">{{ formatAmount(row.totalFareAmount, row.currency) }}</td>
+
+                  <!-- Ancillaries inline chips -->
+                  <td class="ancillaries-cell">
+                    @if (row.ancillaries.length === 0) {
+                      <span class="muted">—</span>
+                    } @else {
+                      <div class="ancillary-chips">
+                        @for (anc of row.ancillaries; track $index) {
+                          <span class="ancillary-chip" [title]="anc.description + ' · ' + formatAmount(anc.amount, row.currency)">
+                            <lucide-icon [name]="ancillaryIcon(anc.productType)" [size]="12" />
+                            {{ anc.description }}
+                            @if (anc.amount > 0) {
+                              <span class="anc-amount">{{ formatAmount(anc.amount, row.currency) }}</span>
+                            }
+                          </span>
+                        }
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+  }
+
+</div>

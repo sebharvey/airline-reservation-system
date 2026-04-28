@@ -165,6 +165,49 @@ export interface IropsRebookOrderResponse {
   failureReason?: string;
 }
 
+export interface InventoryOrdersCabins {
+  f: { totalSeats: number; seatsSold: number; seatsAvailable: number; seatsHeld: number } | null;
+  j: { totalSeats: number; seatsSold: number; seatsAvailable: number; seatsHeld: number } | null;
+  w: { totalSeats: number; seatsSold: number; seatsAvailable: number; seatsHeld: number } | null;
+  y: { totalSeats: number; seatsSold: number; seatsAvailable: number; seatsHeld: number } | null;
+}
+
+export interface InventoryOrderAncillary {
+  productType: string;
+  description: string;
+  amount: number;
+}
+
+export interface InventoryOrderRow {
+  orderId: string;
+  bookingReference: string;
+  currency: string;
+  passengerName: string | null;
+  passengerType: string | null;
+  cabinCode: string;
+  seatNumber: string | null;
+  fareFamily: string | null;
+  fareBasisCode: string | null;
+  baseFareAmount: number | null;
+  taxAmount: number | null;
+  totalFareAmount: number | null;
+  ancillaries: InventoryOrderAncillary[];
+}
+
+export interface InventoryOrders {
+  inventoryId: string;
+  flightNumber: string;
+  departureDate: string;
+  departureTime: string;
+  arrivalTime: string;
+  origin: string;
+  destination: string;
+  aircraftType: string;
+  status: string;
+  cabins: InventoryOrdersCabins | null;
+  orders: InventoryOrderRow[];
+}
+
 export interface AircraftType {
   aircraftTypeCode: string;
   manufacturer: string;
@@ -279,6 +322,14 @@ export class InventoryService {
     return firstValueFrom(
       this.#http.get<FlightSeatmap>(
         `${environment.retailApiUrl}/api/v1/flights/${inventoryId}/seatmap?${params}`
+      )
+    );
+  }
+
+  async getInventoryOrders(inventoryId: string): Promise<InventoryOrders> {
+    return firstValueFrom(
+      this.#http.get<InventoryOrders>(
+        `${this.#baseUrl}/inventory/${inventoryId}/inventory-orders`
       )
     );
   }

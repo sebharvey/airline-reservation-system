@@ -203,6 +203,15 @@
 
 .row-cancelled td { opacity: 0.55; }
 
+.row-clickable {
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.inventory-table .row-clickable:hover td {
+  background: rgba(99, 102, 241, 0.05);
+}
+.flight-card.row-clickable { cursor: pointer; }
+
 /* Flight number */
 .flight-num {
   font-weight: 700;
