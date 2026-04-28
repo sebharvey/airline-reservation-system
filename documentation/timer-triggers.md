@@ -67,6 +67,24 @@ These four functions run concurrently at midnight UTC every day.
 - **Trigger** — `GET /api/v1/simulator/run` (HTTP, anonymous)
 - **What it does** — Runs the same logic as the `Simulator` timer trigger on demand. Opens a browser tab (or any HTTP client) to the endpoint URL to start one simulation run immediately without waiting for the next 20-minute interval. Returns `200 OK` with `{"message":"Simulator run completed."}` when all orders have been processed.
 
+### `FlightOperationalDataSimulator`
+
+- **Service** — Simulator microservice (`ReservationSystem.Microservices.Simulator`)
+- **Class** — `SimulatorFunction`
+- **Schedule** — `0 */20 * * * *`
+- **What it does** — Simulates pre-departure operational updates to flight inventory. Each run authenticates with the Admin API using employee credentials (`User:Username` / `User:Password`), then fetches inventory for today and tomorrow via the Retail API admin endpoint. Two updates are applied:
+  - **Aircraft registration** — flights departing 20–26 hours from now that have no registration are assigned one (format `G-X123`, e.g. `G-A456`).
+  - **Departure gate** — flights departing 40–90 minutes from now that have no gate are assigned a random gate number between 1 and 50.
+  Each update calls the Operations API `PATCH /v1/admin/inventory/{inventoryId}/operational-data`. Flights that already have the value set are skipped. Individual failures are logged and do not abort the run.
+- **External dependencies** — Admin API (`AdminApi:BaseUrl`), Retail API (`RetailApi:BaseUrl`), Operations API (`OperationsApi:BaseUrl`). Credentials read from `User:Username` and `User:Password`.
+
+### `FlightOperationalDataSimulatorManualTrigger`
+
+- **Service** — Simulator microservice (`ReservationSystem.Microservices.Simulator`)
+- **Class** — `SimulatorFunction`
+- **Trigger** — `GET /api/v1/simulator/flight-updates` (HTTP, anonymous)
+- **What it does** — Runs the same logic as the `FlightOperationalDataSimulator` timer trigger on demand. Returns `200 OK` with `{"message":"Flight operational data update completed."}` when processing is complete.
+
 ---
 
 ## Execution order dependency

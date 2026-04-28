@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Simulator.Application.RunSimulator;
+using ReservationSystem.Simulator.Application.UpdateFlightOperationalData;
 using ReservationSystem.Simulator.Domain.ExternalServices;
 using ReservationSystem.Simulator.Infrastructure.ExternalServices;
 
@@ -24,11 +25,23 @@ var host = new HostBuilder()
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
 
+        services.AddHttpClient("AdminApi", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["AdminApi:BaseUrl"]!);
+        });
+
+        services.AddHttpClient("OperationsApi", client =>
+        {
+            client.BaseAddress = new Uri(context.Configuration["OperationsApi:BaseUrl"]!);
+        });
+
         // ── Infrastructure ─────────────────────────────────────────────────────
         services.AddScoped<IRetailApiClient, RetailApiClient>();
+        services.AddScoped<IFlightUpdateClient, FlightUpdateClient>();
 
         // ── Application handlers ───────────────────────────────────────────────
         services.AddScoped<RunSimulatorHandler>();
+        services.AddScoped<UpdateFlightOperationalDataHandler>();
     })
     .Build();
 
