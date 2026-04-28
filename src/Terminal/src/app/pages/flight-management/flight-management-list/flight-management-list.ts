@@ -5,13 +5,13 @@ import { Router } from '@angular/router';
 import { InventoryService, FlightInventoryGroup, CabinInventory } from '../../../services/inventory.service';
 
 @Component({
-  selector: 'app-flight-departure-list',
+  selector: 'app-flight-management-list',
   standalone: true,
   imports: [DecimalPipe, LucideAngularModule],
-  templateUrl: './flight-departure-list.html',
-  styleUrl: './flight-departure-list.css',
+  templateUrl: './flight-management-list.html',
+  styleUrl: './flight-management-list.css',
 })
-export class FlightDepartureListComponent implements OnInit {
+export class FlightManagementListComponent implements OnInit {
   #inventoryService = inject(InventoryService);
   #router = inject(Router);
 
@@ -59,7 +59,7 @@ export class FlightDepartureListComponent implements OnInit {
 
   openFlight(flight: FlightInventoryGroup): void {
     this.#router.navigate(
-      ['/flight-departure', flight.inventoryId],
+      ['/flight-management', flight.inventoryId],
       {
         queryParams: { fn: flight.flightNumber, date: flight.departureDate, ac: flight.aircraftType },
         state: { flight },
