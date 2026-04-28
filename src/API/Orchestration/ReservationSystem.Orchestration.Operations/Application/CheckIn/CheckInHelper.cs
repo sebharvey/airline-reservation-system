@@ -113,6 +113,25 @@ public static class CheckInHelper
         }).ToList();
 
     /// <summary>
+    /// Parses order JSON to build passengerId→eTicketNumber lookup (reverse of ParseOrderLookups).
+    /// Used by the OLCI retrieve step to map passengers to their ticket numbers.
+    /// </summary>
+    public static Dictionary<string, string> ParsePaxToTicketMap(JsonElement? orderData)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object) return map;
+        if (!el.TryGetProperty("eTickets", out var eTickets) || eTickets.ValueKind != JsonValueKind.Array) return map;
+        foreach (var et in eTickets.EnumerateArray())
+        {
+            var paxId     = et.TryGetProperty("passengerId",   out var pEl) ? pEl.GetString() : null;
+            var ticketNum = et.TryGetProperty("eTicketNumber", out var tEl) ? tEl.GetString() : null;
+            if (paxId is not null && ticketNum is not null)
+                map[paxId] = ticketNum;
+        }
+        return map;
+    }
+
+    /// <summary>
     /// Extracts the integer suffix from a composite passenger ID such as "PAX-123".
     /// </summary>
     public static int? ExtractPaxIdInt(string? paxId)

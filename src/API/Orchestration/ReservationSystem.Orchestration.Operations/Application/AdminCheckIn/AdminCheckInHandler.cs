@@ -59,7 +59,7 @@ public sealed class AdminCheckInHandler
         var (ticketToPaxId, paxIdToInfo) = CheckInHelper.ParseOrderLookups(order.OrderData);
 
         // Persist travel documents to the order
-        var passengerUpdates = new List<object>();
+        var passengerUpdates = new List<PassengerDocUpdate>();
         foreach (var pax in command.Passengers)
         {
             if (!ticketToPaxId.TryGetValue(pax.TicketNumber, out var passengerId))
@@ -71,26 +71,26 @@ public sealed class AdminCheckInHandler
                     $"Ticket '{pax.TicketNumber}' was not found on booking '{command.BookingReference}'.");
             }
 
-            passengerUpdates.Add(new
+            passengerUpdates.Add(new PassengerDocUpdate
             {
-                passengerId,
-                docs = new[]
-                {
-                    new
+                PassengerId = passengerId,
+                Docs =
+                [
+                    new PassengerDoc
                     {
-                        type           = pax.TravelDocument.Type,
-                        number         = pax.TravelDocument.Number,
-                        issuingCountry = pax.TravelDocument.IssuingCountry,
-                        nationality    = pax.TravelDocument.Nationality,
-                        issueDate      = pax.TravelDocument.IssueDate,
-                        expiryDate     = pax.TravelDocument.ExpiryDate
+                        Type           = pax.TravelDocument.Type,
+                        Number         = pax.TravelDocument.Number,
+                        IssuingCountry = pax.TravelDocument.IssuingCountry,
+                        Nationality    = pax.TravelDocument.Nationality,
+                        IssueDate      = pax.TravelDocument.IssueDate,
+                        ExpiryDate     = pax.TravelDocument.ExpiryDate
                     }
-                }
+                ]
             });
         }
 
         if (passengerUpdates.Count > 0)
-            await _orderServiceClient.UpdateOrderPassengersAsync(command.BookingReference, new { passengers = passengerUpdates }, ct);
+            await _orderServiceClient.UpdateOrderPassengersAsync(command.BookingReference, passengerUpdates, ct);
 
         // Build ticket → passenger name lookup for note formatting
         var ticketToName = ticketToPaxId.ToDictionary(
