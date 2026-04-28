@@ -49,6 +49,8 @@ export class FlightManagementDetailComponent implements OnInit {
   selectedEntry = signal<ManifestEntry | null>(null);
   paxFilter = signal<'all' | 'confirmed' | 'standby'>('all');
 
+  activeTab = signal<'details' | 'disruption'>('details');
+
   // Seat action state
   pendingSeat = signal<SeatmapSeat | null>(null);
   seatOpLoading = signal(false);

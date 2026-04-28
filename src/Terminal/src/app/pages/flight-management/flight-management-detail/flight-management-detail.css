@@ -105,6 +105,47 @@
   flex-shrink: 0;
 }
 
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.detail-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.detail-tab {
+  padding: 8px 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.detail-tab:hover {
+  color: var(--text);
+}
+
+.detail-tab-active {
+  color: var(--grad-start, #6366f1);
+  border-bottom-color: var(--grad-start, #6366f1);
+}
+
+/* ── Disruption panel ───────────────────────────────────────────────────── */
+.disruption-panel {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  overflow: hidden;
+}
+
 /* ── Split pane body ────────────────────────────────────────────────────── */
 .detail-body {
   display: flex;
