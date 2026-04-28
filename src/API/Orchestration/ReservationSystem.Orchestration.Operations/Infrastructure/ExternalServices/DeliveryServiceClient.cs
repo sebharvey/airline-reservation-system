@@ -159,6 +159,58 @@ public sealed class DeliveryServiceClient
             throw new InvalidOperationException(
                 $"Failed to void ticket {eTicketNumber}: {await response.ReadErrorMessageAsync(ct)}");
     }
+
+    // ── Watchlist ─────────────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<WatchlistEntryDto>> GetAllWatchlistEntriesAsync(CancellationToken ct = default)
+    {
+        using var response = await _httpClient.GetAsync("/api/v1/watchlist-entries", ct);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<WatchlistEntriesListDto>(JsonOptions, ct);
+        return result?.Entries ?? [];
+    }
+
+    public async Task<WatchlistEntryDto?> GetWatchlistEntryAsync(Guid watchlistId, CancellationToken ct = default)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/watchlist-entries/{watchlistId}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WatchlistEntryDto>(JsonOptions, ct);
+    }
+
+    public async Task<WatchlistEntryDto> CreateWatchlistEntryAsync(object request, CancellationToken ct = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync("/api/v1/watchlist-entries", request, JsonOptions, ct);
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(ct));
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException(await response.ReadErrorMessageAsync(ct));
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WatchlistEntryDto>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response from Delivery MS create watchlist entry.");
+    }
+
+    public async Task<WatchlistEntryDto> UpdateWatchlistEntryAsync(Guid watchlistId, object request, CancellationToken ct = default)
+    {
+        using var response = await _httpClient.PutAsJsonAsync($"/api/v1/watchlist-entries/{watchlistId}", request, JsonOptions, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"Watchlist entry '{watchlistId}' not found.");
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(ct));
+        if (response.StatusCode == HttpStatusCode.Conflict)
+            throw new InvalidOperationException(await response.ReadErrorMessageAsync(ct));
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WatchlistEntryDto>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("Empty response from Delivery MS update watchlist entry.");
+    }
+
+    public async Task<bool> DeleteWatchlistEntryAsync(Guid watchlistId, CancellationToken ct = default)
+    {
+        using var response = await _httpClient.DeleteAsync($"/api/v1/watchlist-entries/{watchlistId}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return false;
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
 }
 
 public sealed class OciCheckInTicket

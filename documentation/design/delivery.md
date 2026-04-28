@@ -332,3 +332,24 @@ The top-level `ancillaryDetail` object is a discriminated union — its shape de
 > **Constraints:** `CHK_DocumentData` — `ISJSON(DocumentData) = 1`.
 > **Event on creation:** Each new `delivery.Document` row triggers a `DocumentIssued` event to the Accounting system event bus, carrying the full document record so the Accounting MS can record the ancillary revenue.
 > **Scope:** `delivery.Document` covers seat and bag ancillaries sold through the reservation system. Upgrade documents and future ancillary types (e.g. lounge access, excess baggage waivers) should also be recorded here when introduced.
+
+## Data schema — `delivery.Watchlist`
+
+A departure screening watchlist maintained by ground staff. Each row represents one passenger who has been flagged for additional departure screening. Passport number is unique — a passenger may only appear on the watchlist once.
+
+| Column | Type | Nullable | Default | Key | Notes |
+|---|---|---|---|---|---|
+| WatchlistId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
+| GivenName | VARCHAR(100) | No | | | Uppercased on write |
+| Surname | VARCHAR(100) | No | | | Uppercased on write |
+| DateOfBirth | DATE | No | | | |
+| PassportNumber | VARCHAR(20) | No | | UK | Uppercased on write; unique across the watchlist |
+| AddedBy | VARCHAR(100) | No | | | Decoded from the staff JWT `unique_name` claim at write time by the Operations API |
+| Notes | NVARCHAR(500) | Yes | | | Optional notes for screening staff |
+| CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | Database-generated |
+| UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | Database-generated; maintained by `TR_Watchlist_UpdatedAt` trigger |
+
+> **Indexes:** `UQ_Watchlist_Passport` (unique) on `(PassportNumber)`. `IX_Watchlist_Surname` on `(Surname)`.
+> **Trigger:** `TR_Watchlist_UpdatedAt` — `AFTER UPDATE`; sets `UpdatedAt = SYSUTCDATETIME()` on every row update. Declared via `HasTrigger()` in EF Core model configuration; `UseSqlOutputClause(false)` required.
+> **Uniqueness:** A 409 Conflict is returned by the API when an attempt is made to add a passport number that is already on the watchlist.
+> **Access:** Managed exclusively via the Operations API admin watchlist endpoints (`/v1/admin/watchlist-entries`). Staff must supply a valid staff JWT token. The `AddedBy` field is populated server-side from the token — it is never accepted in the request body.

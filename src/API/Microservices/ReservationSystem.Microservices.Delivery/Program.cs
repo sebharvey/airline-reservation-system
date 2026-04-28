@@ -20,6 +20,11 @@ using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
 using ReservationSystem.Microservices.Delivery.Application.RebookManifest;
 using ReservationSystem.Microservices.Delivery.Application.WriteManifest;
+using ReservationSystem.Microservices.Delivery.Application.Watchlist.CreateWatchlistEntry;
+using ReservationSystem.Microservices.Delivery.Application.Watchlist.DeleteWatchlistEntry;
+using ReservationSystem.Microservices.Delivery.Application.Watchlist.GetAllWatchlistEntries;
+using ReservationSystem.Microservices.Delivery.Application.Watchlist.GetWatchlistEntry;
+using ReservationSystem.Microservices.Delivery.Application.Watchlist.UpdateWatchlistEntry;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Domain.Services;
 using ReservationSystem.Microservices.Delivery.Infrastructure.ExternalServices;
@@ -75,6 +80,7 @@ var host = new HostBuilder()
         services.AddScoped<ITicketRepository, EfTicketRepository>();
         services.AddScoped<IDocumentRepository, EfDocumentRepository>();
         services.AddScoped<IManifestRepository, EfManifestRepository>();
+        services.AddScoped<IWatchlistRepository, EfWatchlistRepository>();
         services.AddSingleton<TaxAttributionService>();
 
         // ── Health check ───────────────────────────────────────────────────────
@@ -94,6 +100,11 @@ var host = new HostBuilder()
         services.AddScoped<OciBoardingDocsHandler>();
         services.AddScoped<WriteManifestHandler>();
         services.AddScoped<RebookManifestHandler>();
+        services.AddScoped<GetAllWatchlistEntriesHandler>();
+        services.AddScoped<GetWatchlistEntryHandler>();
+        services.AddScoped<CreateWatchlistEntryHandler>();
+        services.AddScoped<UpdateWatchlistEntryHandler>();
+        services.AddScoped<DeleteWatchlistEntryHandler>();
     })
     .Build();
 
