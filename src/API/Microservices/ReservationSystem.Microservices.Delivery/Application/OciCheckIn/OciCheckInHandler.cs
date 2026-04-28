@@ -41,15 +41,18 @@ public sealed record OciCheckInResult(
 public sealed class OciCheckInHandler
 {
     private readonly ITicketRepository _ticketRepository;
+    private readonly IManifestRepository _manifestRepository;
     private readonly TimaticServiceClient _timaticServiceClient;
     private readonly ILogger<OciCheckInHandler> _logger;
 
     public OciCheckInHandler(
         ITicketRepository ticketRepository,
+        IManifestRepository manifestRepository,
         TimaticServiceClient timaticServiceClient,
         ILogger<OciCheckInHandler> logger)
     {
         _ticketRepository = ticketRepository;
+        _manifestRepository = manifestRepository;
         _timaticServiceClient = timaticServiceClient;
         _logger = logger;
     }
@@ -236,6 +239,10 @@ public sealed class OciCheckInHandler
             if (updated > 0)
             {
                 checkedInCount++;
+
+                var checkedInAt = DateTime.UtcNow;
+                await _manifestRepository.CheckInByETicketAndOriginAsync(
+                    ticketRequest.TicketNumber, command.DepartureAirport, checkedInAt, cancellationToken);
 
                 // Check whether the freshly checked-in coupon already has a seat.
                 var unseatedCoupon = ticket.GetCheckedInCouponsForOrigin(command.DepartureAirport)

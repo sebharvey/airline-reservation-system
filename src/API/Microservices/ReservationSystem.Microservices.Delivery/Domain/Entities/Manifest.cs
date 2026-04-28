@@ -37,6 +37,14 @@ public sealed class Manifest
 
     private Manifest() { }
 
+    public void CheckIn(DateTime checkedInAt)
+    {
+        CheckedIn   = true;
+        CheckedInAt = checkedInAt;
+        UpdatedAt   = checkedInAt;
+        Version++;
+    }
+
     public void UpdateSeat(string? newSeatNumber)
     {
         SeatNumber = newSeatNumber;
