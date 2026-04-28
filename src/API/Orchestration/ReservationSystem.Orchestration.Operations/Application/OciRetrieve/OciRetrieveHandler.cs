@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
 namespace ReservationSystem.Orchestration.Operations.Application.OciRetrieve;
@@ -96,17 +97,7 @@ public sealed class OciRetrieveHandler
         }
 
         // Build a map from passengerId → eTicketNumber
-        var ticketMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (orderDataEl.TryGetProperty("eTickets", out var eTicketsEl) && eTicketsEl.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var et in eTicketsEl.EnumerateArray())
-            {
-                var paxId = et.TryGetProperty("passengerId", out var pEl) ? pEl.GetString() : null;
-                var ticketNum = et.TryGetProperty("eTicketNumber", out var tEl) ? tEl.GetString() : null;
-                if (paxId is not null && ticketNum is not null)
-                    ticketMap[paxId] = ticketNum;
-            }
-        }
+        var ticketMap = CheckInHelper.ParsePaxToTicketMap(order.OrderData);
 
         // Optionally fetch loyalty profile to pre-fill passport data
         CustomerProfile? loyaltyProfile = null;

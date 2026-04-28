@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
 namespace ReservationSystem.Orchestration.Operations.Application.OciPax;
@@ -39,7 +39,6 @@ public sealed class OciPaxHandler
 
     public async Task<OciPaxResult?> HandleAsync(OciPaxCommand command, CancellationToken ct)
     {
-        // Retrieve current order to map ticketNumber → passengerId
         var order = await _orderServiceClient.GetOrderAsync(command.BookingReference, ct);
 
         if (order is null)
@@ -48,47 +47,45 @@ public sealed class OciPaxHandler
             return null;
         }
 
-        // Build ticketNumber → passengerId map from eTickets in orderData
-        var ticketToPax = BuildTicketToPaxMap(order.OrderData);
+        var ticketToPaxId = CheckInHelper.ParseOrderLookups(order.OrderData).TicketToPaxId;
 
-        // Build passenger update payload with passengerId (required by Order MS)
-        var passengerUpdates = new List<object>();
+        var passengerUpdates = new List<PassengerDocUpdate>();
 
         foreach (var paxRequest in command.Passengers)
         {
-            if (!ticketToPax.TryGetValue(paxRequest.TicketNumber, out var passengerId))
+            if (!ticketToPaxId.TryGetValue(paxRequest.TicketNumber, out var passengerId))
             {
-                _logger.LogWarning("OCI pax: ticket {TicketNumber} not found on booking {BookingReference}", paxRequest.TicketNumber, command.BookingReference);
-                return new OciPaxResult(command.BookingReference, false, $"Ticket number '{paxRequest.TicketNumber}' was not found on booking '{command.BookingReference}'.");
+                _logger.LogWarning(
+                    "OCI pax: ticket {TicketNumber} not found on booking {BookingReference}",
+                    paxRequest.TicketNumber, command.BookingReference);
+                return new OciPaxResult(
+                    command.BookingReference, false,
+                    $"Ticket number '{paxRequest.TicketNumber}' was not found on booking '{command.BookingReference}'.");
             }
 
-            passengerUpdates.Add(new
+            passengerUpdates.Add(new PassengerDocUpdate
             {
-                passengerId,
-                docs = new[]
-                {
-                    new
+                PassengerId = passengerId,
+                Docs =
+                [
+                    new PassengerDoc
                     {
-                        type = paxRequest.TravelDocument.Type,
-                        number = paxRequest.TravelDocument.Number,
-                        issuingCountry = paxRequest.TravelDocument.IssuingCountry,
-                        nationality = paxRequest.TravelDocument.Nationality,
-                        issueDate = paxRequest.TravelDocument.IssueDate,
-                        expiryDate = paxRequest.TravelDocument.ExpiryDate
+                        Type           = paxRequest.TravelDocument.Type,
+                        Number         = paxRequest.TravelDocument.Number,
+                        IssuingCountry = paxRequest.TravelDocument.IssuingCountry,
+                        Nationality    = paxRequest.TravelDocument.Nationality,
+                        IssueDate      = paxRequest.TravelDocument.IssueDate,
+                        ExpiryDate     = paxRequest.TravelDocument.ExpiryDate
                     }
-                }
+                ]
             });
         }
 
-        // Persist travel documents to the order
         if (passengerUpdates.Count > 0)
         {
             try
             {
-                await _orderServiceClient.UpdateOrderPassengersAsync(
-                    command.BookingReference,
-                    new { passengers = passengerUpdates },
-                    ct);
+                await _orderServiceClient.UpdateOrderPassengersAsync(command.BookingReference, passengerUpdates, ct);
             }
             catch (Exception ex)
             {
@@ -99,21 +96,4 @@ public sealed class OciPaxHandler
 
         return new OciPaxResult(command.BookingReference, true);
     }
-
-    private static Dictionary<string, string> BuildTicketToPaxMap(JsonElement? orderData)
-    {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object) return map;
-        if (!el.TryGetProperty("eTickets", out var eTickets) || eTickets.ValueKind != JsonValueKind.Array) return map;
-
-        foreach (var et in eTickets.EnumerateArray())
-        {
-            var paxId = et.TryGetProperty("passengerId", out var pEl) ? pEl.GetString() : null;
-            var ticketNum = et.TryGetProperty("eTicketNumber", out var tEl) ? tEl.GetString() : null;
-            if (paxId is not null && ticketNum is not null)
-                map[ticketNum] = paxId;
-        }
-        return map;
-    }
-
 }

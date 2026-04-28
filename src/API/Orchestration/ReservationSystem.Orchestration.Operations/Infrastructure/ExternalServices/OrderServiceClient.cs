@@ -100,9 +100,13 @@ public sealed class OrderServiceClient
     /// <summary>
     /// Update passenger travel documents on an order via Order MS PATCH /v1/orders/{bookingRef}/passengers.
     /// </summary>
-    public async Task UpdateOrderPassengersAsync(string bookingReference, object passengersPayload, CancellationToken ct)
+    public async Task UpdateOrderPassengersAsync(
+        string bookingReference,
+        IReadOnlyList<PassengerDocUpdate> passengers,
+        CancellationToken ct)
     {
-        var json = JsonSerializer.Serialize(passengersPayload, JsonOptions);
+        var payload = new { passengers };
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
         using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
         using var response = await _httpClient.PatchAsync($"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/passengers", content, ct);
         if (!response.IsSuccessStatusCode)
@@ -173,6 +177,22 @@ public sealed class OrderServiceClient
             throw new InvalidOperationException($"Failed to cancel order {bookingReference}: {error}");
         }
     }
+}
+
+public sealed class PassengerDocUpdate
+{
+    public string PassengerId { get; init; } = string.Empty;
+    public IReadOnlyList<PassengerDoc> Docs { get; init; } = [];
+}
+
+public sealed class PassengerDoc
+{
+    public string Type           { get; init; } = string.Empty;
+    public string Number         { get; init; } = string.Empty;
+    public string IssuingCountry { get; init; } = string.Empty;
+    public string Nationality    { get; init; } = string.Empty;
+    public string IssueDate      { get; init; } = string.Empty;
+    public string ExpiryDate     { get; init; } = string.Empty;
 }
 
 public sealed class OrderCheckInPassenger
