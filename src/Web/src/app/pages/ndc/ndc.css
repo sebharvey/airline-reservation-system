@@ -180,9 +180,10 @@ h2 {
   line-height: 1.55;
   color: var(--text);
   background: var(--input-bg);
-  overflow-x: auto;
+  overflow: auto;
   white-space: pre;
   tab-size: 2;
+  max-height: 320px;
 }
 
 /* ── Coming-soon placeholder ── */
