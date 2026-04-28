@@ -7,8 +7,8 @@ import {
   Calendar, Check, ChevronLeft, ChevronRight, CircleAlert, CircleArrowUp,
   CircleCheck, CircleDollarSign, CircleX, ClipboardList, Clock, Copy,
   CreditCard, FileText, Inbox, Lock, LogOut, Luggage, MapPin, Moon, Package,
-  Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShoppingBag,
-  ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
+  Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShieldAlert,
+  ShoppingBag, ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
 } from 'lucide-angular';
 
 import { routes } from './app.routes';
@@ -37,8 +37,8 @@ export const appConfig: ApplicationConfig = {
         Calendar, Check, ChevronLeft, ChevronRight, CircleAlert, CircleArrowUp,
         CircleCheck, CircleDollarSign, CircleX, ClipboardList, Clock, Copy,
         CreditCard, FileText, Inbox, Lock, LogOut, Luggage, MapPin, Moon, Package,
-        Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShoppingBag,
-        ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
+        Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShieldAlert,
+        ShoppingBag, ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
       }),
     },
   ],
