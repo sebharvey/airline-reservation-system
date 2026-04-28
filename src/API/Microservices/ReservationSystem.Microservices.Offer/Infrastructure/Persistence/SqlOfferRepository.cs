@@ -697,6 +697,29 @@ public sealed class SqlOfferRepository : IOfferRepository
             .ToList().AsReadOnly();
     }
 
+    public async Task<bool> UpdateHoldSeatAsync(Guid inventoryId, Guid orderId, string passengerId, string seatNumber, CancellationToken ct = default)
+    {
+        const string sql = """
+            UPDATE [offer].[InventoryHold]
+            SET    SeatNumber = @SeatNumber
+            WHERE  InventoryId  = @InventoryId
+              AND  OrderId      = @OrderId
+              AND  PassengerId  = @PassengerId;
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var affected = await connection.ExecuteAsync(
+            new CommandDefinition(sql, new { InventoryId = inventoryId, OrderId = orderId, PassengerId = passengerId, SeatNumber = seatNumber },
+                commandTimeout: _options.CommandTimeoutSeconds));
+
+        _logger.LogDebug(
+            "UpdateHoldSeatAsync: {Rows} row(s) updated for InventoryId {InventoryId}, OrderId {OrderId}, PassengerId {PassengerId}",
+            affected, inventoryId, orderId, passengerId);
+
+        return affected > 0;
+    }
+
     // -------------------------------------------------------------------------
     // SeatReservation
     // -------------------------------------------------------------------------

@@ -259,6 +259,9 @@ public sealed class OciCheckedInTicket
 
     [JsonPropertyName("status")]
     public string Status { get; init; } = string.Empty;
+
+    [JsonPropertyName("seatNumber")]
+    public string? SeatNumber { get; init; }
 }
 
 public sealed class OciBoardingDocsResult
