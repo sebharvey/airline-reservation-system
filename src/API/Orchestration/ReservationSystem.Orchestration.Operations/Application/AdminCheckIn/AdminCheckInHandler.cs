@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 
 namespace ReservationSystem.Orchestration.Operations.Application.AdminCheckIn;
@@ -32,21 +32,18 @@ public sealed class AdminCheckInHandler
 {
     private readonly OrderServiceClient _orderServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
+    private readonly CheckInNoteService _noteService;
     private readonly ILogger<AdminCheckInHandler> _logger;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
 
     public AdminCheckInHandler(
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
+        CheckInNoteService noteService,
         ILogger<AdminCheckInHandler> logger)
     {
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
+        _noteService = noteService;
         _logger = logger;
     }
 
@@ -59,7 +56,7 @@ public sealed class AdminCheckInHandler
             return null;
         }
 
-        var (ticketToPaxId, paxIdToName) = ParseOrderData(order.OrderData);
+        var (ticketToPaxId, paxIdToInfo) = CheckInHelper.ParseOrderLookups(order.OrderData);
 
         // Persist travel documents to the order
         var passengerUpdates = new List<object>();
@@ -81,12 +78,12 @@ public sealed class AdminCheckInHandler
                 {
                     new
                     {
-                        type = pax.TravelDocument.Type,
-                        number = pax.TravelDocument.Number,
+                        type           = pax.TravelDocument.Type,
+                        number         = pax.TravelDocument.Number,
                         issuingCountry = pax.TravelDocument.IssuingCountry,
-                        nationality = pax.TravelDocument.Nationality,
-                        issueDate = pax.TravelDocument.IssueDate,
-                        expiryDate = pax.TravelDocument.ExpiryDate
+                        nationality    = pax.TravelDocument.Nationality,
+                        issueDate      = pax.TravelDocument.IssueDate,
+                        expiryDate     = pax.TravelDocument.ExpiryDate
                     }
                 }
             });
@@ -98,25 +95,25 @@ public sealed class AdminCheckInHandler
         // Build ticket → passenger name lookup for note formatting
         var ticketToName = ticketToPaxId.ToDictionary(
             kvp => kvp.Key,
-            kvp => paxIdToName.TryGetValue(kvp.Value, out var n)
-                ? $"{n.GivenName} {n.Surname}".Trim()
+            kvp => paxIdToInfo.TryGetValue(kvp.Value, out var info)
+                ? $"{info.GivenName} {info.Surname}".Trim()
                 : string.Empty,
             StringComparer.OrdinalIgnoreCase);
 
         var checkInTickets = command.Passengers.Select(pax =>
         {
             ticketToPaxId.TryGetValue(pax.TicketNumber, out var paxId);
-            paxIdToName.TryGetValue(paxId ?? string.Empty, out var name);
+            paxIdToInfo.TryGetValue(paxId ?? string.Empty, out var info);
             return new OciCheckInTicket
             {
-                TicketNumber = pax.TicketNumber,
-                PassengerId = paxId ?? string.Empty,
-                GivenName = name?.GivenName ?? string.Empty,
-                Surname = name?.Surname ?? string.Empty,
-                DocNationality = pax.TravelDocument.Nationality,
-                DocNumber = pax.TravelDocument.Number,
+                TicketNumber      = pax.TicketNumber,
+                PassengerId       = paxId ?? string.Empty,
+                GivenName         = info?.GivenName ?? string.Empty,
+                Surname           = info?.Surname ?? string.Empty,
+                DocNationality    = pax.TravelDocument.Nationality,
+                DocNumber         = pax.TravelDocument.Number,
                 DocIssuingCountry = pax.TravelDocument.IssuingCountry,
-                DocExpiryDate = pax.TravelDocument.ExpiryDate,
+                DocExpiryDate     = pax.TravelDocument.ExpiryDate,
             };
         }).ToList();
 
@@ -127,22 +124,11 @@ public sealed class AdminCheckInHandler
         }
         catch (OciTimaticBlockedException ex)
         {
-            if (ex.TimaticNotes.Count > 0)
-            {
-                try
-                {
-                    await _orderServiceClient.AddOrderNotesAsync(
-                        command.BookingReference,
-                        BuildOrderNotes(ex.TimaticNotes, ticketToName, ticketToPaxId),
-                        ct);
-                }
-                catch (Exception notesEx)
-                {
-                    _logger.LogError(notesEx,
-                        "Admin check-in: failed to write Timatic notes to order {BookingReference}",
-                        command.BookingReference);
-                }
-            }
+            await _noteService.SaveAsync(
+                command.BookingReference,
+                CheckInHelper.BuildTimaticNotes(ex.TimaticNotes, ticketToName, ticketToPaxId),
+                "Admin check-in",
+                ct);
 
             if (!command.OverrideTimatic)
                 throw;
@@ -151,39 +137,20 @@ public sealed class AdminCheckInHandler
                 "Admin check-in: Timatic override authorised for {BookingReference} — reason: {Reason}",
                 command.BookingReference, command.OverrideReason);
 
-            try
-            {
-                await _orderServiceClient.AddOrderNotesAsync(
-                    command.BookingReference,
-                    BuildOverrideNotes(command.Passengers, ticketToName, command.OverrideReason, ticketToPaxId),
-                    ct);
-            }
-            catch (Exception notesEx)
-            {
-                _logger.LogError(notesEx,
-                    "Admin check-in: failed to write override notes to order {BookingReference}",
-                    command.BookingReference);
-            }
+            await _noteService.SaveAsync(
+                command.BookingReference,
+                BuildOverrideNotes(command.Passengers, ticketToName, command.OverrideReason, ticketToPaxId),
+                "Admin check-in",
+                ct);
 
             checkInResult = await _deliveryServiceClient.CheckInAsync(command.DepartureAirport, checkInTickets, ct, bypassTimatic: true);
         }
 
-        if (checkInResult.TimaticNotes.Count > 0)
-        {
-            try
-            {
-                await _orderServiceClient.AddOrderNotesAsync(
-                    command.BookingReference,
-                    BuildOrderNotes(checkInResult.TimaticNotes, ticketToName, ticketToPaxId),
-                    ct);
-            }
-            catch (Exception notesEx)
-            {
-                _logger.LogError(notesEx,
-                    "Admin check-in: failed to write Timatic notes to order {BookingReference}",
-                    command.BookingReference);
-            }
-        }
+        await _noteService.SaveAsync(
+            command.BookingReference,
+            CheckInHelper.BuildTimaticNotes(checkInResult.TimaticNotes, ticketToName, ticketToPaxId),
+            "Admin check-in",
+            ct);
 
         var checkedInTickets = checkInResult.Tickets
             .Where(t => string.Equals(t.Status, "C", StringComparison.OrdinalIgnoreCase) ||
@@ -205,108 +172,32 @@ public sealed class AdminCheckInHandler
         return new AdminCheckInResult(command.BookingReference, boardingDocsResult.BoardingCards, checkInResult.TimaticNotes);
     }
 
-    private static (Dictionary<string, string> TicketToPaxId, Dictionary<string, PaxName> PaxIdToName)
-        ParseOrderData(JsonElement? orderData)
-    {
-        var ticketToPaxId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var paxIdToName = new Dictionary<string, PaxName>(StringComparer.OrdinalIgnoreCase);
-
-        if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
-            return (ticketToPaxId, paxIdToName);
-
-        if (el.TryGetProperty("dataLists", out var dl) &&
-            dl.TryGetProperty("passengers", out var paxArr) &&
-            paxArr.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var pax in paxArr.EnumerateArray())
-            {
-                var pid = pax.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() : null;
-                if (pid is null) continue;
-                var gn = pax.TryGetProperty("givenName", out var gnEl) ? gnEl.GetString() ?? "" : "";
-                var sn = pax.TryGetProperty("surname", out var snEl) ? snEl.GetString() ?? "" : "";
-                paxIdToName[pid] = new PaxName(gn, sn);
-            }
-        }
-
-        if (el.TryGetProperty("eTickets", out var eTickets) &&
-            eTickets.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var et in eTickets.EnumerateArray())
-            {
-                var ticketNum = et.TryGetProperty("eTicketNumber", out var tnEl) ? tnEl.GetString() : null;
-                var paxId = et.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() : null;
-                if (ticketNum is not null && paxId is not null)
-                    ticketToPaxId[ticketNum] = paxId;
-            }
-        }
-
-        return (ticketToPaxId, paxIdToName);
-    }
-
-    private sealed record PaxName(string GivenName, string Surname);
-
     private static List<OrderTimaticNote> BuildOverrideNotes(
         IReadOnlyList<AdminCheckInPassenger> passengers,
         IReadOnlyDictionary<string, string>? ticketToName,
         string? overrideReason,
         IReadOnlyDictionary<string, string>? ticketToPaxId = null)
     {
-        var reason = string.IsNullOrWhiteSpace(overrideReason) ? "No reason provided" : overrideReason;
+        var reason    = string.IsNullOrWhiteSpace(overrideReason) ? "No reason provided" : overrideReason;
         var timestamp = DateTime.UtcNow.ToString("o");
         return passengers.Select(p =>
         {
-            var paxName = ticketToName is not null && ticketToName.TryGetValue(p.TicketNumber, out var name) && !string.IsNullOrWhiteSpace(name)
-                ? name : null;
-            var subject = paxName is not null
+            var paxName = ticketToName is not null
+                && ticketToName.TryGetValue(p.TicketNumber, out var name)
+                && !string.IsNullOrWhiteSpace(name)
+                    ? name : null;
+            var subject  = paxName is not null
                 ? $"{paxName} (ticket {p.TicketNumber})"
                 : $"ticket {p.TicketNumber}";
-            var paxIdStr = ticketToPaxId is not null && ticketToPaxId.TryGetValue(p.TicketNumber, out var pid) ? pid : null;
+            var paxIdStr = ticketToPaxId is not null
+                && ticketToPaxId.TryGetValue(p.TicketNumber, out var pid) ? pid : null;
             return new OrderTimaticNote
             {
                 DateTime = timestamp,
                 Type     = "TIMATIC_OVERRIDE",
                 Message  = $"Timatic override by agent for {subject}: {reason}",
-                PaxId    = ExtractPaxIdInt(paxIdStr)
+                PaxId    = CheckInHelper.ExtractPaxIdInt(paxIdStr)
             };
         }).ToList();
-    }
-
-    private static List<OrderTimaticNote> BuildOrderNotes(
-        IReadOnlyList<OciTimaticNote> notes,
-        IReadOnlyDictionary<string, string>? ticketToName = null,
-        IReadOnlyDictionary<string, string>? ticketToPaxId = null)
-        => notes.Select(n =>
-        {
-            var checkLabel = n.CheckType switch
-            {
-                "DOC"  => "Document check",
-                "APIS" => "APIS check",
-                _      => $"{n.CheckType} check"
-            };
-            var isFail = !string.Equals(n.Status, "PASS", StringComparison.OrdinalIgnoreCase);
-            var statusText = isFail ? "failed" : "passed";
-            var paxName = isFail && ticketToName is not null && ticketToName.TryGetValue(n.TicketNumber, out var name) && !string.IsNullOrWhiteSpace(name)
-                ? name : null;
-            var subject = paxName is not null
-                ? $"{paxName} (ticket {n.TicketNumber})"
-                : $"ticket {n.TicketNumber}";
-            var message = string.IsNullOrWhiteSpace(n.Detail)
-                ? $"{checkLabel} {statusText} for {subject}"
-                : $"{checkLabel} {statusText} for {subject}: {n.Detail}";
-            var paxIdStr = ticketToPaxId is not null && ticketToPaxId.TryGetValue(n.TicketNumber, out var pid) ? pid : null;
-            return new OrderTimaticNote
-            {
-                DateTime = n.Timestamp,
-                Type     = "TIMATIC",
-                Message  = message,
-                PaxId    = ExtractPaxIdInt(paxIdStr)
-            };
-        }).ToList();
-
-    private static int? ExtractPaxIdInt(string? paxId)
-    {
-        if (string.IsNullOrEmpty(paxId)) return null;
-        var dash = paxId.LastIndexOf('-');
-        return dash >= 0 && int.TryParse(paxId[(dash + 1)..], out var n) ? n : null;
     }
 }
