@@ -132,6 +132,31 @@ public static class CheckInHelper
     }
 
     /// <summary>
+    /// Converts watchlist match results into OrderTimaticNote entries for order audit persistence.
+    /// </summary>
+    public static List<OrderTimaticNote> BuildWatchlistNotes(IReadOnlyList<WatchlistMatch> matches)
+    {
+        var timestamp = DateTime.UtcNow.ToString("o");
+        return matches.Select(m =>
+        {
+            var name = $"{m.GivenName} {m.Surname}".Trim();
+            var subject = name.Length > 0
+                ? $"{name} (ticket {m.TicketNumber})"
+                : $"ticket {m.TicketNumber}";
+            var detail = string.IsNullOrWhiteSpace(m.Notes)
+                ? $"Passenger {subject} matched security watchlist entry for passport {m.PassportNumber}"
+                : $"Passenger {subject} matched security watchlist entry for passport {m.PassportNumber}: {m.Notes}";
+            return new OrderTimaticNote
+            {
+                DateTime = timestamp,
+                Type     = "OCI",
+                Message  = detail,
+                PaxId    = ExtractPaxIdInt(m.PassengerId)
+            };
+        }).ToList();
+    }
+
+    /// <summary>
     /// Extracts the integer suffix from a composite passenger ID such as "PAX-123".
     /// </summary>
     public static int? ExtractPaxIdInt(string? paxId)

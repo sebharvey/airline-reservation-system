@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Orchestration.Operations.Application.AdminCheckIn;
+using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
@@ -129,6 +130,26 @@ public sealed class AdminCheckInFunction
                     bcbpString     = c.BcbpString,
                 })
             });
+        }
+        catch (OciWatchlistBlockedException ex)
+        {
+            _logger.LogWarning("Admin check-in blocked by watchlist for {BookingRef}: {Message}", bookingRef, ex.Message);
+            var blocked = req.CreateResponse(HttpStatusCode.BadRequest);
+            blocked.Headers.Add("Content-Type", "application/json");
+            await blocked.WriteStringAsync(JsonSerializer.Serialize(new
+            {
+                error        = ex.Message,
+                timaticNotes = ex.Matches.Select(m => new
+                {
+                    checkType    = "WATCHLIST",
+                    ticketNumber = m.TicketNumber,
+                    status       = "FAIL",
+                    detail       = string.IsNullOrWhiteSpace(m.Notes)
+                        ? "Passenger flagged on security watchlist."
+                        : m.Notes,
+                }),
+            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            return blocked;
         }
         catch (OciTimaticBlockedException ex)
         {

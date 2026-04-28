@@ -56,8 +56,10 @@ export class CheckInHazmatComponent implements OnInit {
           this.router.navigate(['/check-in/boarding-pass']);
         }
       },
-      error: () => {
+      error: (err: { error?: { error?: string; message?: string } }) => {
         this.submitting.set(false);
+        const apiMessage = err?.error?.error ?? err?.error?.message ?? '';
+        this.checkInState.setCheckInFailureReason(apiMessage);
         this.router.navigate(['/check-in/failed']);
       }
     });

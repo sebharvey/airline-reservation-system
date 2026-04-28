@@ -2,7 +2,11 @@
   <div class="failure-card">
     <div class="failure-icon">&#10007;</div>
     <h2>Check-in failed</h2>
-    <p>Check-in failed. Please try again or visit the airport desk.</p>
+    @if (failureReason()) {
+      <p>{{ failureReason() }}</p>
+    } @else {
+      <p>Check-in failed. Please try again or visit the airport desk.</p>
+    }
     <a routerLink="/check-in" class="btn-primary">Try Again</a>
   </div>
 </div>

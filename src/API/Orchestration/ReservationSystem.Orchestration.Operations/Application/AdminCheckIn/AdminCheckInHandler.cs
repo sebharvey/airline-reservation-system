@@ -33,17 +33,20 @@ public sealed class AdminCheckInHandler
     private readonly OrderServiceClient _orderServiceClient;
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly CheckInNoteService _noteService;
+    private readonly WatchlistService _watchlistService;
     private readonly ILogger<AdminCheckInHandler> _logger;
 
     public AdminCheckInHandler(
         OrderServiceClient orderServiceClient,
         DeliveryServiceClient deliveryServiceClient,
         CheckInNoteService noteService,
+        WatchlistService watchlistService,
         ILogger<AdminCheckInHandler> logger)
     {
         _orderServiceClient = orderServiceClient;
         _deliveryServiceClient = deliveryServiceClient;
         _noteService = noteService;
+        _watchlistService = watchlistService;
         _logger = logger;
     }
 
@@ -117,6 +120,35 @@ public sealed class AdminCheckInHandler
             };
         }).ToList();
 
+        // Watchlist check — runs before Timatic; surfaces to agent for override
+        var watchlistMatches = await _watchlistService.CheckAsync(
+            checkInTickets.Select(t => (t.PassengerId, t.TicketNumber, t.GivenName, t.Surname, (string?)t.DocNumber)),
+            ct);
+
+        if (watchlistMatches.Count > 0)
+        {
+            await _noteService.SaveAsync(
+                command.BookingReference,
+                CheckInHelper.BuildWatchlistNotes(watchlistMatches),
+                "Admin check-in",
+                ct);
+
+            if (!command.OverrideTimatic)
+                throw new OciWatchlistBlockedException(
+                    "One or more passengers on this booking are flagged on the security watchlist. Agent override is required.",
+                    watchlistMatches);
+
+            _logger.LogWarning(
+                "Admin check-in: watchlist override authorised for {BookingReference} — reason: {Reason}",
+                command.BookingReference, command.OverrideReason);
+
+            await _noteService.SaveAsync(
+                command.BookingReference,
+                BuildWatchlistOverrideNotes(watchlistMatches, command.OverrideReason),
+                "Admin check-in",
+                ct);
+        }
+
         OciCheckInResult checkInResult;
         try
         {
@@ -170,6 +202,26 @@ public sealed class AdminCheckInHandler
             command.DepartureAirport, checkedInTickets, ct);
 
         return new AdminCheckInResult(command.BookingReference, boardingDocsResult.BoardingCards, checkInResult.TimaticNotes);
+    }
+
+    private static List<OrderTimaticNote> BuildWatchlistOverrideNotes(
+        IReadOnlyList<WatchlistMatch> matches,
+        string? overrideReason)
+    {
+        var reason    = string.IsNullOrWhiteSpace(overrideReason) ? "No reason provided" : overrideReason;
+        var timestamp = DateTime.UtcNow.ToString("o");
+        return matches.Select(m =>
+        {
+            var name    = $"{m.GivenName} {m.Surname}".Trim();
+            var subject = name.Length > 0 ? $"{name} (ticket {m.TicketNumber})" : $"ticket {m.TicketNumber}";
+            return new OrderTimaticNote
+            {
+                DateTime = timestamp,
+                Type     = "OCI",
+                Message  = $"Watchlist override by agent for {subject}: {reason}",
+                PaxId    = CheckInHelper.ExtractPaxIdInt(m.PassengerId)
+            };
+        }).ToList();
     }
 
     private static List<OrderTimaticNote> BuildOverrideNotes(

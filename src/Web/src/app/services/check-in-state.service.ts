@@ -41,6 +41,7 @@ export class CheckInStateService {
   readonly checkedInTicketNumbers = signal<string[]>([]);
   readonly basketId = signal<string | null>(null);
   readonly emdDocuments = signal<EmdDocument[]>([]);
+  readonly checkInFailureReason = signal<string>('');
 
   readonly totalBagAmount = computed(() =>
     this.bagSelections().reduce((sum, s) => sum + s.price, 0)
@@ -91,6 +92,10 @@ export class CheckInStateService {
     this.emdDocuments.set(docs);
   }
 
+  setCheckInFailureReason(reason: string): void {
+    this.checkInFailureReason.set(reason);
+  }
+
   clear(): void {
     this.currentOrder.set(null);
     this.departureAirport.set('');
@@ -102,5 +107,6 @@ export class CheckInStateService {
     this.checkedInTicketNumbers.set([]);
     this.basketId.set(null);
     this.emdDocuments.set([]);
+    this.checkInFailureReason.set('');
   }
 }

@@ -80,6 +80,14 @@ sequenceDiagram
     OperationsApi ->> OrderMS: POST /v1/orders/retrieve <br /> booking referece, lead pax first name, last name <br /> [Existing endpoint]
     OrderMS -->> OperationsApi: Order details
 
+    OperationsApi ->> DeliveryMS: GET /v1/watchlist-entries <br /> Fetch all watchlist entries
+    DeliveryMS -->> OperationsApi: Watchlist entries
+
+    alt Any PAX passport matches watchlist
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI note (type: OCI) with pax ID and watchlist entry notes
+        OperationsApi -->> Web: 422 — online check-in not available; visit airport desk
+    end
+
     OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Departure airport code and array of ticket numbers successfully <br/> checked in with an object of the PAX details
     DeliveryMS ->> DeliveryMS: Update coupon status in ticket in DB (delivery.Ticket) on each ticket being checked in (status = C)
     DeliveryMS ->> DeliveryMS: For any coupon with no seat assigned, auto-assign a seat from the correct cabin. <br /> Passengers on the same booking are grouped so the allocator seats them in adjacent columns <br /> within the same row where possible. Seat assignment at OLCI is free of charge.
@@ -112,7 +120,7 @@ The following APIs and microservices are involved in the online check-in flow.
 | `POST` | `/v1/oci/pax` | Submit or update passport and travel document details for each PAX on the booking; validates passport dates and persists to order | `{`<br>`  "bookingReference": "AB1234",`<br>`  "passengers": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "travelDocument": {`<br>`      "type": "PASSPORT",`<br>`      "number": "PA1234567",`<br>`      "issuingCountry": "GBR",`<br>`      "nationality": "GBR",`<br>`      "issueDate": "2019-06-01",`<br>`      "expiryDate": "2030-01-01"`<br>`    }`<br>`  }]`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "success": true`<br>`}` |
 | `POST` | `/v1/oci/seats` | Submit seat selection for the booking (not implemented) | — | — |
 | `POST` | `/v1/oci/bags` | Submit baggage selection for the booking (not implemented) | — | — |
-| `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; retrieves the order to resolve ticket numbers, calls the Delivery microservice to update each ticket coupon status to `C`, and returns the list of checked-in ticket numbers | `{`<br>`  "bookingReference": "AB1234",`<br>`  "departureAirport": "LHR"`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "checkedIn": [`<br>`    "932-1234567890"`<br>`  ]`<br>`}` |
+| `POST` | `/v1/oci/checkin` | Complete check-in for all passengers on a booking; runs a watchlist check (blocks with 422 if any passenger passport matches), then calls the Delivery microservice to update each ticket coupon status to `C`; watchlist matches write an OCI order note (type `OCI`) with the pax ID and watchlist entry notes | `{`<br>`  "bookingReference": "AB1234",`<br>`  "departureAirport": "LHR"`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "checkedIn": [`<br>`    "932-1234567890"`<br>`  ]`<br>`}` |
 | `POST` | `/v1/oci/boarding-docs` | Request boarding documents for a set of checked-in ticket numbers and departure airport; proxies to the Delivery microservice and returns an array of boarding cards with BCBP strings | `{`<br>`  "departureAirport": "LHR",`<br>`  "ticketNumbers": [`<br>`    "932-1234567890"`<br>`  ]`<br>`}` | `{`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
 
 ---
@@ -211,6 +219,17 @@ sequenceDiagram
 
     OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/passengers <br /> Persist travel documents
 
+    OperationsApi ->> DeliveryMS: GET /v1/watchlist-entries <br /> Fetch all watchlist entries
+    DeliveryMS -->> OperationsApi: Watchlist entries
+
+    alt Any PAX passport matches watchlist, no override
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI note (type: OCI) with pax ID and watchlist entry notes
+        OperationsApi -->> Terminal: 400 with timaticNotes (checkType: WATCHLIST) — agent must review
+    else Any PAX passport matches watchlist, agent override
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI watchlist note (type: OCI) with pax ID and entry notes
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI watchlist override note (type: OCI) with reason
+    end
+
     OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Tickets with doc details; Timatic validation runs here
 
     alt Timatic pass
@@ -238,7 +257,7 @@ sequenceDiagram
 
 | Method | Path | Description | Request | Response |
 |--------|------|-------------|---------|----------|
-| `POST` | `/v1/admin/checkin/{bookingRef}` | Agent check-in for one or more passengers; persists travel docs, runs Timatic, updates coupon status to `C`, returns boarding cards with BCBP strings; supports `overrideTimatic` with `overrideReason`; writes Timatic and override audit notes to the order; staff JWT required | `{`<br>`  "departureAirport": "LHR",`<br>`  "passengers": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "travelDocument": {`<br>`      "type": "PASSPORT",`<br>`      "number": "PA1234567",`<br>`      "issuingCountry": "GBR",`<br>`      "nationality": "GBR",`<br>`      "issueDate": "2019-06-01",`<br>`      "expiryDate": "2030-01-01"`<br>`    }`<br>`  }],`<br>`  "overrideTimatic": false,`<br>`  "overrideReason": null`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "timaticNotes": [{`<br>`    "checkType": "APIS",`<br>`    "ticketNumber": "932-1234567890",`<br>`    "status": "PASS",`<br>`    "detail": ""`<br>`  }],`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
+| `POST` | `/v1/admin/checkin/{bookingRef}` | Agent check-in for one or more passengers; persists travel docs, runs watchlist check then Timatic, updates coupon status to `C`, returns boarding cards with BCBP strings; a watchlist match writes an OCI note (type `OCI`) with the pax ID and watchlist entry notes and returns 400 with `timaticNotes` (checkType `WATCHLIST`) unless `overrideTimatic` is set; supports `overrideTimatic` with `overrideReason` to bypass both watchlist and Timatic failures; all check and override results are written as audit notes to the order; staff JWT required | `{`<br>`  "departureAirport": "LHR",`<br>`  "passengers": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "travelDocument": {`<br>`      "type": "PASSPORT",`<br>`      "number": "PA1234567",`<br>`      "issuingCountry": "GBR",`<br>`      "nationality": "GBR",`<br>`      "issueDate": "2019-06-01",`<br>`      "expiryDate": "2030-01-01"`<br>`    }`<br>`  }],`<br>`  "overrideTimatic": false,`<br>`  "overrideReason": null`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "timaticNotes": [{`<br>`    "checkType": "APIS",`<br>`    "ticketNumber": "932-1234567890",`<br>`    "status": "PASS",`<br>`    "detail": ""`<br>`  }],`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
 
 ### Retail API (ancillaries only)
 
