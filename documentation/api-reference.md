@@ -71,7 +71,8 @@
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order by booking reference and passenger name |
+| `POST` | `/v1/orders/validate` | Validate a booking using booking reference, given name, and surname; returns a short-lived JWT (60 min) scoped to that booking reference for use in subsequent manage-booking calls |
+| `POST` | `/v1/orders/retrieve` | Retrieve a confirmed order using a manage-booking JWT (`Authorization: Bearer <token>` from `/v1/orders/validate`); returns full order including e-ticket records; `401` if token absent or invalid |
 | `PATCH` | `/v1/orders/{bookingRef}/passengers` | Correct or update passenger details on a confirmed order |
 | `PATCH` | `/v1/orders/{bookingRef}/seats` | Add or change seat selection on a confirmed order (post-sale, charged) |
 | `POST` | `/v1/orders/{bookingRef}/change` | Change a confirmed flight to a new itinerary; collects add-collect and change fee if applicable |

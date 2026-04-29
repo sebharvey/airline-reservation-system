@@ -41,7 +41,7 @@ export class ManageBookingComponent {
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.retailApi.retrieveOrder({
+    this.retailApi.validateOrder({
       bookingReference: this.bookingReference().trim(),
       givenName: this.givenName().trim(),
       surname: this.surname().trim()

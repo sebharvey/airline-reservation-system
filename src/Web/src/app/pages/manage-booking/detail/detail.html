@@ -243,17 +243,7 @@
     <!-- Tickets -->
     <div class="section">
       <h3 class="section-title">Tickets</h3>
-      @if (ticketsLoading()) {
-        <div class="tickets-loading">
-          <span class="spinner-dark"></span>
-          <span>Loading tickets&hellip;</span>
-        </div>
-      } @else if (ticketsError()) {
-        <div class="error-banner">
-          <span class="error-icon">&#9888;</span>
-          {{ ticketsError() }}
-        </div>
-      } @else if (tickets().length === 0) {
+      @if ((order()?.tickets ?? []).length === 0) {
         <div class="card">
           <p class="tickets-empty">No tickets on record for this booking.</p>
         </div>

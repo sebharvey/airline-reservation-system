@@ -63,13 +63,14 @@ export class ManageBagsPaymentComponent implements OnInit {
     });
   }
 
-  private loadOrder(ref: string, gn: string, sn: string): void {
-    this.retailApi.retrieveOrder({ bookingReference: ref, givenName: gn, surname: sn }).subscribe({
+  private loadOrder(ref: string, _gn: string, _sn: string): void {
+    this.retailApi.retrieveOrder(ref).subscribe({
       next: (order) => {
         this.order.set(order);
         this.loading.set(false);
       },
-      error: (err: { message?: string }) => {
+      error: (err: { status?: number; message?: string }) => {
+        if (err.status === 401) { this.router.navigate(['/manage-booking']); return; }
         this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
         this.loading.set(false);
       }

@@ -122,6 +122,7 @@ export interface Order {
   orderItems: OrderItem[];
   payments: Payment[];
   pointsRedemption?: PointsRedemption;
+  tickets: Ticket[];
 }
 
 export interface BasketFlightOffer {
