@@ -128,18 +128,24 @@ public sealed class ManifestFunction
             return await req.BadRequestAsync("eTicketNumber is required.");
 
         string? newSeatNumber = null;
+        Guid inventoryId = Guid.Empty;
         try
         {
             using var doc = await System.Text.Json.JsonDocument.ParseAsync(req.Body, cancellationToken: cancellationToken);
             if (doc.RootElement.TryGetProperty("seatNumber", out var seatEl))
                 newSeatNumber = seatEl.ValueKind == System.Text.Json.JsonValueKind.Null ? null : seatEl.GetString();
+            if (doc.RootElement.TryGetProperty("inventoryId", out var invEl))
+                Guid.TryParse(invEl.GetString(), out inventoryId);
         }
         catch
         {
             return await req.BadRequestAsync("Request body must be valid JSON.");
         }
 
-        var updated = await _manifestRepository.UpdateSeatByETicketAsync(eTicketNumber, newSeatNumber, cancellationToken);
+        if (inventoryId == Guid.Empty)
+            return await req.BadRequestAsync("inventoryId is required.");
+
+        var updated = await _manifestRepository.UpdateSeatByETicketAsync(eTicketNumber, inventoryId, newSeatNumber, cancellationToken);
 
         return updated
             ? req.CreateResponse(HttpStatusCode.NoContent)

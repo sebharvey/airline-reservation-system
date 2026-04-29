@@ -92,9 +92,12 @@ public sealed class AdminManifestFunction
         if (body is null || string.IsNullOrWhiteSpace(body.ETicketNumber) || string.IsNullOrWhiteSpace(body.BookingReference))
             return await req.BadRequestAsync("eTicketNumber and bookingReference are required.");
 
+        if (!Guid.TryParse(body.InventoryId, out var releaseInventoryId) || releaseInventoryId == Guid.Empty)
+            return await req.BadRequestAsync("inventoryId is required.");
+
         // 1. Clear seat from delivery.Manifest
         var manifestUpdated = await _deliveryServiceClient.UpdateManifestSeatAsync(
-            body.ETicketNumber, null, cancellationToken);
+            body.ETicketNumber, releaseInventoryId, null, cancellationToken);
 
         if (!manifestUpdated)
         {
@@ -162,9 +165,12 @@ public sealed class AdminManifestFunction
             string.IsNullOrWhiteSpace(body.BookingReference) || string.IsNullOrWhiteSpace(body.SeatNumber))
             return await req.BadRequestAsync("eTicketNumber, bookingReference, and seatNumber are required.");
 
+        if (!Guid.TryParse(body.InventoryId, out var assignInventoryId) || assignInventoryId == Guid.Empty)
+            return await req.BadRequestAsync("inventoryId is required.");
+
         // 1. Update seat on delivery.Manifest
         var manifestUpdated = await _deliveryServiceClient.UpdateManifestSeatAsync(
-            body.ETicketNumber, body.SeatNumber, cancellationToken);
+            body.ETicketNumber, assignInventoryId, body.SeatNumber, cancellationToken);
 
         if (!manifestUpdated)
         {

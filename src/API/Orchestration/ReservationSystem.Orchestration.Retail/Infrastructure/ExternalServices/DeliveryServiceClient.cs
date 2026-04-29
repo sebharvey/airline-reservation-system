@@ -165,9 +165,9 @@ public sealed class DeliveryServiceClient
         return await response.Content.ReadAsStringAsync(ct);
     }
 
-    public async Task<bool> UpdateManifestSeatAsync(string eTicketNumber, string? newSeatNumber, CancellationToken ct)
+    public async Task<bool> UpdateManifestSeatAsync(string eTicketNumber, Guid inventoryId, string? newSeatNumber, CancellationToken ct)
     {
-        var payload = new { seatNumber = newSeatNumber };
+        var payload = new { seatNumber = newSeatNumber, inventoryId };
         var json = System.Text.Json.JsonSerializer.Serialize(payload, JsonOptions);
         using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
         using var response = await _httpClient.PatchAsync(
