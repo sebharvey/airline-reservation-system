@@ -1638,6 +1638,143 @@
             "description": "Every e-ticket must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
           }
         ]
+      },
+      "chainsTo": [
+        {
+          "field": "bookingReference",
+          "usedInSteps": [
+            16
+          ]
+        }
+      ]
+    },
+    {
+      "step": 16,
+      "name": "Validate booking",
+      "description": "Validate the booking credentials against the Order MS using the booking reference from the confirmation step and the PAX-1 name generated for this run. Returns a short-lived JWT (60 minutes) scoped to this booking reference, used as the Bearer token in the retrieve step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/orders/validate",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "AB1234",
+          "givenName": "__RAND_GIVEN_NAME__",
+          "surname": "__RAND_SURNAME__"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 \u2192 response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "token",
+            "assertion": "present",
+            "description": "A manage-booking JWT must be returned."
+          },
+          {
+            "field": "expiresAt",
+            "assertion": "present",
+            "description": "Token expiry timestamp must be present."
+          }
+        ]
+      },
+      "chainsTo": [
+        {
+          "field": "token",
+          "as": "accessToken",
+          "usedInSteps": [
+            17
+          ]
+        }
+      ]
+    },
+    {
+      "step": 17,
+      "name": "Retrieve booking",
+      "description": "Retrieve the full confirmed order by presenting the manage-booking JWT from the validate step as a Bearer token. Returns the complete order record including passenger details, flight segments, order items with e-ticket numbers, and the raw Delivery MS ticket records. Key assertions confirm the order is Confirmed, all ticket numbers are present, and no tickets have been voided.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/orders/retrieve",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        },
+        "body": null,
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 16 \u2192 response.token (injected as Authorization: Bearer <token>)"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "orderStatus",
+            "assertion": "equals",
+            "expected": "Confirmed",
+            "description": "Order status must be Confirmed immediately after booking."
+          },
+          {
+            "field": "bookingReference",
+            "assertion": "present",
+            "description": "Booking reference must be present in the retrieve response."
+          },
+          {
+            "field": "passengers[*].passengerId",
+            "assertion": "present",
+            "description": "All passenger records must be present with non-empty passenger IDs."
+          },
+          {
+            "field": "flightSegments[*].flightNumber",
+            "assertion": "present",
+            "description": "All flight segment records must be present with non-empty flight numbers."
+          },
+          {
+            "field": "tickets",
+            "assertion": "count",
+            "expected": "__RAND_PAX_COUNT__",
+            "description": "One Delivery MS ticket record must exist per passenger."
+          },
+          {
+            "field": "tickets[*].eTicketNumber",
+            "assertion": "present",
+            "description": "Every ticket record must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
+          },
+          {
+            "field": "tickets[*].isVoided",
+            "assertion": "equals",
+            "expected": false,
+            "description": "All tickets must be active (isVoided = false) immediately after booking."
+          },
+          {
+            "field": "orderItems[*].eTickets[*].eTicketNumber",
+            "assertion": "present",
+            "description": "Every flight order item must reference non-empty e-ticket numbers."
+          }
+        ]
       }
     }
   ]
