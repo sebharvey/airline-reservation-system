@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { ManageBookingStateService, ManageBookingBagSelection } from '../../../services/manage-booking-state.service';
@@ -30,7 +30,7 @@ interface PassengerBagState {
 @Component({
   selector: 'app-manage-bags',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: './manage-bags.html',
   styleUrl: './manage-bags.css'
 })

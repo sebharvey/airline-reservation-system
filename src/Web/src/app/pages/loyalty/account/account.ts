@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoyaltyApiService, TransferPointsResult } from '../../../services/loyalty-api.service';
@@ -78,7 +78,7 @@ const LANGUAGES = [
 @Component({
   selector: 'app-loyalty-account',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './account.html',
   styleUrl: './account.css'
 })
