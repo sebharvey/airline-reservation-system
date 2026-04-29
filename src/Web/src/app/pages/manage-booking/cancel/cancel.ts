@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Order } from '../../../models/order.model';
@@ -69,7 +69,6 @@ export class CancelBookingComponent implements OnInit {
   });
 
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
     private retailApi: RetailApiService
   ) {}
@@ -79,18 +78,16 @@ export class CancelBookingComponent implements OnInit {
     const gn = navState?.['givenName'] ?? '';
     const sn = navState?.['surname'] ?? '';
 
-    this.route.queryParams.subscribe(params => {
-      const ref = params['bookingRef'] ?? '';
-      this.bookingRef.set(ref);
-      this.givenName.set(gn);
-      this.surname.set(sn);
+    const ref = this.retailApi.getManageBookingRef();
+    if (!ref || !gn || !sn) {
+      this.router.navigate(['/manage-booking']);
+      return;
+    }
 
-      if (!ref || !gn || !sn) {
-        this.router.navigate(['/manage-booking']);
-        return;
-      }
-      this.loadOrder(ref, gn, sn);
-    });
+    this.bookingRef.set(ref);
+    this.givenName.set(gn);
+    this.surname.set(sn);
+    this.loadOrder(ref, gn, sn);
   }
 
   private loadOrder(ref: string, _gn: string, _sn: string): void {
@@ -134,7 +131,6 @@ export class CancelBookingComponent implements OnInit {
 
   keepBooking(): void {
     this.router.navigate(['/manage-booking/detail'], {
-      queryParams: { bookingRef: this.bookingRef() },
       state: { givenName: this.givenName(), surname: this.surname() }
     });
   }

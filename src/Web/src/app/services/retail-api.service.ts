@@ -602,6 +602,7 @@ export class RetailApiService {
       tap(res => {
         const key = this.#tokenKey(params.bookingReference);
         sessionStorage.setItem(key, res.token);
+        sessionStorage.setItem('mb_active_token', res.token);
       }),
       catchError((err: HttpErrorResponse) => {
         const message = err.status === 404
@@ -633,6 +634,21 @@ export class RetailApiService {
         return throwError(() => ({ status: err.status, message }));
       })
     );
+  }
+
+  /**
+   * Decode the active manage-booking JWT and return the booking_reference claim.
+   * Returns null if no active token exists or the token cannot be decoded.
+   */
+  getManageBookingRef(): string | null {
+    const token = sessionStorage.getItem('mb_active_token');
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1])) as Record<string, unknown>;
+      return (payload['booking_reference'] as string) ?? null;
+    } catch {
+      return null;
+    }
   }
 
   /** Session-storage key for a booking reference token. */

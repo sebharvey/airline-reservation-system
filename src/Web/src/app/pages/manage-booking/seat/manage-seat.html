@@ -26,7 +26,7 @@
       <span>&#10003;</span>
       {{ successMessage() }}
     </div>
-    <a class="btn-primary" [routerLink]="['/manage-booking/detail']" [queryParams]="detailQueryParams" [state]="detailState">
+    <a class="btn-primary" [routerLink]="['/manage-booking/detail']" [state]="detailState">
       View Booking Details
     </a>
     <a routerLink="/manage-booking" class="back-link">&#8592; Back to Manage Booking</a>
@@ -240,7 +240,7 @@
           Confirm Seat Selection
         }
       </button>
-      <a class="btn-secondary" [routerLink]="['/manage-booking/detail']" [queryParams]="detailQueryParams" [state]="detailState">
+      <a class="btn-secondary" [routerLink]="['/manage-booking/detail']" [state]="detailState">
         Cancel
       </a>
     </div>

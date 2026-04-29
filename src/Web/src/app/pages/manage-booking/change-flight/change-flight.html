@@ -252,12 +252,12 @@
             Confirm Flight Change
           }
         </button>
-        <a class="btn-secondary" [routerLink]="['/manage-booking/detail']" [queryParams]="detailQueryParams" [state]="detailState">
+        <a class="btn-secondary" [routerLink]="['/manage-booking/detail']" [state]="detailState">
           Cancel
         </a>
       </div>
     } @else {
-      <a class="back-link" [routerLink]="['/manage-booking/detail']" [queryParams]="detailQueryParams" [state]="detailState">
+      <a class="back-link" [routerLink]="['/manage-booking/detail']" [state]="detailState">
         &#8592; Back to Booking Details
       </a>
     }

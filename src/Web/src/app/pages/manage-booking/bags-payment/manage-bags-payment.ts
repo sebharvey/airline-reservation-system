@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { ManageBookingStateService } from '../../../services/manage-booking-state.service';
@@ -29,7 +29,6 @@ export class ManageBagsPaymentComponent implements OnInit {
   readonly currency = computed(() => this.order()?.currency ?? 'GBP');
 
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
     private retailApi: RetailApiService,
     private manageBookingState: ManageBookingStateService
@@ -40,27 +39,24 @@ export class ManageBagsPaymentComponent implements OnInit {
     const gn = navState?.['givenName'] ?? '';
     const sn = navState?.['surname'] ?? '';
 
-    this.route.queryParams.subscribe(params => {
-      const ref = params['bookingRef'] ?? '';
-      this.bookingRef.set(ref);
-      this.givenName.set(gn);
-      this.surname.set(sn);
+    const ref = this.retailApi.getManageBookingRef();
+    if (!ref) {
+      this.router.navigate(['/manage-booking']);
+      return;
+    }
 
-      if (!ref) {
-        this.router.navigate(['/manage-booking']);
-        return;
-      }
+    this.bookingRef.set(ref);
+    this.givenName.set(gn);
+    this.surname.set(sn);
 
-      if (this.manageBookingState.bagSelections().length === 0) {
-        this.router.navigate(['/manage-booking/bags'], {
-          queryParams: { bookingRef: ref },
-          state: { givenName: gn, surname: sn }
-        });
-        return;
-      }
+    if (this.manageBookingState.bagSelections().length === 0) {
+      this.router.navigate(['/manage-booking/bags'], {
+        state: { givenName: gn, surname: sn }
+      });
+      return;
+    }
 
-      this.loadOrder(ref, gn, sn);
-    });
+    this.loadOrder(ref, gn, sn);
   }
 
   private loadOrder(ref: string, _gn: string, _sn: string): void {
@@ -110,7 +106,6 @@ export class ManageBagsPaymentComponent implements OnInit {
         this.paying.set(false);
         this.manageBookingState.clear();
         this.router.navigate(['/manage-booking/bags-confirmation'], {
-          queryParams: { bookingRef: this.bookingRef() },
           state: { givenName: this.givenName(), surname: this.surname() }
         });
       },
@@ -124,7 +119,6 @@ export class ManageBagsPaymentComponent implements OnInit {
 
   onBack(): void {
     this.router.navigate(['/manage-booking/bags'], {
-      queryParams: { bookingRef: this.bookingRef() },
       state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
