@@ -13,6 +13,7 @@ using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Application.BasketSummary;
 using ReservationSystem.Orchestration.Retail.Application.PaymentSummary;
 using ReservationSystem.Orchestration.Retail.Application.GetOrder;
+using ReservationSystem.Orchestration.Retail.Application.ValidateOrder;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrders;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDocuments;
@@ -128,6 +129,7 @@ var host = new HostBuilder()
         services.AddScoped<BasketSummaryHandler>();
         services.AddScoped<PaymentSummaryHandler>();
         services.AddScoped<GetOrderHandler>();
+        services.AddScoped<ValidateOrderHandler>();
         services.AddScoped<GetFlightInventoryHandler>();
         services.AddScoped<GetAdminOrdersHandler>();
         services.AddScoped<GetAdminOrderDetailHandler>();

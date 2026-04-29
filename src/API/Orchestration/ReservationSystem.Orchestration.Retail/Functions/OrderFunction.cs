@@ -1,10 +1,13 @@
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.GetOrder;
+using ReservationSystem.Orchestration.Retail.Application.ValidateOrder;
 using ReservationSystem.Orchestration.Retail.Application.CancelOrder;
 using ReservationSystem.Orchestration.Retail.Application.AddOrderBags;
 using ReservationSystem.Orchestration.Retail.Application.UpdateOrderSeats;
@@ -13,6 +16,7 @@ using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
@@ -24,29 +28,80 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 public sealed class OrderFunction
 {
     private readonly GetOrderHandler _getOrderHandler;
+    private readonly ValidateOrderHandler _validateOrderHandler;
     private readonly CancelOrderHandler _cancelOrderHandler;
     private readonly AddOrderBagsHandler _addOrderBagsHandler;
     private readonly UpdateOrderSeatsHandler _updateOrderSeatsHandler;
     private readonly ChangeOrderHandler _changeOrderHandler;
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<OrderFunction> _logger;
 
     public OrderFunction(
         GetOrderHandler getOrderHandler,
+        ValidateOrderHandler validateOrderHandler,
         CancelOrderHandler cancelOrderHandler,
         AddOrderBagsHandler addOrderBagsHandler,
         UpdateOrderSeatsHandler updateOrderSeatsHandler,
         ChangeOrderHandler changeOrderHandler,
         OrderServiceClient orderServiceClient,
+        IConfiguration configuration,
         ILogger<OrderFunction> logger)
     {
         _getOrderHandler = getOrderHandler;
+        _validateOrderHandler = validateOrderHandler;
         _cancelOrderHandler = cancelOrderHandler;
         _addOrderBagsHandler = addOrderBagsHandler;
         _updateOrderSeatsHandler = updateOrderSeatsHandler;
         _changeOrderHandler = changeOrderHandler;
         _orderServiceClient = orderServiceClient;
+        _configuration = configuration;
         _logger = logger;
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/orders/validate
+    // -------------------------------------------------------------------------
+
+    [Function("ValidateOrder")]
+    [OpenApiOperation(operationId: "ValidateOrder", tags: new[] { "Orders" }, Summary = "Validate booking credentials and issue a manage-booking JWT")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ValidateOrderRequest), Required = true)]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ValidateOrderResponse), Description = "OK — returns a short-lived bearer token scoped to this booking reference")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — credentials do not match any booking")]
+    public async Task<HttpResponseData> ValidateOrder(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/validate")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var (body, error) = await req.TryDeserializeBodyAsync<ValidateOrderRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(body!.BookingReference) ||
+            string.IsNullOrWhiteSpace(body.GivenName) ||
+            string.IsNullOrWhiteSpace(body.Surname))
+            return await req.BadRequestAsync("'bookingReference', 'givenName', and 'surname' are required.");
+
+        try
+        {
+            var result = await _validateOrderHandler.HandleAsync(
+                body.BookingReference.ToUpperInvariant().Trim(),
+                body.GivenName.Trim(),
+                body.Surname.Trim(),
+                cancellationToken);
+
+            if (result is null)
+                return req.CreateResponse(HttpStatusCode.NotFound);
+
+            return await req.OkJsonAsync(new ValidateOrderResponse
+            {
+                Token = result.Token,
+                ExpiresAt = result.ExpiresAt
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "JWT configuration error during order validation");
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -54,29 +109,69 @@ public sealed class OrderFunction
     // -------------------------------------------------------------------------
 
     [Function("RetrieveOrder")]
-    [OpenApiOperation(operationId: "RetrieveOrder", tags: new[] { "Orders" }, Summary = "Retrieve an order by booking reference and passenger name")]
-    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(RetrieveOrderRequest), Required = true)]
+    [OpenApiOperation(operationId: "RetrieveOrder", tags: new[] { "Orders" }, Summary = "Retrieve a managed order using a manage-booking bearer token")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ManagedOrderResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — missing or invalid manage-booking token")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> RetrieveOrder(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/retrieve")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        var (body, error) = await req.TryDeserializeBodyAsync<RetrieveOrderRequest>(_logger, cancellationToken);
-        if (error is not null) return error;
+        var bookingReference = ExtractBookingReferenceFromToken(req);
+        if (bookingReference is null)
+            return await req.UnauthorizedAsync("A valid manage-booking token is required.");
 
-        if (string.IsNullOrWhiteSpace(body!.BookingReference) || string.IsNullOrWhiteSpace(body.Surname))
-            return await req.BadRequestAsync("'bookingReference' and 'surname' are required.");
-
-        var order = await _getOrderHandler.HandleRetrieveAsync(
-            body.BookingReference.ToUpperInvariant().Trim(),
-            body.Surname.Trim(),
-            cancellationToken);
+        var order = await _getOrderHandler.HandleRetrieveAsync(bookingReference, cancellationToken);
 
         if (order is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
 
         return await req.OkJsonAsync(order);
+    }
+
+    /// <summary>
+    /// Validates the Authorization Bearer token issued by POST /v1/orders/validate and
+    /// returns the embedded booking_reference claim, or null if the token is absent or invalid.
+    /// </summary>
+    private string? ExtractBookingReferenceFromToken(HttpRequestData req)
+    {
+        if (!req.Headers.TryGetValues("Authorization", out var authValues))
+            return null;
+
+        var authHeader = authValues.FirstOrDefault();
+        if (string.IsNullOrEmpty(authHeader) ||
+            !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var token = authHeader["Bearer ".Length..].Trim();
+
+        var secret = _configuration["Jwt:Secret"];
+        if (string.IsNullOrEmpty(secret)) return null;
+
+        try
+        {
+            var keyBytes = Convert.FromBase64String(secret);
+            var validationParams = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = ValidateOrderHandler.Issuer,
+                ValidateAudience = true,
+                ValidAudience = ValidateOrderHandler.Audience,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+                ClockSkew = TimeSpan.FromMinutes(2)
+            };
+
+            var handler = new JwtSecurityTokenHandler();
+            var principal = handler.ValidateToken(token, validationParams, out _);
+            return principal.FindFirst(ValidateOrderHandler.BookingReferenceClaim)?.Value;
+        }
+        catch (SecurityTokenException ex)
+        {
+            _logger.LogDebug(ex, "Manage-booking token validation failed");
+            return null;
+        }
     }
 
     // -------------------------------------------------------------------------

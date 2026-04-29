@@ -8,9 +8,9 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { map, delay, catchError } from 'rxjs/operators';
+import { map, delay, catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode, ProductsResponse } from '../models/flight.model';
 import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary, PaymentSummary, EmdDocument, Ticket } from '../models/order.model';
@@ -178,6 +178,11 @@ export interface RetrieveOrderParams {
   bookingReference: string;
   givenName: string;
   surname: string;
+}
+
+export interface ValidateOrderResponse {
+  token: string;
+  expiresAt: string;
 }
 
 export interface OciRetrieveParams extends RetrieveOrderParams {
@@ -581,17 +586,23 @@ export class RetailApiService {
   }
 
   /**
-   * POST /v1/orders/retrieve
-   * Retrieve a confirmed order by booking reference and passenger name.
+   * POST /v1/orders/validate
+   * Validate booking credentials (booking reference, given name, surname) and receive a
+   * short-lived JWT scoped to that booking reference. The token is stored in sessionStorage
+   * and used by subsequent retrieveOrder calls.
    */
-  retrieveOrder(params: RetrieveOrderParams): Observable<Order> {
+  validateOrder(params: RetrieveOrderParams): Observable<ValidateOrderResponse> {
     const base = environment.retailApiBaseUrl;
     const body = {
       bookingReference: params.bookingReference.toUpperCase().trim(),
       givenName: params.givenName.trim(),
       surname: params.surname.trim()
     };
-    return this.#http.post<Order>(`${base}/api/v1/orders/retrieve`, body).pipe(
+    return this.#http.post<ValidateOrderResponse>(`${base}/api/v1/orders/validate`, body).pipe(
+      tap(res => {
+        const key = this.#tokenKey(params.bookingReference);
+        sessionStorage.setItem(key, res.token);
+      }),
       catchError((err: HttpErrorResponse) => {
         const message = err.status === 404
           ? 'Booking not found. Please check your reference and name.'
@@ -602,11 +613,41 @@ export class RetailApiService {
   }
 
   /**
+   * POST /v1/orders/retrieve
+   * Retrieve a confirmed order using the manage-booking JWT stored for this booking reference.
+   * Callers must first obtain a token via validateOrder().
+   */
+  retrieveOrder(bookingReference: string): Observable<Order> {
+    const base = environment.retailApiBaseUrl;
+    const token = sessionStorage.getItem(this.#tokenKey(bookingReference));
+    if (!token) {
+      return throwError(() => ({ status: 401, message: 'Session expired. Please re-enter your booking details.' }));
+    }
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.#http.post<Order>(`${base}/api/v1/orders/retrieve`, {}, { headers }).pipe(
+      map(order => ({ ...order, tickets: order.tickets ?? [] })),
+      catchError((err: HttpErrorResponse) => {
+        const message = err.status === 401 || err.status === 404
+          ? 'Session expired. Please re-enter your booking details.'
+          : 'Unable to retrieve booking. Please try again.';
+        return throwError(() => ({ status: err.status, message }));
+      })
+    );
+  }
+
+  /** Session-storage key for a booking reference token. */
+  #tokenKey(bookingReference: string): string {
+    return `mb_token_${bookingReference.toUpperCase().trim()}`;
+  }
+
+  /**
    * POST /v1/checkin/retrieve
-   * Retrieve booking for online check-in.
+   * Retrieve booking for online check-in by first validating credentials then fetching the order.
    */
   retrieveForCheckIn(params: RetrieveOrderParams): Observable<Order> {
-    return this.retrieveOrder(params);
+    return this.validateOrder(params).pipe(
+      switchMap(() => this.retrieveOrder(params.bookingReference))
+    );
   }
 
   /**

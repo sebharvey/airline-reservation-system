@@ -34,13 +34,10 @@ export class ManageBookingDetailComponent implements OnInit {
   errorMessage = signal('');
   copiedText = signal<string | null>(null);
 
-  tickets = signal<Ticket[]>([]);
-  ticketsLoading = signal(false);
-  ticketsError = signal('');
   selectedTicket = signal<Ticket | null>(null);
 
-  readonly activeTickets = computed<Ticket[]>(() => this.tickets().filter(t => !t.isVoided));
-  readonly voidedTickets = computed<Ticket[]>(() => this.tickets().filter(t => t.isVoided));
+  readonly activeTickets = computed<Ticket[]>(() => (this.order()?.tickets ?? []).filter(t => !t.isVoided));
+  readonly voidedTickets = computed<Ticket[]>(() => (this.order()?.tickets ?? []).filter(t => t.isVoided));
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
@@ -133,50 +130,36 @@ export class ManageBookingDetailComponent implements OnInit {
       this.givenName.set(gn);
       this.surname.set(sn);
 
-      if (!ref || !gn || !sn) {
+      if (!ref) {
         this.router.navigate(['/manage-booking']);
         return;
       }
-      this.fetchOrder(ref, gn, sn);
+      this.fetchOrder(ref);
     });
   }
 
-  private fetchOrder(ref: string, givenName: string, surname: string): void {
+  private fetchOrder(ref: string): void {
     this.loading.set(true);
     this.errorMessage.set('');
     this.boardingPasses.set([]);
-    this.tickets.set([]);
-    this.ticketsError.set('');
-    this.retailApi.retrieveOrder({ bookingReference: ref, givenName, surname }).subscribe({
+    this.retailApi.retrieveOrder(ref).subscribe({
       next: (order) => {
         this.order.set(order);
         this.loading.set(false);
-        this.loadTickets(ref);
       },
-      error: (err: { message?: string }) => {
-        this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
+      error: (err: { status?: number; message?: string }) => {
         this.loading.set(false);
-      }
-    });
-  }
-
-  private loadTickets(bookingRef: string): void {
-    this.ticketsLoading.set(true);
-    this.ticketsError.set('');
-    this.retailApi.getTicketsByBookingRef(bookingRef).subscribe({
-      next: (tickets) => {
-        this.tickets.set(tickets);
-        this.ticketsLoading.set(false);
-      },
-      error: () => {
-        this.ticketsError.set('Unable to load ticket details.');
-        this.ticketsLoading.set(false);
+        if (err.status === 401) {
+          this.router.navigate(['/manage-booking']);
+          return;
+        }
+        this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
       }
     });
   }
 
   findTicketByNumber(eTicketNumber: string): Ticket | null {
-    return this.tickets().find(t => t.eTicketNumber === eTicketNumber) ?? null;
+    return (this.order()?.tickets ?? []).find(t => t.eTicketNumber === eTicketNumber) ?? null;
   }
 
   openTicketModal(ticket: Ticket): void {

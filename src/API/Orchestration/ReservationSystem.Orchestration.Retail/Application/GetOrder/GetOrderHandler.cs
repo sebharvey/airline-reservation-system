@@ -8,27 +8,65 @@ public sealed class GetOrderHandler
 {
     private readonly OrderServiceClient _orderServiceClient;
     private readonly PaymentServiceClient _paymentServiceClient;
+    private readonly DeliveryServiceClient _deliveryServiceClient;
 
-    public GetOrderHandler(OrderServiceClient orderServiceClient, PaymentServiceClient paymentServiceClient)
+    public GetOrderHandler(
+        OrderServiceClient orderServiceClient,
+        PaymentServiceClient paymentServiceClient,
+        DeliveryServiceClient deliveryServiceClient)
     {
         _orderServiceClient = orderServiceClient;
         _paymentServiceClient = paymentServiceClient;
+        _deliveryServiceClient = deliveryServiceClient;
     }
 
+    /// <summary>
+    /// Retrieves an order by booking reference using a pre-validated manage-booking JWT.
+    /// Includes full ticket data from the Delivery MS.
+    /// </summary>
     public async Task<ManagedOrderResponse?> HandleRetrieveAsync(
-        string bookingReference, string surname, CancellationToken cancellationToken)
+        string bookingReference, CancellationToken cancellationToken)
     {
-        var order = await _orderServiceClient.RetrieveOrderAsync(bookingReference, surname, cancellationToken);
-        return order is null ? null : await MapToResponseAsync(order, cancellationToken);
+        var order = await _orderServiceClient.GetOrderByRefAsync(bookingReference, cancellationToken);
+        if (order is null) return null;
+
+        var tickets = await FetchTicketsAsync(bookingReference, cancellationToken);
+        return await MapToResponseAsync(order, tickets, cancellationToken);
     }
 
     public async Task<ManagedOrderResponse?> HandleAsync(GetOrderQuery query, CancellationToken cancellationToken)
     {
         var order = await _orderServiceClient.GetOrderByRefAsync(query.BookingReference, cancellationToken);
-        return order is null ? null : await MapToResponseAsync(order, cancellationToken);
+        return order is null ? null : await MapToResponseAsync(order, [], cancellationToken);
     }
 
-    private async Task<ManagedOrderResponse> MapToResponseAsync(OrderMsOrderResult order, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<ManagedTicket>> FetchTicketsAsync(
+        string bookingReference, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var records = await _deliveryServiceClient.GetTicketsByBookingAsync(bookingReference, cancellationToken);
+            return records.Select(t => new ManagedTicket
+            {
+                TicketId        = t.TicketId,
+                ETicketNumber   = t.ETicketNumber,
+                BookingReference = t.BookingReference,
+                PassengerId     = t.PassengerId,
+                IsVoided        = t.IsVoided,
+                VoidedAt        = t.VoidedAt,
+                TicketData      = t.TicketData.HasValue ? t.TicketData.Value : null,
+                CreatedAt       = t.CreatedAt,
+                UpdatedAt       = t.UpdatedAt,
+                Version         = t.Version
+            }).ToList();
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private async Task<ManagedOrderResponse> MapToResponseAsync(OrderMsOrderResult order, IReadOnlyList<ManagedTicket> tickets, CancellationToken cancellationToken)
     {
         var passengers = new List<ManagedPassenger>();
         var flightSegments = new List<ManagedFlightSegment>();
@@ -386,7 +424,8 @@ public sealed class GetOrderHandler
             FlightSegments = flightSegments,
             OrderItems = orderItems,
             Payments = payments,
-            PointsRedemption = pointsRedemption
+            PointsRedemption = pointsRedemption,
+            Tickets = tickets
         };
     }
 

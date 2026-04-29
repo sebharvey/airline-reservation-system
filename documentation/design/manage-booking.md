@@ -1,5 +1,40 @@
 # Manage booking
 
+## Authentication
+
+All manage-booking operations begin with a two-step identity challenge before any booking data is returned.
+
+1. **Validate** — `POST /v1/orders/validate` — the web app submits the booking reference, given name, and surname. The Retail API validates the credentials against the Order MS (surname match) and also checks the given name against the stored passenger list. On success it returns a short-lived JWT (60 minutes) whose only claim is the `booking_reference`.
+2. **Retrieve** — `POST /v1/orders/retrieve` — the web app sends the token as `Authorization: Bearer <token>`. The Retail API validates the token, extracts `booking_reference`, fetches the full order from the Order MS, and fetches complete e-ticket records from the Delivery MS. Returns `401` if the token is absent, expired, or invalid.
+
+The token is stored in the browser's `sessionStorage` (key `mb_token_<BOOKING_REF>`) and is cleared automatically when the browser tab is closed.
+
+```mermaid
+sequenceDiagram
+    actor Traveller
+    participant Web
+    participant RetailAPI as Retail API
+    participant OrderMS as Order [MS]
+    participant DeliveryMS as Delivery [MS]
+
+    Traveller->>Web: Enter booking reference, given name, surname
+
+    Web->>RetailAPI: POST /v1/orders/validate (bookingReference, givenName, surname)
+    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, surname)
+    OrderMS-->>RetailAPI: 200 OK — order found (validates surname)
+    Note over RetailAPI: Also checks givenName against stored passenger list
+    RetailAPI-->>Web: 200 OK — { token, expiresAt }
+    Note over Web: Token stored in sessionStorage
+
+    Web->>RetailAPI: POST /v1/orders/retrieve (Authorization: Bearer <token>)
+    RetailAPI->>OrderMS: GET /v1/orders/{bookingRef}
+    OrderMS-->>RetailAPI: 200 OK — order details
+    RetailAPI->>DeliveryMS: GET /v1/tickets?bookingRef={bookingRef}
+    DeliveryMS-->>RetailAPI: 200 OK — e-ticket records
+    RetailAPI-->>Web: 200 OK — full order with inline ticket data
+    Web-->>Traveller: Display booking summary
+```
+
 ## Update passenger details
 
 Passenger details may need updating post-booking for passports, name corrections, or contact information. Accurate **Advance Passenger Information (API)** is a regulatory requirement for international travel.
@@ -18,8 +53,8 @@ sequenceDiagram
 
     Traveller->>Web: Navigate to manage booking
 
-    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>OrderMS: POST /v1/orders/retrieve (bookingReference, givenName, surname)
+    Web->>RetailAPI: POST /v1/orders/retrieve (Authorization: Bearer <token>)
+    RetailAPI->>OrderMS: GET /v1/orders/{bookingRef}
     OrderMS-->>RetailAPI: 200 OK — order details (PAX details, itinerary, e-tickets)
     RetailAPI-->>Web: 200 OK — display current booking details
 
@@ -62,8 +97,8 @@ sequenceDiagram
     participant PaymentMS as Payment [MS]
 
     Traveller->>Web: Navigate to manage booking and request a flight change
-    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>OrderMS: POST /v1/orders/retrieve
+    Web->>RetailAPI: POST /v1/orders/retrieve (Authorization: Bearer <token>)
+    RetailAPI->>OrderMS: GET /v1/orders/{bookingRef}
     OrderMS-->>RetailAPI: 200 OK — order detail (segments, fareBasisCode, isChangeable, changeFee, originalBaseFare, paymentId, bookingType, loyaltyNumber, totalPointsAmount)
     RetailAPI-->>Web: 200 OK — current booking with change conditions
 
@@ -196,8 +231,8 @@ sequenceDiagram
     participant AccountingMS as Accounting [MS]
 
     Traveller->>Web: Navigate to manage booking and request cancellation
-    Web->>RetailAPI: POST /v1/orders/retrieve (bookingReference, givenName, surname)
-    RetailAPI->>OrderMS: POST /v1/orders/retrieve
+    Web->>RetailAPI: POST /v1/orders/retrieve (Authorization: Bearer <token>)
+    RetailAPI->>OrderMS: GET /v1/orders/{bookingRef}
     OrderMS-->>RetailAPI: 200 OK — order detail (segments, isRefundable, cancellationFee, totalPaid, originalPaymentId, bookingType, loyaltyNumber, totalPointsAmount, redemptionReference)
 
     alt Revenue booking

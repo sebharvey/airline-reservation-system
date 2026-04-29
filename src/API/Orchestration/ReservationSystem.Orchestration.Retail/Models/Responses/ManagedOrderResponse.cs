@@ -20,6 +20,7 @@ public sealed class ManagedOrderResponse
     public IReadOnlyList<ManagedOrderItem> OrderItems { get; init; } = [];
     public IReadOnlyList<ManagedPayment> Payments { get; init; } = [];
     public ManagedPointsRedemption? PointsRedemption { get; init; }
+    public IReadOnlyList<ManagedTicket> Tickets { get; init; } = [];
 }
 
 public sealed class ManagedPassenger
@@ -125,4 +126,22 @@ public sealed class ManagedPointsRedemption
     public string LoyaltyNumber { get; init; } = string.Empty;
     public int PointsRedeemed { get; init; }
     public string Status { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Full e-ticket record returned within the managed order response.
+/// The TicketData field is the raw ticket JSON stored in the Delivery MS.
+/// </summary>
+public sealed class ManagedTicket
+{
+    public string TicketId { get; init; } = string.Empty;
+    public string ETicketNumber { get; init; } = string.Empty;
+    public string BookingReference { get; init; } = string.Empty;
+    public string PassengerId { get; init; } = string.Empty;
+    public bool IsVoided { get; init; }
+    public DateTime? VoidedAt { get; init; }
+    public object? TicketData { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
+    public int Version { get; init; }
 }
