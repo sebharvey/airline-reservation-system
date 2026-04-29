@@ -13,7 +13,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { map, delay, catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { FlightOffer, Seatmap, BagPolicyResponse, FlightSummary, FlightStatus, ScheduledFlightNumber, CabinCode, ProductsResponse } from '../models/flight.model';
-import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary, PaymentSummary, EmdDocument } from '../models/order.model';
+import { Order, OciOrder, BoardingPass, BookingType, Passenger, BasketSeatSelection, BasketBagSelection, BasketSsrSelection, BasketProductSelection, BasketSummary, PaymentSummary, EmdDocument, Ticket } from '../models/order.model';
 
 
 
@@ -952,6 +952,17 @@ export class RetailApiService {
         return throwError(() => ({ status: err.status, message }));
       })
     );
+  }
+
+  /**
+   * GET /v1/admin/orders/{bookingRef}/tickets
+   * Retrieve all issued e-tickets with full ticket data for a booking.
+   */
+  getTicketsByBookingRef(bookingRef: string): Observable<Ticket[]> {
+    const base = environment.retailApiBaseUrl;
+    return this.#http
+      .get<Ticket[]>(`${base}/api/v1/admin/orders/${encodeURIComponent(bookingRef.toUpperCase())}/tickets`)
+      .pipe(catchError(() => of([])));
   }
 
   /**

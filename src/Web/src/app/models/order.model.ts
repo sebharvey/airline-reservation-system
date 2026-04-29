@@ -382,6 +382,74 @@ export interface EmdDocument {
   currency: string;
 }
 
+export interface TicketCoupon {
+  couponNumber: number;
+  status: string;
+  marketing: { carrier: string; flightNumber: string } | null;
+  operating: { carrier: string; flightNumber: string } | null;
+  origin: string;
+  destination: string;
+  departureDate: string | null;
+  departureTime: string | null;
+  classOfService: string | null;
+  cabin: string | null;
+  fareBasisCode: string | null;
+  notValidBefore: string | null;
+  notValidAfter: string | null;
+  baggageAllowance: { type: string; quantity: number | null; weightKg: number | null } | null;
+  seat: string | null;
+  fareComponent: { amount: number; currency: string } | null;
+}
+
+export interface TicketData {
+  originalIssue: {
+    ticketNumber: string;
+    issueDate: string | null;
+    issuingLocation: string | null;
+    fareAmount: number | null;
+  } | null;
+  passenger: {
+    surname: string;
+    givenName: string;
+    passengerTypeCode: string;
+    frequentFlyer: { carrier: string; number: string; tier: string } | null;
+  } | null;
+  fareConstruction: {
+    currency: string;
+    baseFare: number;
+    fareCalculationLine: string | null;
+    taxes: Array<{ code: string; amount: number; currency: string; description: string }>;
+    totalTaxes: number;
+    totalAmount: number;
+  } | null;
+  formOfPayment: {
+    type: string;
+    cardType: string | null;
+    maskedPan: string | null;
+    expiryMmYy: string | null;
+    approvalCode: string | null;
+    amount: number;
+    currency: string;
+  } | null;
+  endorsementsRestrictions: string | null;
+  coupons: TicketCoupon[];
+  ssrCodes: Array<{ code: string; description: string; segmentRef: string }>;
+  changeHistory: Array<{ eventType: string; occurredAt: string; actor: string; detail: string }>;
+}
+
+export interface Ticket {
+  ticketId: string;
+  eTicketNumber: string;
+  bookingReference: string;
+  passengerId: string;
+  isVoided: boolean;
+  voidedAt: string | null;
+  ticketData: TicketData | null;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+}
+
 export interface CardDetails {
   cardholderName: string;
   cardNumber: string;
