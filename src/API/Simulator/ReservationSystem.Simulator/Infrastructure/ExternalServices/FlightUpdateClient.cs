@@ -69,4 +69,39 @@ internal sealed class FlightUpdateClient : IFlightUpdateClient
         var response = await _operationsApiClient.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task<FlightManifestResponse> GetManifestAsync(
+        string flightNumber,
+        string departureDate,
+        string jwtToken,
+        CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/v1/admin/manifest?flightNumber={Uri.EscapeDataString(flightNumber)}&departureDate={Uri.EscapeDataString(departureDate)}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+
+        var response = await _retailApiClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<FlightManifestResponse>(JsonOptions, ct);
+        return result ?? new FlightManifestResponse([]);
+    }
+
+    public async Task AdminCheckInAsync(
+        string bookingRef,
+        AdminCheckInRequest checkInRequest,
+        string jwtToken,
+        CancellationToken ct = default)
+    {
+        var json = JsonSerializer.Serialize(checkInRequest, JsonOptions);
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/admin/checkin/{bookingRef}")
+        {
+            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+
+        var response = await _operationsApiClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+    }
 }
