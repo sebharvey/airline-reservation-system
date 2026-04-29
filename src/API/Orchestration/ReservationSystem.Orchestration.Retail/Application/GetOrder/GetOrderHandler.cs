@@ -22,12 +22,28 @@ public sealed class GetOrderHandler
 
     /// <summary>
     /// Retrieves an order by booking reference using a pre-validated manage-booking JWT.
+    /// Identity was already verified by POST /v1/orders/validate; no re-validation needed.
     /// Includes full ticket data from the Delivery MS.
     /// </summary>
     public async Task<ManagedOrderResponse?> HandleRetrieveAsync(
         string bookingReference, CancellationToken cancellationToken)
     {
         var order = await _orderServiceClient.GetOrderByRefAsync(bookingReference, cancellationToken);
+        if (order is null) return null;
+
+        var tickets = await FetchTicketsAsync(bookingReference, cancellationToken);
+        return await MapToResponseAsync(order, tickets, cancellationToken);
+    }
+
+    /// <summary>
+    /// Retrieves an order after validating the surname against the Order MS.
+    /// Used by the NDC OrderRetrieve flow which does its own credential challenge
+    /// (surname embedded in the IATA XML request) rather than a JWT.
+    /// </summary>
+    public async Task<ManagedOrderResponse?> HandleRetrieveAsync(
+        string bookingReference, string surname, CancellationToken cancellationToken)
+    {
+        var order = await _orderServiceClient.RetrieveOrderAsync(bookingReference, surname, cancellationToken);
         if (order is null) return null;
 
         var tickets = await FetchTicketsAsync(bookingReference, cancellationToken);
