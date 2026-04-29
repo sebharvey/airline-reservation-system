@@ -128,10 +128,10 @@ public sealed class EfManifestRepository : IManifestRepository
     }
 
     public async Task<bool> UpdateSeatByETicketAsync(
-        string eTicketNumber, string? newSeatNumber, CancellationToken cancellationToken = default)
+        string eTicketNumber, Guid inventoryId, string? newSeatNumber, CancellationToken cancellationToken = default)
     {
         var entry = await _context.Manifests
-            .FirstOrDefaultAsync(m => m.ETicketNumber == eTicketNumber, cancellationToken);
+            .FirstOrDefaultAsync(m => m.ETicketNumber == eTicketNumber && m.InventoryId == inventoryId, cancellationToken);
 
         if (entry is null)
             return false;
