@@ -1375,6 +1375,11 @@
                 const pass = actual === a.expected;
                 return { pass, description: a.description, expected: a.expected, actual };
             }
+            if (a.assertion === 'uniqueCount') {
+                const unique = Array.isArray(value) ? new Set(value).size : null;
+                const pass = unique === a.expected;
+                return { pass, description: a.description, expected: a.expected, actual: unique };
+            }
             if (a.assertion === 'equals') {
                 if (isWildcardPath) {
                     const values = value;
