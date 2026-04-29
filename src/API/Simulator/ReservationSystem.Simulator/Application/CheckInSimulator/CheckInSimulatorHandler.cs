@@ -14,12 +14,11 @@ namespace ReservationSystem.Simulator.Application.CheckInSimulator;
 ///   <item>Authenticates with the Admin API using staff credentials.</item>
 ///   <item>Fetches all flights departing in the next 24 hours via the Retail API admin inventory.</item>
 ///   <item>For each eligible flight (departure between 1 h and 24 h from now), retrieves the
-///         passenger manifest and calculates a time-proportional check-in target so that 95 %
-///         of passengers are checked in by 1 hour before departure.</item>
+///         passenger manifest and calculates a time-proportional check-in target so that a
+///         randomly assigned 90–100 % of passengers are checked in by 1 hour before departure.</item>
 ///   <item>Groups unchecked-in passengers by booking reference and calls the Operations API
 ///         agent check-in endpoint once per booking with randomly generated travel documents.</item>
-///   <item>Uses overrideTimatic = true with a simulator reason so that Timatic / watchlist
-///         checks never block the automated run.</item>
+///   <item>Timatic is never overridden — a failure is logged and the booking is skipped.</item>
 /// </list>
 /// Intended to run every 15 minutes on a timer trigger.
 /// </summary>
@@ -27,8 +26,11 @@ public sealed class CheckInSimulatorHandler
 {
     // ── Configuration ───────────────────────────────────────────────────────────
 
-    /// <summary>95 % of passengers should be checked in 1 hour before departure.</summary>
-    private const double CheckInTargetFraction = 0.95;
+    /// <summary>Minimum fraction of passengers to be checked in by 1 hour before departure.</summary>
+    private const double CheckInTargetMin = 0.90;
+
+    /// <summary>Maximum fraction of passengers to be checked in by 1 hour before departure.</summary>
+    private const double CheckInTargetMax = 1.00;
 
     /// <summary>Check-in window opens this many hours before departure (matches OLCI window).</summary>
     private const double CheckInWindowOpenHours = 24.0;
@@ -36,9 +38,8 @@ public sealed class CheckInSimulatorHandler
     /// <summary>Check-in window closes this many hours before departure.</summary>
     private const double CheckInWindowCloseHours = 1.0;
 
-    private const string OverrideReason = "Simulator automated check-in";
-
     // ── Country pool — realistic passport-issuing countries ─────────────────────
+
 
     private static readonly string[] Countries =
     [
@@ -112,10 +113,12 @@ public sealed class CheckInSimulatorHandler
             if (hoursUntil < CheckInWindowCloseHours || hoursUntil > CheckInWindowOpenHours)
                 continue;
 
-            // progress = 0 at window open (24 h out), 1 at window close (1 h out)
+            // Each flight gets a random target in [90 %, 100 %] assigned once per run.
+            // progress = 0 at window open (24 h out), 1 at window close (1 h out).
+            var flightTarget   = CheckInTargetMin + Random.Shared.NextDouble() * (CheckInTargetMax - CheckInTargetMin);
             var windowDuration = CheckInWindowOpenHours - CheckInWindowCloseHours; // 23 h
             var progress       = (CheckInWindowOpenHours - hoursUntil) / windowDuration;
-            var targetFraction = progress * CheckInTargetFraction;
+            var targetFraction = progress * flightTarget;
 
             var checkedIn = await ProcessFlightAsync(
                 flight, targetFraction, jwtToken, ct);
@@ -192,8 +195,8 @@ public sealed class CheckInSimulatorHandler
             var request = new AdminCheckInRequest(
                 DepartureAirport: flight.Origin,
                 Passengers:       submissions,
-                OverrideTimatic:  true,
-                OverrideReason:   OverrideReason);
+                OverrideTimatic:  false,
+                OverrideReason:   null);
 
             try
             {
