@@ -11,6 +11,8 @@ import {
   SeatmapSeat,
 } from '../../../services/inventory.service';
 
+type DisruptionStep = 'action' | 'confirm';
+
 interface SeatCell {
   seat: SeatmapSeat | null;
   aisleBefore: boolean;
@@ -50,6 +52,52 @@ export class FlightManagementDetailComponent implements OnInit {
   paxFilter = signal<'all' | 'confirmed' | 'standby'>('all');
 
   activeTab = signal<'details' | 'disruption'>('details');
+
+  // Disruption
+  disruptionStep = signal<DisruptionStep>('action');
+  disruptionLoading = signal(false);
+  disruptionError = signal('');
+
+  canDisrupt = computed(() => {
+    const f = this.flight();
+    return f !== null && f.status !== 'Ticketing Closed';
+  });
+
+  startCancellationConfirm(): void {
+    this.disruptionStep.set('confirm');
+    this.disruptionError.set('');
+  }
+
+  resetDisruptionStep(): void {
+    this.disruptionStep.set('action');
+    this.disruptionError.set('');
+  }
+
+  async executeCancellation(): Promise<void> {
+    const flight = this.flight();
+    if (!flight) return;
+    this.disruptionLoading.set(true);
+    this.disruptionError.set('');
+    try {
+      await this.#inventoryService.cancelFlightInventoryOnly(
+        flight.flightNumber,
+        flight.departureDate
+      );
+      await this.#router.navigate(['/disruption', flight.flightNumber, flight.departureDate]);
+    } catch {
+      this.disruptionError.set('Failed to cancel flight. Please try again.');
+    } finally {
+      this.disruptionLoading.set(false);
+    }
+  }
+
+  startAircraftSwap(): void {
+    const flight = this.flight();
+    if (!flight) return;
+    this.#router.navigate(['/aircraft-swap', flight.flightNumber, flight.departureDate], {
+      state: { flight }
+    });
+  }
 
   // Seat action state
   pendingSeat = signal<SeatmapSeat | null>(null);

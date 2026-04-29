@@ -2,9 +2,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap, DisruptionCancelResponse } from '../../services/inventory.service';
-
-type DisruptionStep = 'action' | 'confirm';
+import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap } from '../../services/inventory.service';
 
 @Component({
   selector: 'app-inventory',
@@ -203,66 +201,8 @@ export class InventoryComponent implements OnInit {
     this.holdsModalFlight.set(null);
   }
 
-  // ── Disruption modal ─────────────────────────────────────────────────────────
-  disruptionModalFlight = signal<FlightInventoryGroup | null>(null);
-  disruptionStep = signal<DisruptionStep>('action');
-  disruptionLoading = signal(false);
-  disruptionError = signal('');
-
-  canDisrupt(flight: FlightInventoryGroup): boolean {
-    return flight.status !== 'Ticketing Closed';
-  }
-
   openFlightDetail(flight: FlightInventoryGroup): void {
     this.#router.navigate(['/inventory', flight.inventoryId]);
-  }
-
-  openDisruptionModal(flight: FlightInventoryGroup): void {
-    if (flight.status === 'Cancelled') {
-      this.#router.navigate(['/disruption', flight.flightNumber, flight.departureDate]);
-      return;
-    }
-    this.disruptionModalFlight.set(flight);
-    this.disruptionStep.set('action');
-    this.disruptionError.set('');
-  }
-
-  closeDisruptionModal(): void {
-    if (this.disruptionLoading()) return;
-    this.disruptionModalFlight.set(null);
-  }
-
-  startCancellationConfirm(): void {
-    this.disruptionStep.set('confirm');
-    this.disruptionError.set('');
-  }
-
-  async executeCancellation(): Promise<void> {
-    const flight = this.disruptionModalFlight();
-    if (!flight) return;
-    this.disruptionLoading.set(true);
-    this.disruptionError.set('');
-    try {
-      await this.#inventoryService.cancelFlightInventoryOnly(
-        flight.flightNumber,
-        flight.departureDate
-      );
-      this.disruptionModalFlight.set(null);
-      await this.#router.navigate(['/disruption', flight.flightNumber, flight.departureDate]);
-    } catch {
-      this.disruptionError.set('Failed to cancel flight. Please try again.');
-    } finally {
-      this.disruptionLoading.set(false);
-    }
-  }
-
-  startAircraftSwap(): void {
-    const flight = this.disruptionModalFlight();
-    if (!flight) return;
-    this.disruptionModalFlight.set(null);
-    this.#router.navigate(['/aircraft-swap', flight.flightNumber, flight.departureDate], {
-      state: { flight }
-    });
   }
 
   // ── Holds modal helpers ──────────────────────────────────────────────────────

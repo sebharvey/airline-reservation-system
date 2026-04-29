@@ -325,6 +325,117 @@
   <!-- Disruption tab -->
   @if (!loading() && !error() && activeTab() === 'disruption') {
     <div class="disruption-panel">
+
+      @if (flight()!.status === 'Cancelled') {
+        <!-- IROPS: flight already cancelled, navigate to rebooking screen -->
+        <div class="disruption-irops-banner">
+          <div class="disruption-warn-icon">
+            <lucide-icon name="triangle-alert" [size]="36" />
+          </div>
+          <h3 class="disruption-confirm-title">This flight has been cancelled</h3>
+          <p class="disruption-irops-desc">Use the IROPS rebooking screen to rebook affected passengers onto alternative flights.</p>
+          <a class="btn-primary" [routerLink]="['/disruption', flight()!.flightNumber, flight()!.departureDate]">
+            <lucide-icon name="users" [size]="16" />
+            Open IROPS rebooking
+          </a>
+        </div>
+
+      } @else {
+
+        @if (disruptionError()) {
+          <div class="error-banner disruption-error" role="alert">
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ disruptionError() }}
+          </div>
+        }
+
+        @if (disruptionStep() === 'action') {
+          <p class="disruption-intro">Select the disruption action to apply to this flight.</p>
+
+          <div class="disruption-actions">
+            <!-- Cancel flight -->
+            <div class="disruption-action-card">
+              <div class="disruption-action-header">
+                <div class="disruption-action-icon disruption-icon-cancel">
+                  <lucide-icon name="circle-x" [size]="20" />
+                </div>
+                <div class="disruption-action-text">
+                  <div class="disruption-action-title">Cancel flight</div>
+                  <div class="disruption-action-desc">Take the flight off sale immediately, then rebook affected passengers one by one from the IROPS rebooking screen.</div>
+                </div>
+              </div>
+              <button class="btn-danger" (click)="startCancellationConfirm()" [disabled]="!canDisrupt()">Cancel this flight</button>
+            </div>
+
+            <!-- Time change — coming soon -->
+            <div class="disruption-action-card disruption-action-disabled">
+              <div class="disruption-action-header">
+                <div class="disruption-action-icon disruption-icon-delay">
+                  <lucide-icon name="clock" [size]="20" />
+                </div>
+                <div class="disruption-action-text">
+                  <div class="disruption-action-title">
+                    Change departure time
+                    <span class="badge-coming-soon">Coming soon</span>
+                  </div>
+                  <div class="disruption-action-desc">Update the scheduled departure and arrival times and notify affected passengers.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Equipment change -->
+            <div class="disruption-action-card">
+              <div class="disruption-action-header">
+                <div class="disruption-action-icon disruption-icon-equipment">
+                  <lucide-icon name="plane" [size]="20" />
+                </div>
+                <div class="disruption-action-text">
+                  <div class="disruption-action-title">Equipment change</div>
+                  <div class="disruption-action-desc">Switch the aircraft type for this flight. Seat assignments will be validated against the new aircraft configuration and any that cannot be transferred will be highlighted for manual reassignment.</div>
+                </div>
+              </div>
+              <button class="btn-primary" (click)="startAircraftSwap()">Review passengers</button>
+            </div>
+          </div>
+        }
+
+        @if (disruptionStep() === 'confirm') {
+          <div class="disruption-confirm">
+            <div class="disruption-warn-icon">
+              <lucide-icon name="triangle-alert" [size]="36" />
+            </div>
+            <h3 class="disruption-confirm-title">Confirm flight cancellation</h3>
+            <p class="disruption-confirm-desc">
+              You are about to cancel flight
+              <strong>{{ flight()!.flightNumber }}</strong>
+              ({{ flight()!.origin }} → {{ flight()!.destination }})
+              on <strong>{{ flight()!.departureDate }}</strong>.
+            </p>
+            <ul class="disruption-confirm-effects">
+              <li>The flight will be taken off sale immediately</li>
+              <li>No new bookings will be accepted on this flight</li>
+              <li>You will be taken to the IROPS rebooking screen</li>
+              <li>Affected passengers can be rebooked one by one in priority order</li>
+              <li>This action cannot be undone</li>
+            </ul>
+          </div>
+
+          <div class="disruption-confirm-footer">
+            <button class="btn-secondary" (click)="resetDisruptionStep()" [disabled]="disruptionLoading()">
+              Go back
+            </button>
+            <button class="btn-danger" (click)="executeCancellation()" [disabled]="disruptionLoading()">
+              @if (disruptionLoading()) {
+                <span class="btn-spinner-white"></span>
+                Processing&hellip;
+              } @else {
+                Yes, take off sale
+              }
+            </button>
+          </div>
+        }
+
+      }
+
     </div>
   }
 
