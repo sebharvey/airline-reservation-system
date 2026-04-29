@@ -1,33 +1,26 @@
-<div class="detail-page fade-in">
+<div class="inv-detail-page fade-in">
 
   <!-- Page header -->
-  <div class="page-header">
-    <div class="header-left">
-      <a class="back-link" routerLink="/inventory">
-        <lucide-icon name="arrow-left" [size]="16" />
-        Stock Keeper
-      </a>
-      @if (data(); as d) {
-        <div class="page-title-group">
-          <h1 class="page-title">
-            {{ d.flightNumber }}
-            <span class="header-route">{{ d.origin }} → {{ d.destination }}</span>
-          </h1>
-          <p class="page-subtitle">
-            {{ d.departureDate }} &nbsp;·&nbsp;
-            {{ d.departureTime }} – {{ d.arrivalTime }} &nbsp;·&nbsp;
-            {{ d.aircraftType }}
-            &nbsp;·&nbsp;
-            <span class="badge" [class]="d.status === 'Active' ? 'badge-active' : d.status === 'Ticketing Closed' ? 'badge-warning' : 'badge-inactive'">{{ d.status }}</span>
-          </p>
-        </div>
-      } @else if (!loading()) {
-        <h1 class="page-title">Flight Orders</h1>
-      }
-    </div>
+  <div class="detail-header">
+    <button class="back-btn" (click)="goBack()">
+      <lucide-icon name="arrow-left" [size]="14" /> Back
+    </button>
+
+    @if (data(); as d) {
+      <div class="detail-title-group">
+        <span class="detail-flight mono">{{ d.flightNumber }}</span>
+        <span class="detail-route">
+          {{ d.origin }}<span class="route-arrow"> → </span>{{ d.destination }}
+        </span>
+        <span class="detail-meta mono">{{ d.departureDate }}</span>
+        <span class="detail-meta mono">{{ d.departureTime }} – {{ d.arrivalTime }}</span>
+        <span class="detail-meta mono muted">{{ d.aircraftType }}</span>
+        <span class="badge" [class]="statusClass(d.status)">{{ d.status }}</span>
+      </div>
+    }
   </div>
 
-  <!-- Error state -->
+  <!-- Error -->
   @if (error()) {
     <div class="error-banner" role="alert">
       <lucide-icon name="triangle-alert" [size]="14" /> {{ error() }}
@@ -36,148 +29,184 @@
 
   <!-- Loading -->
   @if (loading()) {
-    <div class="empty-state">
-      <span class="btn-spinner"></span>
-      <p>Loading flight orders…</p>
+    <div class="detail-loading">
+      <span class="loading-spinner"></span>
+      <span>Loading flight orders…</span>
     </div>
   }
 
   @if (!loading() && data(); as d) {
 
-    <!-- ── Cabin donut charts ─────────────────────────────────────────────── -->
+    <!-- ── Cabin availability donuts ──────────────────────────────────────── -->
     @if (cabinRows().length > 0) {
-      <section class="cabin-charts-section">
-        <h2 class="section-heading">Cabin availability</h2>
-        <div class="cabin-charts">
-          @for (cabin of cabinRows(); track cabin.code) {
-            <div class="cabin-chart-card">
-              <!-- CSS-only donut: conic-gradient on outer ring, inner circle masks to hole -->
-              <div
-                class="donut"
-                [style.--sold-deg]="donutDeg(cabin.data) + 'deg'"
-                [attr.aria-label]="cabin.label + ': ' + soldPct(cabin.data) + '% filled'">
-                <div class="donut-hole">
-                  <span class="donut-pct">{{ soldPct(cabin.data) }}%</span>
-                  <span class="donut-sub">sold</span>
-                </div>
-              </div>
-              <div class="cabin-chart-meta">
-                <div class="cabin-chart-label">{{ cabin.label }} ({{ cabin.code }})</div>
-                <div class="cabin-chart-stats">
-                  <span class="stat-chip stat-sold">{{ cabin.data.seatsSold + cabin.data.seatsHeld }} sold/held</span>
-                  <span class="stat-chip stat-avail">{{ cabin.data.seatsAvailable }} avail</span>
-                  <span class="stat-chip stat-total">{{ cabin.data.totalSeats }} total</span>
-                </div>
+      <p class="section-title">Cabin availability</p>
+      <div class="cabin-charts-row">
+        @for (cabin of cabinRows(); track cabin.code) {
+          <div class="cabin-chart-card">
+            <div
+              class="donut"
+              [style.--sold-deg]="donutDeg(cabin.data) + 'deg'"
+              [attr.aria-label]="cabin.label + ': ' + soldPct(cabin.data) + '% sold'">
+              <div class="donut-hole">
+                <span class="donut-pct">{{ soldPct(cabin.data) }}%</span>
+                <span class="donut-sub">sold</span>
               </div>
             </div>
-          }
-        </div>
-      </section>
+            <div class="cabin-meta">
+              <div class="cabin-meta-label">{{ cabin.label }} ({{ cabin.code }})</div>
+              <div class="cabin-meta-stats">
+                <div class="cabin-stat-row"><strong>{{ cabin.data.seatsSold }}</strong> sold &nbsp;·&nbsp; <strong>{{ cabin.data.seatsHeld }}</strong> held</div>
+                <div class="cabin-stat-row"><strong>{{ cabin.data.seatsAvailable }}</strong> available of <strong>{{ cabin.data.totalSeats }}</strong></div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
     }
 
-    <!-- ── Orders table ───────────────────────────────────────────────────── -->
-    <section class="orders-section">
-      <h2 class="section-heading">
-        Fares &amp; ancillaries
-        <span class="section-count">{{ d.orders.length }} passenger{{ d.orders.length !== 1 ? 's' : '' }}</span>
-      </h2>
+    <!-- ── Summary stats ──────────────────────────────────────────────────── -->
+    <p class="section-title">Revenue summary</p>
+    <div class="stats-strip">
+      <div class="stat-chip">
+        <span class="chip-label">Bookings</span>
+        <span class="chip-value">{{ stats().bookingCount }}</span>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">Passengers</span>
+        <span class="chip-value">{{ stats().passengerCount }}</span>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">Fare revenue</span>
+        <span class="chip-value">{{ formatAmount(stats().totalFare, d.orders[0]?.currency ?? 'GBP') }}</span>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">Tax collected</span>
+        <span class="chip-value">{{ formatAmount(stats().totalTax, d.orders[0]?.currency ?? 'GBP') }}</span>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">Ancillary revenue</span>
+        <span class="chip-value">{{ formatAmount(stats().totalAncillary, d.orders[0]?.currency ?? 'GBP') }}</span>
+      </div>
+      <div class="stat-chip">
+        <span class="chip-label">Grand total</span>
+        <span class="chip-value fw-semibold">{{ formatAmount(stats().grandTotal, d.orders[0]?.currency ?? 'GBP') }}</span>
+      </div>
+    </div>
 
-      @if (d.orders.length === 0) {
-        <div class="empty-state">
-          <lucide-icon name="inbox" [size]="24" />
-          <p>No revenue passengers on this flight.</p>
-        </div>
-      } @else {
-        <div class="table-card">
+    <!-- ── Fare family breakdown ──────────────────────────────────────────── -->
+    @if (fareFamilyStats().length > 0) {
+      <p class="section-title">By fare family</p>
+      <div class="fare-family-strip">
+        @for (ff of fareFamilyStats(); track ff.name) {
+          <div class="ff-chip">
+            <span class="ff-name">{{ ff.name }}</span>
+            <span class="ff-stats"><strong>{{ ff.paxCount }}</strong> pax &nbsp;·&nbsp; <strong>{{ formatAmount(ff.revenue, d.orders[0]?.currency ?? 'GBP') }}</strong></span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── Orders ledger ──────────────────────────────────────────────────── -->
+    <p class="section-title">
+      Order lines
+      <span class="section-count">{{ groupedOrders().length }} booking{{ groupedOrders().length !== 1 ? 's' : '' }}</span>
+    </p>
+
+    @if (d.orders.length === 0) {
+      <div class="empty-state">
+        <lucide-icon name="inbox" [size]="22" />
+        <span>No revenue passengers on this flight.</span>
+      </div>
+    } @else {
+      <div class="orders-section">
+        <div class="table-wrap">
           <table class="orders-table">
             <thead>
               <tr>
-                <th>Booking Ref</th>
                 <th>Passenger</th>
+                <th>Type</th>
+                <th>Description</th>
                 <th class="text-center">Cabin</th>
                 <th>Seat</th>
-                <th>Fare family</th>
-                <th>Basis</th>
                 <th class="text-right">Fare</th>
                 <th class="text-right">Tax</th>
                 <th class="text-right">Total</th>
-                <th>Ancillaries</th>
               </tr>
             </thead>
             <tbody>
-              @for (row of d.orders; track row.orderId + row.cabinCode + (row.passengerName ?? '')) {
-                <tr>
-                  <!-- Booking reference with copy button -->
-                  <td class="mono booking-ref-cell">
+              @for (group of groupedOrders(); track group.bookingReference) {
+
+                <!-- Group header: booking reference row -->
+                <tr class="group-header-row">
+                  <td colspan="8">
                     <span class="pnr-copy-wrap">
-                      <a [routerLink]="['/order', row.bookingReference]" class="booking-ref-link">{{ row.bookingReference }}</a>
+                      <a [routerLink]="['/order', group.bookingReference]" class="booking-ref-link">{{ group.bookingReference }}</a>
                       <button
                         class="copy-btn"
-                        [class.copied]="copiedRef() === row.bookingReference"
-                        (click)="copyBookingRef(row.bookingReference, $event)"
-                        [title]="copiedRef() === row.bookingReference ? 'Copied!' : 'Copy booking reference'"
+                        [class.copied]="copiedRef() === group.bookingReference"
+                        (click)="copyBookingRef(group.bookingReference, $event)"
+                        [title]="copiedRef() === group.bookingReference ? 'Copied!' : 'Copy booking reference'"
                       >
-                        @if (copiedRef() === row.bookingReference) {
-                          <lucide-icon name="check" [size]="13" />
+                        @if (copiedRef() === group.bookingReference) {
+                          <lucide-icon name="check" [size]="12" />
                         } @else {
-                          <lucide-icon name="copy" [size]="13" />
+                          <lucide-icon name="copy" [size]="12" />
                         }
                       </button>
                     </span>
-                  </td>
-
-                  <!-- Passenger name + type -->
-                  <td class="pax-cell">
-                    <span class="pax-name">{{ row.passengerName ?? '—' }}</span>
-                    @if (row.passengerType) {
-                      <span class="ptc-badge">{{ ptcLabel(row.passengerType) }}</span>
-                    }
-                  </td>
-
-                  <!-- Cabin -->
-                  <td class="text-center">
-                    <span class="cabin-badge cabin-ok">{{ row.cabinCode }}</span>
-                  </td>
-
-                  <!-- Seat -->
-                  <td class="mono muted">{{ row.seatNumber ?? '—' }}</td>
-
-                  <!-- Fare family -->
-                  <td>{{ row.fareFamily ?? '—' }}</td>
-
-                  <!-- Fare basis code -->
-                  <td class="mono muted">{{ row.fareBasisCode ?? '—' }}</td>
-
-                  <!-- Fare amounts -->
-                  <td class="text-right mono">{{ formatAmount(row.baseFareAmount, row.currency) }}</td>
-                  <td class="text-right mono muted">{{ formatAmount(row.taxAmount, row.currency) }}</td>
-                  <td class="text-right mono fw-semibold">{{ formatAmount(row.totalFareAmount, row.currency) }}</td>
-
-                  <!-- Ancillaries inline chips -->
-                  <td class="ancillaries-cell">
-                    @if (row.ancillaries.length === 0) {
-                      <span class="muted">—</span>
-                    } @else {
-                      <div class="ancillary-chips">
-                        @for (anc of row.ancillaries; track $index) {
-                          <span class="ancillary-chip" [title]="anc.description + ' · ' + formatAmount(anc.amount, row.currency)">
-                            <lucide-icon [name]="ancillaryIcon(anc.productType)" [size]="12" />
-                            {{ anc.description }}
-                            @if (anc.amount > 0) {
-                              <span class="anc-amount">{{ formatAmount(anc.amount, row.currency) }}</span>
-                            }
-                          </span>
-                        }
-                      </div>
-                    }
+                    <span class="group-pax-count">{{ group.passengerCount }} passenger{{ group.passengerCount !== 1 ? 's' : '' }}</span>
                   </td>
                 </tr>
+
+                <!-- One or more line items per passenger in this booking -->
+                @for (line of group.lines; track $index) {
+                  <tr class="item-row">
+                    <!-- Passenger name (only shown on first line per pax) -->
+                    <td class="pax-name-cell">
+                      @if (line.showName) {
+                        {{ line.passengerName ?? '—' }}
+                        @if (line.passengerType) {
+                          <span class="ptc-badge">{{ ptcLabel(line.passengerType) }}</span>
+                        }
+                      }
+                    </td>
+
+                    <!-- Item type chip -->
+                    <td>
+                      <span class="item-type" [class]="'item-type-' + line.itemType.toLowerCase()">
+                        <lucide-icon [name]="lineIcon(line.itemType)" [size]="11" />
+                        {{ line.itemType }}
+                      </span>
+                    </td>
+
+                    <!-- Description (fare family / basis or ancillary) -->
+                    <td class="muted">{{ line.description }}</td>
+
+                    <!-- Cabin (flight rows only) -->
+                    <td class="text-center">
+                      @if (line.cabinCode) {
+                        <span class="cabin-badge" [class]="cabinClass(line.cabinCode)">{{ line.cabinCode }}</span>
+                      } @else {
+                        <span class="muted">—</span>
+                      }
+                    </td>
+
+                    <!-- Seat (flight rows only) -->
+                    <td class="mono muted">{{ line.seatNumber ?? '—' }}</td>
+
+                    <!-- Amounts -->
+                    <td class="text-right mono muted">{{ line.fare !== null ? formatAmount(line.fare, line.currency) : '—' }}</td>
+                    <td class="text-right mono muted">{{ line.tax !== null ? formatAmount(line.tax, line.currency) : '—' }}</td>
+                    <td class="text-right mono fw-semibold">{{ line.total !== null ? formatAmount(line.total, line.currency) : '—' }}</td>
+                  </tr>
+                }
+
               }
             </tbody>
           </table>
         </div>
-      }
-    </section>
+      </div>
+    }
 
   }
 
