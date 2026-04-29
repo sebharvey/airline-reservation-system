@@ -600,8 +600,6 @@ export class RetailApiService {
     };
     return this.#http.post<ValidateOrderResponse>(`${base}/api/v1/orders/validate`, body).pipe(
       tap(res => {
-        const key = this.#tokenKey(params.bookingReference);
-        sessionStorage.setItem(key, res.token);
         sessionStorage.setItem('mb_active_token', res.token);
       }),
       catchError((err: HttpErrorResponse) => {
@@ -615,12 +613,13 @@ export class RetailApiService {
 
   /**
    * POST /v1/orders/retrieve
-   * Retrieve a confirmed order using the manage-booking JWT stored for this booking reference.
+   * Retrieve a confirmed order using the active manage-booking JWT.
+   * The backend validates the token and resolves the booking reference from its claim.
    * Callers must first obtain a token via validateOrder().
    */
-  retrieveOrder(bookingReference: string): Observable<Order> {
+  retrieveOrder(): Observable<Order> {
     const base = environment.retailApiBaseUrl;
-    const token = sessionStorage.getItem(this.#tokenKey(bookingReference));
+    const token = sessionStorage.getItem('mb_active_token');
     if (!token) {
       return throwError(() => ({ status: 401, message: 'Session expired. Please re-enter your booking details.' }));
     }
@@ -636,24 +635,9 @@ export class RetailApiService {
     );
   }
 
-  /**
-   * Decode the active manage-booking JWT and return the booking_reference claim.
-   * Returns null if no active token exists or the token cannot be decoded.
-   */
-  getManageBookingRef(): string | null {
-    const token = sessionStorage.getItem('mb_active_token');
-    if (!token) return null;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1])) as Record<string, unknown>;
-      return (payload['booking_reference'] as string) ?? null;
-    } catch {
-      return null;
-    }
-  }
-
-  /** Session-storage key for a booking reference token. */
-  #tokenKey(bookingReference: string): string {
-    return `mb_token_${bookingReference.toUpperCase().trim()}`;
+  /** Returns true if a manage-booking session token is present (does not validate it). */
+  hasActiveManageBookingSession(): boolean {
+    return sessionStorage.getItem('mb_active_token') !== null;
   }
 
   /**
@@ -662,7 +646,7 @@ export class RetailApiService {
    */
   retrieveForCheckIn(params: RetrieveOrderParams): Observable<Order> {
     return this.validateOrder(params).pipe(
-      switchMap(() => this.retrieveOrder(params.bookingReference))
+      switchMap(() => this.retrieveOrder())
     );
   }
 

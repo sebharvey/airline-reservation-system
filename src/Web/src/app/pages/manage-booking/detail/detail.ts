@@ -123,24 +123,23 @@ export class ManageBookingDetailComponent implements OnInit {
     const gn = navState?.['givenName'] ?? '';
     const sn = navState?.['surname'] ?? '';
 
-    const ref = this.retailApi.getManageBookingRef();
-    if (!ref) {
+    if (!this.retailApi.hasActiveManageBookingSession()) {
       this.router.navigate(['/manage-booking']);
       return;
     }
 
-    this.bookingRef.set(ref);
     this.givenName.set(gn);
     this.surname.set(sn);
-    this.fetchOrder(ref);
+    this.fetchOrder();
   }
 
-  private fetchOrder(ref: string): void {
+  private fetchOrder(): void {
     this.loading.set(true);
     this.errorMessage.set('');
     this.boardingPasses.set([]);
-    this.retailApi.retrieveOrder(ref).subscribe({
+    this.retailApi.retrieveOrder().subscribe({
       next: (order) => {
+        this.bookingRef.set(order.bookingReference);
         this.order.set(order);
         this.loading.set(false);
       },

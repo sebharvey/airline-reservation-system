@@ -39,13 +39,11 @@ export class ManageBagsPaymentComponent implements OnInit {
     const gn = navState?.['givenName'] ?? '';
     const sn = navState?.['surname'] ?? '';
 
-    const ref = this.retailApi.getManageBookingRef();
-    if (!ref) {
+    if (!this.retailApi.hasActiveManageBookingSession()) {
       this.router.navigate(['/manage-booking']);
       return;
     }
 
-    this.bookingRef.set(ref);
     this.givenName.set(gn);
     this.surname.set(sn);
 
@@ -56,12 +54,13 @@ export class ManageBagsPaymentComponent implements OnInit {
       return;
     }
 
-    this.loadOrder(ref, gn, sn);
+    this.loadOrder();
   }
 
-  private loadOrder(ref: string, _gn: string, _sn: string): void {
-    this.retailApi.retrieveOrder(ref).subscribe({
+  private loadOrder(): void {
+    this.retailApi.retrieveOrder().subscribe({
       next: (order) => {
+        this.bookingRef.set(order.bookingReference);
         this.order.set(order);
         this.loading.set(false);
       },
@@ -106,7 +105,7 @@ export class ManageBagsPaymentComponent implements OnInit {
         this.paying.set(false);
         this.manageBookingState.clear();
         this.router.navigate(['/manage-booking/bags-confirmation'], {
-          state: { givenName: this.givenName(), surname: this.surname() }
+          state: { givenName: this.givenName(), surname: this.surname(), bookingRef: this.bookingRef() }
         });
       },
       error: (err: { error?: { message?: string }, message?: string }) => {

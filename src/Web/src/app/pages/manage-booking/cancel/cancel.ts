@@ -78,22 +78,21 @@ export class CancelBookingComponent implements OnInit {
     const gn = navState?.['givenName'] ?? '';
     const sn = navState?.['surname'] ?? '';
 
-    const ref = this.retailApi.getManageBookingRef();
-    if (!ref || !gn || !sn) {
+    if (!this.retailApi.hasActiveManageBookingSession() || !gn || !sn) {
       this.router.navigate(['/manage-booking']);
       return;
     }
 
-    this.bookingRef.set(ref);
     this.givenName.set(gn);
     this.surname.set(sn);
-    this.loadOrder(ref, gn, sn);
+    this.loadOrder();
   }
 
-  private loadOrder(ref: string, _gn: string, _sn: string): void {
+  private loadOrder(): void {
     this.loading.set(true);
-    this.retailApi.retrieveOrder(ref).subscribe({
+    this.retailApi.retrieveOrder().subscribe({
       next: (order) => {
+        this.bookingRef.set(order.bookingReference);
         this.order.set(order);
         this.loading.set(false);
       },

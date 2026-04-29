@@ -1,7 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { RetailApiService } from '../../../services/retail-api.service';
 
 @Component({
   selector: 'app-manage-bags-confirmation',
@@ -15,15 +14,13 @@ export class ManageBagsConfirmationComponent implements OnInit {
   givenName = signal('');
   surname = signal('');
 
-  constructor(private router: Router, private retailApi: RetailApiService) {}
+  constructor(private router: Router) {}
 
   ngOnInit(): void {
     const navState = (this.router.getCurrentNavigation()?.extras.state ?? history.state) as Record<string, string>;
     this.givenName.set(navState?.['givenName'] ?? '');
     this.surname.set(navState?.['surname'] ?? '');
-
-    const ref = this.retailApi.getManageBookingRef();
-    this.bookingRef.set(ref ?? '');
+    this.bookingRef.set(navState?.['bookingRef'] ?? '');
   }
 
   goToBooking(): void {
