@@ -1222,7 +1222,8 @@ public sealed class ConfirmBasketHandler
 
                 if (item is null) continue;
 
-                collectingCurrency ??= item.CurrencyCode;
+                if (string.IsNullOrEmpty(collectingCurrency) && !string.IsNullOrEmpty(item.CurrencyCode))
+                    collectingCurrency = item.CurrencyCode;
 
                 // The Offer MS returns per-pax amounts; use directly as the NUC component.
                 var perPaxComponent = Math.Round(item.BaseFareAmount, 2, MidpointRounding.AwayFromZero);
@@ -1239,6 +1240,11 @@ public sealed class ConfirmBasketHandler
                     }
                 }
             }
+
+            if (string.IsNullOrEmpty(collectingCurrency) &&
+                root.TryGetProperty("currency", out var basketCurrency) &&
+                basketCurrency.ValueKind == JsonValueKind.String)
+                collectingCurrency = basketCurrency.GetString();
 
             if (components.Count == 0 || string.IsNullOrEmpty(collectingCurrency)) return null;
 

@@ -49,7 +49,7 @@
           ]
         },
         {
-          "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId",
+          "randomArrayPath": "itineraries[0].legs[0].cabins[*].fareFamilies[*].offer.offerId",
           "as": "offerId",
           "usedInSteps": [
             2
@@ -105,6 +105,7 @@
         {
           "field": "basketId",
           "usedInSteps": [
+            3,
             4,
             5,
             6
