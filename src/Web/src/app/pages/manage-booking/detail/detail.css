@@ -43,19 +43,214 @@
   font-size: 0.9rem;
 }
 
-.error-icon {
-  flex-shrink: 0;
+/* ── Hero Card ── */
+.hero-card {
+  background: linear-gradient(135deg, var(--grad-start) 0%, var(--grad-end) 100%);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* ── Header ── */
-h3 {
-  font-size: 1rem;
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hero-orb--1 {
+  width: 200px;
+  height: 200px;
+  top: -60px;
+  right: -50px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.hero-orb--2 {
+  width: 140px;
+  height: 140px;
+  bottom: -50px;
+  right: 40px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hero-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero-ref-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.hero-ref {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+/* Override copy-btn colours on the gradient hero */
+.copy-btn--hero {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.copy-btn--hero:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.copy-btn--hero.copied {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Status badge inside the hero — always white text */
+.hero-status-badge {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.hero-status-badge.badge-confirmed {
+  background: rgba(34, 197, 94, 0.3) !important;
+  border-color: rgba(34, 197, 94, 0.55) !important;
+}
+
+.hero-status-badge.badge-cancelled {
+  background: rgba(239, 68, 68, 0.3) !important;
+  border-color: rgba(239, 68, 68, 0.55) !important;
+}
+
+.hero-status-badge.badge-changed {
+  background: rgba(234, 179, 8, 0.3) !important;
+  border-color: rgba(234, 179, 8, 0.55) !important;
+}
+
+.hero-pax-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hero-pax-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.hero-pax-sep {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.9rem;
+}
+
+.hero-footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.hero-date {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-route {
+  font-size: 0.78rem;
   font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ── Action Tiles ── */
+.action-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+}
+
+.at-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 12px 14px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.at-tile:hover {
+  border-color: var(--grad-start);
+  box-shadow: 0 4px 18px rgba(102, 126, 234, 0.18);
+  transform: translateY(-2px);
+}
+
+.at-tile--danger:hover {
+  border-color: #ef4444;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.16);
+}
+
+.at-icon {
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.at-label {
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--text);
+  line-height: 1.2;
+}
+
+.at-tile--danger .at-label {
+  color: #dc2626;
+}
+
+/* ── Section ── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   margin: 0;
 }
 
-/* ── Status Badge ── */
+/* ── Status Badge (shared) ── */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -92,208 +287,176 @@ h3 {
   border: 1.5px solid var(--border);
 }
 
-/* ── Action Cards ── */
-.action-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
+/* ── Boarding Pass Card ── */
+.bp-card {
   background: var(--white);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-md);
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-  width: 100%;
+  overflow: hidden;
 }
 
-.action-card:hover {
-  border-color: var(--grad-start);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.14);
-  transform: translateY(-1px);
-}
-
-.action-card--danger:hover {
-  border-color: #ef4444;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.14);
-}
-
-.action-icon {
-  font-size: 1.4rem;
-  flex-shrink: 0;
-  width: 32px;
-  text-align: center;
-}
-
-.action-body {
-  flex: 1;
+/* Gradient strip at the top */
+.bp-strip {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  padding: 12px 20px;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.action-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.action-desc {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-}
-
-.action-arrow {
-  font-size: 1.3rem;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-/* ── Section ── */
-.section {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
-.section-title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0;
-}
-
-/* ── Card ── */
-.card {
-  background: var(--white);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-}
-
-/* ── Segment Card ── */
-.segment-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.segment-header {
+.bp-strip-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.flight-number {
+.bp-strip-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.bp-fn {
   font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.04em;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.06em;
 }
 
-.cabin-badge {
+.bp-pill {
   padding: 2px 8px;
-  background: var(--bg-light);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.95);
 }
 
-.booking-class-badge {
-  padding: 2px 8px;
-  background: var(--bg-light);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-muted);
+.bp-mono {
   font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.06em;
 }
 
-.segment-status-badge {
+.bp-strip-badge {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.03em;
 }
 
-.segment-ticketed {
-  background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
-  border: 1.5px solid rgba(34, 197, 94, 0.3);
+.strip-ticketed {
+  background: rgba(34, 197, 94, 0.28);
+  color: #ffffff;
+  border: 1px solid rgba(34, 197, 94, 0.55);
 }
 
-.segment-pending {
-  background: rgba(234, 179, 8, 0.1);
-  color: #b45309;
-  border: 1.5px solid rgba(234, 179, 8, 0.35);
+.strip-pending {
+  background: rgba(234, 179, 8, 0.28);
+  color: #ffffff;
+  border: 1px solid rgba(234, 179, 8, 0.55);
 }
 
-.segment-checked-in {
-  background: rgba(59, 130, 246, 0.1);
-  color: #1d4ed8;
-  border: 1.5px solid rgba(59, 130, 246, 0.3);
+.strip-checked-in {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-.aircraft-type {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-left: auto;
+.bp-aircraft {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
 }
 
-.segment-route {
+/* Route section */
+.bp-route {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 20px 20px 14px;
 }
 
-.route-point {
+.bp-endpoint {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
+  min-width: 56px;
 }
 
-.route-point--right {
+.bp-endpoint--right {
   text-align: right;
 }
 
-.route-code {
-  font-size: 1.3rem;
-  font-weight: 700;
+.bp-iata {
+  font-size: 2rem;
+  font-weight: 800;
   color: var(--text);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
+  line-height: 1;
 }
 
-.route-time {
-  font-size: 0.78rem;
+.bp-time {
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.route-arrow {
+.bp-track {
   flex: 1;
-  text-align: center;
-  font-size: 1.2rem;
-  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.bp-track-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bp-track-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--grad-start), var(--grad-end));
+  border-radius: 2px;
+  opacity: 0.35;
+}
+
+.bp-track-plane {
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  flex-shrink: 0;
+}
+
+/* Perforated separator */
+.bp-perf {
+  padding: 0 20px;
+}
+
+.bp-perf-dots {
+  border-top: 2px dashed var(--border);
+}
+
+/* Passenger table inside boarding pass */
+.bp-pax-wrap {
+  padding: 12px 20px 16px;
 }
 
 /* ── Pax Table ── */
 .pax-table {
   display: flex;
   flex-direction: column;
-  gap: 0;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -333,17 +496,6 @@ h3 {
   text-align: center;
 }
 
-.pax-eticket {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.pax-eticket-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .pax-checkin {
   font-size: 0.75rem;
   font-weight: 600;
@@ -374,13 +526,18 @@ h3 {
   font-weight: 600;
 }
 
-.mono {
-  font-family: 'Courier New', Courier, monospace;
-  letter-spacing: 0.03em;
+/* ── Passenger Grid ── */
+.pax-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* ── Passenger Card ── */
 .pax-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -389,8 +546,29 @@ h3 {
 .pax-card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+}
+
+.pax-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.pax-card-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .pax-card-name {
@@ -400,6 +578,8 @@ h3 {
 }
 
 .pax-type-badge {
+  display: inline-flex;
+  align-self: flex-start;
   padding: 2px 10px;
   background: var(--bg-light);
   border: 1.5px solid var(--border);
@@ -428,6 +608,14 @@ h3 {
   color: var(--text-muted);
   font-size: 0.8rem;
   flex-shrink: 0;
+}
+
+/* ── Generic Card ── */
+.card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
 }
 
 /* ── Ancillary ── */
@@ -466,170 +654,7 @@ h3 {
   margin-left: auto;
 }
 
-/* ── Payment ── */
-.payment-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.payment-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.payment-desc {
-  font-size: 0.88rem;
-  color: var(--text);
-  flex: 1;
-}
-
-.payment-amount {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.payment-ref {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  font-family: 'Courier New', Courier, monospace;
-  letter-spacing: 0.03em;
-}
-
-.payment-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.payment-instrument {
-  display: flex;
-  align-items: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.payment-method-type {
-  font-weight: 500;
-}
-
-.payment-card-detail {
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.payment-timestamps {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.payment-settled-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 6px;
-  border-top: 1px dashed var(--border);
-  font-size: 0.82rem;
-}
-
-.payment-settled-label {
-  color: var(--text-muted);
-}
-
-.payment-settled-amount {
-  font-weight: 600;
-  color: var(--text);
-}
-
-.payment-status {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.status-settled {
-  background: rgba(34, 197, 94, 0.1);
-  color: #15803d;
-}
-
-.status-authorised {
-  background: rgba(234, 179, 8, 0.1);
-  color: #b45309;
-}
-
-.status-refunded {
-  background: rgba(59, 130, 246, 0.1);
-  color: #1d4ed8;
-}
-
-.status-voided {
-  background: var(--bg-light);
-  color: var(--text-muted);
-}
-
-.payment-date {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0 0;
-  border-top: 2px solid var(--border);
-  margin-top: 4px;
-}
-
-.total-label {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.total-amount {
-  font-size: 1.2rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── E-ticket link button ── */
-.eticket-link {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--grad-start);
-  font-size: 0.78rem;
-  font-family: 'Courier New', Courier, monospace;
-  letter-spacing: 0.03em;
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  transition: color 0.15s;
-}
-
-.eticket-link:hover {
-  color: var(--grad-end);
-}
-
-/* ── Tickets section ── */
-.tickets-loading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 20px 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
+/* ── Tickets ── */
 .tickets-empty {
   margin: 0;
   color: var(--text-muted);
@@ -733,8 +758,165 @@ h3 {
   flex-shrink: 0;
 }
 
+/* ── Payment ── */
+.payment-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.payment-desc {
+  font-size: 0.88rem;
+  color: var(--text);
+  flex: 1;
+}
+
+.payment-amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.payment-ref {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.03em;
+}
+
+.payment-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.payment-instrument {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.payment-method-type {
+  font-weight: 500;
+}
+
+.payment-card-detail {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.payment-timestamps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.payment-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.payment-settled-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+  font-size: 0.82rem;
+}
+
+.payment-settled-label {
+  color: var(--text-muted);
+}
+
+.payment-settled-amount {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.payment-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.status-settled {
+  background: rgba(34, 197, 94, 0.1);
+  color: #15803d;
+}
+
+.status-authorised {
+  background: rgba(234, 179, 8, 0.1);
+  color: #b45309;
+}
+
+.status-refunded {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
+.status-voided {
+  background: var(--bg-light);
+  color: var(--text-muted);
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0 0;
+  border-top: 2px solid var(--border);
+  margin-top: 4px;
+}
+
+.total-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.total-amount {
+  font-size: 1.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Utility ── */
+.mono {
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.03em;
+}
+
 .muted {
   color: var(--text-muted);
+}
+
+/* ── Back Link ── */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--grad-start);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 4px 0;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }
 
 /* ── Ticket detail modal ── */
@@ -967,20 +1149,4 @@ h3 {
   background: var(--bg-light);
   color: var(--text-muted);
   border: 1px solid var(--border);
-}
-
-/* ── Back Link ── */
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.9rem;
-  color: var(--grad-start);
-  text-decoration: none;
-  font-weight: 500;
-  padding: 4px 0;
-}
-
-.back-link:hover {
-  text-decoration: underline;
 }

@@ -19,187 +19,209 @@
 
   <!-- Order loaded -->
   @if (order(); as o) {
-    <!-- Order Meta -->
-    <div class="section">
-      <h3 class="section-title">Order</h3>
-      <div class="card">
-        <div class="pax-details">
-          <div class="pax-detail-row">
-            <span class="pax-detail-label">Booking Reference</span>
-            <span class="copy-wrap mono">
+
+    <!-- ── Hero Header ── -->
+    <div class="hero-card">
+      <div class="hero-orb hero-orb--1"></div>
+      <div class="hero-orb hero-orb--2"></div>
+      <div class="hero-body">
+        <div class="hero-top">
+          <div>
+            <div class="hero-ref-label">Booking Reference</div>
+            <div class="hero-ref copy-wrap mono">
               {{ o.bookingReference }}
-              <button class="copy-btn" [class.copied]="copiedText() === o.bookingReference" (click)="copyToClipboard(o.bookingReference)" [title]="copiedText() === o.bookingReference ? 'Copied!' : 'Copy booking reference'">
+              <button class="copy-btn copy-btn--hero" [class.copied]="copiedText() === o.bookingReference" (click)="copyToClipboard(o.bookingReference)" [title]="copiedText() === o.bookingReference ? 'Copied!' : 'Copy booking reference'">
                 @if (copiedText() === o.bookingReference) {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 } @else {
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 }
               </button>
+            </div>
+          </div>
+          <span class="status-badge hero-status-badge" [ngClass]="statusClass(o.orderStatus)">{{ o.orderStatus }}</span>
+        </div>
+        <div class="hero-pax-row">
+          @for (pax of o.passengers; track pax.passengerId; let last = $last) {
+            <span class="hero-pax-name">{{ pax.givenName }} {{ pax.surname }}</span>
+            @if (!last) { <span class="hero-pax-sep">&middot;</span> }
+          }
+        </div>
+        <div class="hero-footer">
+          <span class="hero-date">Booked {{ formatDate(o.createdAt) }}</span>
+          @if (o.flightSegments.length > 0) {
+            <span class="hero-route">
+              {{ o.flightSegments[0].origin }}&thinsp;&#8594;&thinsp;{{ o.flightSegments[o.flightSegments.length - 1].destination }}
             </span>
-          </div>
-          <div class="pax-detail-row">
-            <span class="pax-detail-label">Status</span>
-            <span class="status-badge" [ngClass]="statusClass(o.orderStatus)">{{ o.orderStatus }}</span>
-          </div>
-          <div class="pax-detail-row">
-            <span class="pax-detail-label">Booked</span>
-            <span>{{ formatDate(o.createdAt) }}</span>
-          </div>
+          }
         </div>
       </div>
     </div>
 
-    <!-- Action Cards -->
-    <div class="action-cards">
-      @if (canAddBags()) {
-        <button type="button" class="action-card" (click)="navigateToAddBags()">
-          <span class="action-icon">&#129524;</span>
-          <div class="action-body">
-            <span class="action-title">Add Extra Bags</span>
-            <span class="action-desc">Purchase additional checked baggage for your trip</span>
-          </div>
-          <span class="action-arrow">&#8250;</span>
-        </button>
-      }
-      @if (canChangeSeat()) {
-        <button type="button" class="action-card" (click)="navigateToSeat()">
-          <span class="action-icon">&#128186;</span>
-          <div class="action-body">
-            <span class="action-title">Change Seat</span>
-            <span class="action-desc">Select a different seat for your flight</span>
-          </div>
-          <span class="action-arrow">&#8250;</span>
-        </button>
-      }
-      @if (canChangeFlight()) {
-        <button type="button" class="action-card" (click)="navigateToChangeFlight()">
-          <span class="action-icon">&#9992;</span>
-          <div class="action-body">
-            <span class="action-title">Change Flight</span>
-            <span class="action-desc">Move to a different departure date</span>
-          </div>
-          <span class="action-arrow">&#8250;</span>
-        </button>
-      }
-      @if (canCancel()) {
-        <button type="button" class="action-card action-card--danger" (click)="navigateToCancel()">
-          <span class="action-icon">&#10006;</span>
-          <div class="action-body">
-            <span class="action-title">Cancel Booking</span>
-            <span class="action-desc">Request a refund and cancel your reservation</span>
-          </div>
-          <span class="action-arrow">&#8250;</span>
-        </button>
-      }
-    </div>
+    <!-- ── Action Tiles ── -->
+    @if (canAddBags() || canChangeSeat() || canChangeFlight() || canCancel()) {
+      <div class="action-tiles">
+        @if (canAddBags()) {
+          <button type="button" class="at-tile" (click)="navigateToAddBags()">
+            <span class="at-icon">&#129524;</span>
+            <span class="at-label">Add Bags</span>
+          </button>
+        }
+        @if (canChangeSeat()) {
+          <button type="button" class="at-tile" (click)="navigateToSeat()">
+            <span class="at-icon">&#128186;</span>
+            <span class="at-label">Change Seat</span>
+          </button>
+        }
+        @if (canChangeFlight()) {
+          <button type="button" class="at-tile" (click)="navigateToChangeFlight()">
+            <span class="at-icon">&#9992;</span>
+            <span class="at-label">Change Flight</span>
+          </button>
+        }
+        @if (canCancel()) {
+          <button type="button" class="at-tile at-tile--danger" (click)="navigateToCancel()">
+            <span class="at-icon">&#10006;</span>
+            <span class="at-label">Cancel</span>
+          </button>
+        }
+      </div>
+    }
 
-    <!-- Flight Segments -->
+    <!-- ── Itinerary ── -->
     <div class="section">
-      <h3 class="section-title">Flights</h3>
+      <h3 class="section-title">Itinerary</h3>
       @for (sd of segmentDisplays(); track sd.segment.segmentId) {
-        <div class="card segment-card">
-          <div class="segment-header">
-            <span class="flight-number">{{ sd.segment.flightNumber }}</span>
-            <span class="cabin-badge">{{ sd.segment.cabinCode }}</span>
-            <span class="booking-class-badge">{{ sd.segment.bookingClass }}</span>
-            <span class="segment-status-badge" [ngClass]="sd.isTicketed ? 'segment-ticketed' : 'segment-pending'">
-              {{ sd.isTicketed ? 'Ticketed' : 'Pending' }}
-            </span>
-            @if (sd.checkedInCount > 0) {
-              <span class="segment-status-badge segment-checked-in">
-                &#10003; {{ sd.checkedInCount }}/{{ sd.passengerSeats.length }} Checked In
-              </span>
-            }
-            <span class="aircraft-type">{{ sd.segment.aircraftType }}</span>
-          </div>
-          <div class="segment-route">
-            <div class="route-point">
-              <span class="route-code">{{ sd.segment.origin }}</span>
-              <span class="route-time">{{ formatDateTime(sd.segment.departureDateTime) }}</span>
+        <div class="bp-card">
+
+          <!-- Gradient strip header -->
+          <div class="bp-strip">
+            <div class="bp-strip-left">
+              <span class="bp-fn">{{ sd.segment.flightNumber }}</span>
+              <span class="bp-pill">{{ sd.segment.cabinCode }}</span>
+              <span class="bp-pill bp-mono">{{ sd.segment.bookingClass }}</span>
             </div>
-            <div class="route-arrow">&#9992;</div>
-            <div class="route-point route-point--right">
-              <span class="route-code">{{ sd.segment.destination }}</span>
-              <span class="route-time">{{ formatDateTime(sd.segment.arrivalDateTime) }}</span>
+            <div class="bp-strip-right">
+              <span class="bp-strip-badge" [ngClass]="sd.isTicketed ? 'strip-ticketed' : 'strip-pending'">
+                {{ sd.isTicketed ? 'Ticketed' : 'Pending' }}
+              </span>
+              @if (sd.checkedInCount > 0) {
+                <span class="bp-strip-badge strip-checked-in">
+                  &#10003; {{ sd.checkedInCount }}/{{ sd.passengerSeats.length }}
+                </span>
+              }
+              <span class="bp-aircraft">{{ sd.segment.aircraftType }}</span>
             </div>
           </div>
 
-          <!-- Passenger seat / e-ticket table -->
-          <div class="pax-table">
-            <div class="pax-table-header">
-              <span>Passenger</span>
-              <span>Seat</span>
-              <span class="pax-col-right">Fare</span>
-              <span class="pax-col-right">Total</span>
-              <span>Check-in</span>
+          <!-- Route display -->
+          <div class="bp-route">
+            <div class="bp-endpoint">
+              <span class="bp-iata">{{ sd.segment.origin }}</span>
+              <span class="bp-time">{{ formatDateTime(sd.segment.departureDateTime) }}</span>
             </div>
-            @for (ps of sd.passengerSeats; track ps.passenger.passengerId) {
-              <div class="pax-table-row">
-                <span class="pax-name">{{ ps.passenger.givenName }} {{ ps.passenger.surname }}</span>
-                <span class="pax-seat">{{ ps.seatNumber ?? 'TBA' }}</span>
-                <span class="pax-fare">{{ ps.fareAmount != null ? formatCurrency(ps.fareAmount, o.currency) : '&ndash;' }}</span>
-                <span class="pax-total">{{ ps.totalAmount != null ? formatCurrency(ps.totalAmount, o.currency) : '&ndash;' }}</span>
-                <span class="pax-checkin" [ngClass]="ps.isCheckedIn ? 'pax-checkin--done' : 'pax-checkin--pending'">
-                  {{ ps.isCheckedIn ? '&#10003; Done' : '&ndash;' }}
-                </span>
+            <div class="bp-track">
+              <div class="bp-track-bar">
+                <div class="bp-track-line"></div>
+                <span class="bp-track-plane">&#9992;</span>
+                <div class="bp-track-line"></div>
               </div>
-            }
+            </div>
+            <div class="bp-endpoint bp-endpoint--right">
+              <span class="bp-iata">{{ sd.segment.destination }}</span>
+              <span class="bp-time">{{ formatDateTime(sd.segment.arrivalDateTime) }}</span>
+            </div>
           </div>
+
+          <!-- Perforated separator -->
+          <div class="bp-perf">
+            <div class="bp-perf-dots"></div>
+          </div>
+
+          <!-- Passenger table -->
+          <div class="bp-pax-wrap">
+            <div class="pax-table">
+              <div class="pax-table-header">
+                <span>Passenger</span>
+                <span>Seat</span>
+                <span class="pax-col-right">Fare</span>
+                <span class="pax-col-right">Total</span>
+                <span>Check-in</span>
+              </div>
+              @for (ps of sd.passengerSeats; track ps.passenger.passengerId) {
+                <div class="pax-table-row">
+                  <span class="pax-name">{{ ps.passenger.givenName }} {{ ps.passenger.surname }}</span>
+                  <span class="pax-seat">{{ ps.seatNumber ?? 'TBA' }}</span>
+                  <span class="pax-fare">{{ ps.fareAmount != null ? formatCurrency(ps.fareAmount, o.currency) : '&ndash;' }}</span>
+                  <span class="pax-total">{{ ps.totalAmount != null ? formatCurrency(ps.totalAmount, o.currency) : '&ndash;' }}</span>
+                  <span class="pax-checkin" [ngClass]="ps.isCheckedIn ? 'pax-checkin--done' : 'pax-checkin--pending'">
+                    {{ ps.isCheckedIn ? '&#10003; Done' : '&ndash;' }}
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
         </div>
       }
     </div>
 
-    <!-- Passengers -->
+    <!-- ── Passengers ── -->
     <div class="section">
       <h3 class="section-title">Passengers</h3>
-      @for (pax of o.passengers; track pax.passengerId) {
-        <div class="card pax-card">
-          <div class="pax-card-header">
-            <span class="pax-card-name">{{ pax.givenName }} {{ pax.surname }}</span>
-            <span class="pax-type-badge">{{ pax.type === 'ADT' ? 'Adult' : 'Child' }}</span>
-          </div>
-          <div class="pax-details">
-            <div class="pax-detail-row">
-              <span class="pax-detail-label">Date of Birth</span>
-              <span>{{ formatDate(pax.dob) }}</span>
+      <div class="pax-grid">
+        @for (pax of o.passengers; track pax.passengerId) {
+          <div class="pax-card">
+            <div class="pax-card-header">
+              <div class="pax-avatar">{{ pax.givenName[0] }}{{ pax.surname[0] }}</div>
+              <div class="pax-card-name-block">
+                <span class="pax-card-name">{{ pax.givenName }} {{ pax.surname }}</span>
+                <span class="pax-type-badge">{{ pax.type === 'ADT' ? 'Adult' : 'Child' }}</span>
+              </div>
             </div>
-            @if (pax.loyaltyNumber) {
+            <div class="pax-details">
               <div class="pax-detail-row">
-                <span class="pax-detail-label">Loyalty Number</span>
-                <span class="copy-wrap mono">
-                  {{ pax.loyaltyNumber }}
-                  <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyToClipboard(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
-                    @if (copiedText() === pax.loyaltyNumber) {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                    }
-                  </button>
-                </span>
+                <span class="pax-detail-label">Date of Birth</span>
+                <span>{{ formatDate(pax.dob) }}</span>
               </div>
-            }
-            @for (doc of pax.docs; track doc.number) {
-              <div class="pax-detail-row">
-                <span class="pax-detail-label">Document</span>
-                <span>{{ doc.type === 'PASSPORT' ? 'Passport' : 'ID Card' }} &middot; {{ doc.number }}</span>
-              </div>
-              <div class="pax-detail-row">
-                <span class="pax-detail-label">Expires</span>
-                <span>{{ formatDate(doc.expiryDate) }}</span>
-              </div>
-            }
-            @if (pax.contacts) {
-              <div class="pax-detail-row">
-                <span class="pax-detail-label">Email</span>
-                <span>{{ pax.contacts.email }}</span>
-              </div>
-            }
+              @if (pax.loyaltyNumber) {
+                <div class="pax-detail-row">
+                  <span class="pax-detail-label">Loyalty Number</span>
+                  <span class="copy-wrap mono">
+                    {{ pax.loyaltyNumber }}
+                    <button class="copy-btn" [class.copied]="copiedText() === pax.loyaltyNumber" (click)="copyToClipboard(pax.loyaltyNumber)" [title]="copiedText() === pax.loyaltyNumber ? 'Copied!' : 'Copy loyalty number'">
+                      @if (copiedText() === pax.loyaltyNumber) {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      }
+                    </button>
+                  </span>
+                </div>
+              }
+              @for (doc of pax.docs; track doc.number) {
+                <div class="pax-detail-row">
+                  <span class="pax-detail-label">Document</span>
+                  <span>{{ doc.type === 'PASSPORT' ? 'Passport' : 'ID Card' }} &middot; {{ doc.number }}</span>
+                </div>
+                <div class="pax-detail-row">
+                  <span class="pax-detail-label">Expires</span>
+                  <span>{{ formatDate(doc.expiryDate) }}</span>
+                </div>
+              }
+              @if (pax.contacts) {
+                <div class="pax-detail-row">
+                  <span class="pax-detail-label">Email</span>
+                  <span>{{ pax.contacts.email }}</span>
+                </div>
+              }
+            </div>
           </div>
-        </div>
-      }
+        }
+      </div>
     </div>
 
-    <!-- Ancillary Items -->
+    <!-- ── Add-ons ── -->
     @if (ancillaryItems().length > 0) {
       <div class="section">
         <h3 class="section-title">Add-ons</h3>
@@ -223,7 +245,7 @@
       </div>
     }
 
-    <!-- Tickets -->
+    <!-- ── Tickets ── -->
     <div class="section">
       <h3 class="section-title">Tickets</h3>
       @if ((order()?.tickets ?? []).length === 0) {
@@ -269,7 +291,7 @@
       }
     </div>
 
-    <!-- Payment Summary -->
+    <!-- ── Payment ── -->
     <div class="section">
       <h3 class="section-title">Payment</h3>
       @for (payment of o.payments; track payment.paymentReference) {
