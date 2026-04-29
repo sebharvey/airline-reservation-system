@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Order, OrderItem, Passenger, FlightSegment, BoardingPass, Ticket } from '../../../models/order.model';
@@ -114,7 +114,6 @@ export class ManageBookingDetailComponent implements OnInit {
   });
 
   constructor(
-    private route: ActivatedRoute,
     private router: Router,
     private retailApi: RetailApiService
   ) {}
@@ -124,26 +123,23 @@ export class ManageBookingDetailComponent implements OnInit {
     const gn = navState?.['givenName'] ?? '';
     const sn = navState?.['surname'] ?? '';
 
-    this.route.queryParams.subscribe(params => {
-      const ref = params['bookingRef'] ?? '';
-      this.bookingRef.set(ref);
-      this.givenName.set(gn);
-      this.surname.set(sn);
+    if (!this.retailApi.hasActiveManageBookingSession()) {
+      this.router.navigate(['/manage-booking']);
+      return;
+    }
 
-      if (!ref) {
-        this.router.navigate(['/manage-booking']);
-        return;
-      }
-      this.fetchOrder(ref);
-    });
+    this.givenName.set(gn);
+    this.surname.set(sn);
+    this.fetchOrder();
   }
 
-  private fetchOrder(ref: string): void {
+  private fetchOrder(): void {
     this.loading.set(true);
     this.errorMessage.set('');
     this.boardingPasses.set([]);
-    this.retailApi.retrieveOrder(ref).subscribe({
+    this.retailApi.retrieveOrder().subscribe({
       next: (order) => {
+        this.bookingRef.set(order.bookingReference);
         this.order.set(order);
         this.loading.set(false);
       },
@@ -202,28 +198,24 @@ export class ManageBookingDetailComponent implements OnInit {
 
   navigateToAddBags(): void {
     this.router.navigate(['/manage-booking/bags'], {
-      queryParams: { bookingRef: this.bookingRef() },
       state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 
   navigateToSeat(): void {
     this.router.navigate(['/manage-booking/seat'], {
-      queryParams: { bookingRef: this.bookingRef() },
       state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 
   navigateToChangeFlight(): void {
     this.router.navigate(['/manage-booking/change-flight'], {
-      queryParams: { bookingRef: this.bookingRef() },
       state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
 
   navigateToCancel(): void {
     this.router.navigate(['/manage-booking/cancel'], {
-      queryParams: { bookingRef: this.bookingRef() },
       state: { givenName: this.givenName(), surname: this.surname() }
     });
   }
