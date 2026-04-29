@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { forkJoin, of } from 'rxjs';
@@ -12,7 +12,7 @@ import { AirportComboboxComponent } from '../../components/airport-combobox/airp
 @Component({
   selector: 'app-check-in',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink, AirportComboboxComponent],
+  imports: [FormsModule, CommonModule, AirportComboboxComponent],
   templateUrl: './check-in.html',
   styleUrl: './check-in.css'
 })
@@ -70,7 +70,7 @@ export class CheckInComponent {
 
           // Fetch full order and create basket in parallel; both are best-effort
           forkJoin([
-            this.retailApi.retrieveOrder({ bookingReference: ref, givenName: gn, surname: sn })
+            this.retailApi.retrieveOrder(ref)
               .pipe(catchError(() => of(null))),
             this.retailApi.createCheckInBasket(ociOrder.bookingReference, ociOrder.passengers.length, ociOrder.currency)
               .pipe(catchError(() => of(null)))

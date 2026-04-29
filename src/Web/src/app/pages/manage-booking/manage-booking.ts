@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../services/retail-api.service';
@@ -7,7 +7,7 @@ import { RetailApiService } from '../../services/retail-api.service';
 @Component({
   selector: 'app-manage-booking',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule],
   templateUrl: './manage-booking.html',
   styleUrl: './manage-booking.css'
 })
