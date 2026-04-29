@@ -361,8 +361,8 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             UPDATE [offer].[FlightInventory]
-            SET    DepartureGate        = @DepartureGate,
-                   AircraftRegistration = @AircraftRegistration
+            SET    DepartureGate        = COALESCE(@DepartureGate, DepartureGate),
+                   AircraftRegistration = COALESCE(@AircraftRegistration, AircraftRegistration)
             WHERE  InventoryId = @InventoryId;
             """;
 
