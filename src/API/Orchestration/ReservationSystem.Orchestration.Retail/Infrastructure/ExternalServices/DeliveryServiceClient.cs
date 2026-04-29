@@ -245,7 +245,7 @@ public sealed class TicketPassenger
     [JsonPropertyName("gender")]
     public string? Gender { get; init; }
 
-    [JsonPropertyName("ptcCode")]
+    [JsonPropertyName("passengerTypeCode")]
     public string PtcCode { get; init; } = "ADT";
 
     [JsonPropertyName("fareConstruction")]

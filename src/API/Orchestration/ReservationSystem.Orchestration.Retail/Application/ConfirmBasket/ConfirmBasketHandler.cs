@@ -886,6 +886,8 @@ public sealed class ConfirmBasketHandler
             var (passengers, segments) = ParseBasketDataForTickets(basketDataJson);
             if (passengers.Count == 0 || segments.Count == 0) return [];
 
+            segments = EnrichSegmentsWithFareBasisCode(basketDataJson, segments, repricedOffers);
+
             var fareConstruction = BuildFareConstruction(basketDataJson, repricedOffers);
             // FOP amount on the e-ticket covers the air fare only (base + taxes per pax),
             // not the entire order total which also includes seats and ancillaries.
@@ -928,7 +930,8 @@ public sealed class ConfirmBasketHandler
         catch (Exception ex)
         {
             // Ticket issuance failure after order confirmation — order is confirmed, tickets need manual issuance
-            _logger.LogError(ex, "[ConfirmBasket] Ticket issuance failed for {BookingReference}", confirmedOrder.BookingReference);
+            _logger.LogError(ex, "[ConfirmBasket] Ticket issuance failed for {BookingReference}: {ErrorMessage}",
+                confirmedOrder.BookingReference, ex.Message);
             return [];
         }
     }
@@ -1177,6 +1180,75 @@ public sealed class ConfirmBasketHandler
         catch { /* Return whatever was parsed */ }
 
         return (passengers, segments);
+    }
+
+    /// <summary>
+    /// Backfills FareBasisCode on any segment where it is null or empty, using the
+    /// repriced offer items keyed by the offer's basketItemId. This is needed because
+    /// the basket JSON can store fareBasisCode as null (if the offer item was absent
+    /// at basket-creation time), but the Delivery MS validator requires it to be non-empty.
+    /// </summary>
+    private static List<TicketSegment> EnrichSegmentsWithFareBasisCode(
+        string basketDataJson,
+        List<TicketSegment> segments,
+        Dictionary<Guid, RepriceOfferDto> repricedOffers)
+    {
+        var fareBasisBySegmentId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            using var doc = JsonDocument.Parse(basketDataJson);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("flightOffers", out var offersEl) ||
+                offersEl.ValueKind != JsonValueKind.Array)
+                return segments;
+
+            foreach (var offer in offersEl.EnumerateArray())
+            {
+                if (!offer.TryGetProperty("offerId", out var offerIdEl) ||
+                    !offerIdEl.TryGetGuid(out var offerId))
+                    continue;
+
+                var basketItemId = offer.TryGetProperty("basketItemId", out var bid)
+                    ? bid.GetString() ?? ""
+                    : "";
+                if (string.IsNullOrEmpty(basketItemId)) continue;
+
+                if (!repricedOffers.TryGetValue(offerId, out var repriced)) continue;
+
+                var cabinCode = offer.TryGetProperty("cabinCode", out var cc) ? cc.GetString() ?? "" : "";
+                var item = repriced.Offers.FirstOrDefault(i =>
+                    string.Equals(i.CabinCode, cabinCode, StringComparison.OrdinalIgnoreCase))
+                    ?? repriced.Offers.FirstOrDefault();
+
+                if (item is null || string.IsNullOrEmpty(item.FareBasisCode)) continue;
+
+                fareBasisBySegmentId[basketItemId] = item.FareBasisCode;
+            }
+        }
+        catch { return segments; }
+
+        return segments.Select(seg =>
+        {
+            if (!string.IsNullOrEmpty(seg.FareBasisCode)) return seg;
+            if (!fareBasisBySegmentId.TryGetValue(seg.SegmentId, out var fbc)) return seg;
+            return new TicketSegment
+            {
+                SegmentId       = seg.SegmentId,
+                InventoryId     = seg.InventoryId,
+                FlightNumber    = seg.FlightNumber,
+                DepartureDate   = seg.DepartureDate,
+                Origin          = seg.Origin,
+                Destination     = seg.Destination,
+                CabinCode       = seg.CabinCode,
+                FareBasisCode   = fbc,
+                DepartureTime   = seg.DepartureTime,
+                ArrivalTime     = seg.ArrivalTime,
+                AircraftType    = seg.AircraftType,
+                SeatAssignments = seg.SeatAssignments,
+                SsrCodes        = seg.SsrCodes
+            };
+        }).ToList();
     }
 
     private static TicketFareConstruction? BuildFareConstruction(
