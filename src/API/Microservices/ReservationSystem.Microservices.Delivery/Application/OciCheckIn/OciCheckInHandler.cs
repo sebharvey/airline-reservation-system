@@ -321,7 +321,7 @@ public sealed class OciCheckInHandler
                     ticket.AssignSeatForOrigin(command.DepartureAirport, seat, "OCI");
                     assignedSeats[eTicketNumber] = seat;
 
-                    await _manifestRepository.UpdateSeatByETicketAsync(eTicketNumber, seat, cancellationToken);
+                    await _manifestRepository.UpdateSeatByETicketAndOriginAsync(eTicketNumber, command.DepartureAirport, seat, cancellationToken);
 
                     _logger.LogInformation(
                         "Auto-assigned seat {Seat} to ticket {TicketNumber} on {FlightNumber}",
