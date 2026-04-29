@@ -870,10 +870,12 @@ public sealed class OrderFunction
             additionalNotes = [];
             foreach (var n in notesEl.EnumerateArray())
             {
-                var dt   = n.TryGetProperty("dateTime", out var dtEl)  ? dtEl.GetString()  ?? "" : "";
-                var type = n.TryGetProperty("type",     out var typeEl) ? typeEl.GetString() ?? "" : "";
-                var msg  = n.TryGetProperty("message",  out var mEl)   ? mEl.GetString()   ?? "" : "";
-                additionalNotes.Add(new UpdateOrderCheckInNote(dt, type, msg));
+                var dt     = n.TryGetProperty("dateTime", out var dtEl)   ? dtEl.GetString()  ?? "" : "";
+                var type   = n.TryGetProperty("type",     out var typeEl) ? typeEl.GetString() ?? "" : "";
+                var msg    = n.TryGetProperty("message",  out var mEl)   ? mEl.GetString()   ?? "" : "";
+                int? paxId = n.TryGetProperty("paxId",   out var pEl) && pEl.ValueKind == JsonValueKind.Number
+                    ? pEl.GetInt32() : null;
+                additionalNotes.Add(new UpdateOrderCheckInNote(dt, type, msg, paxId));
             }
         }
 
