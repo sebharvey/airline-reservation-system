@@ -70,7 +70,7 @@ export class CheckInComponent {
 
           // Fetch full order and create basket in parallel; both are best-effort
           forkJoin([
-            this.retailApi.retrieveOrder(ref)
+            this.retailApi.retrieveOrder()
               .pipe(catchError(() => of(null))),
             this.retailApi.createCheckInBasket(ociOrder.bookingReference, ociOrder.passengers.length, ociOrder.currency)
               .pipe(catchError(() => of(null)))
