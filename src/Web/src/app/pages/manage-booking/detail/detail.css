@@ -302,7 +302,7 @@ h3 {
 .pax-table-header,
 .pax-table-row {
   display: grid;
-  grid-template-columns: 1fr 70px 1fr 90px 90px 80px;
+  grid-template-columns: 1fr 70px 90px 90px 80px;
   gap: 8px;
   padding: 8px 12px;
   align-items: center;
@@ -758,7 +758,7 @@ h3 {
 }
 
 .ticket-modal-card {
-  background: var(--bg);
+  background: var(--white);
   border-radius: var(--radius-md);
   width: 100%;
   max-width: 640px;

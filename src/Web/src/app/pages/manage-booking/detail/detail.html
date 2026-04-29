@@ -129,7 +129,6 @@
             <div class="pax-table-header">
               <span>Passenger</span>
               <span>Seat</span>
-              <span>E-Ticket</span>
               <span class="pax-col-right">Fare</span>
               <span class="pax-col-right">Total</span>
               <span>Check-in</span>
@@ -138,22 +137,6 @@
               <div class="pax-table-row">
                 <span class="pax-name">{{ ps.passenger.givenName }} {{ ps.passenger.surname }}</span>
                 <span class="pax-seat">{{ ps.seatNumber ?? 'TBA' }}</span>
-                <span class="pax-eticket-cell">
-                  @if (ps.eTicketNumber && findTicketByNumber(ps.eTicketNumber); as t) {
-                    <button class="eticket-link mono" (click)="openTicketModal(t)" [title]="'View full ticket ' + ps.eTicketNumber">{{ ps.eTicketNumber }}</button>
-                  } @else {
-                    <span class="pax-eticket mono">{{ ps.eTicketNumber ?? 'N/A' }}</span>
-                  }
-                  @if (ps.eTicketNumber) {
-                    <button class="copy-btn" [class.copied]="copiedText() === ps.eTicketNumber" (click)="copyToClipboard(ps.eTicketNumber)" [title]="copiedText() === ps.eTicketNumber ? 'Copied!' : 'Copy e-ticket number'">
-                      @if (copiedText() === ps.eTicketNumber) {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                      } @else {
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                      }
-                    </button>
-                  }
-                </span>
                 <span class="pax-fare">{{ ps.fareAmount != null ? formatCurrency(ps.fareAmount, o.currency) : '&ndash;' }}</span>
                 <span class="pax-total">{{ ps.totalAmount != null ? formatCurrency(ps.totalAmount, o.currency) : '&ndash;' }}</span>
                 <span class="pax-checkin" [ngClass]="ps.isCheckedIn ? 'pax-checkin--done' : 'pax-checkin--pending'">
