@@ -352,10 +352,10 @@
         "statusCode": 201,
         "assertions": [
           {
-            "field": "orderItems[*].eTickets[*]",
-            "assertion": "count",
+            "field": "orderItems[*].eTickets[*].eTicketNumber",
+            "assertion": "uniqueCount",
             "expected": "__RAND_PAX_COUNT__",
-            "description": "One e-ticket must be issued per passenger (matches the paxCount for this run)."
+            "description": "One e-ticket must be issued per passenger (matches the paxCount for this run). Unique e-ticket numbers are counted to avoid double-counting the same ticket appearing across multiple segment order items."
           },
           {
             "field": "orderItems[*].eTickets[*].eTicketNumber",
