@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
-import { Order, OrderItem, Passenger, FlightSegment, BoardingPass } from '../../../models/order.model';
+import { Order, OrderItem, Passenger, FlightSegment, BoardingPass, Ticket } from '../../../models/order.model';
 
 interface PassengerSeatInfo {
   passenger: Passenger;
@@ -33,6 +33,14 @@ export class ManageBookingDetailComponent implements OnInit {
   loading = signal(true);
   errorMessage = signal('');
   copiedText = signal<string | null>(null);
+
+  tickets = signal<Ticket[]>([]);
+  ticketsLoading = signal(false);
+  ticketsError = signal('');
+  selectedTicket = signal<Ticket | null>(null);
+
+  readonly activeTickets = computed<Ticket[]>(() => this.tickets().filter(t => !t.isVoided));
+  readonly voidedTickets = computed<Ticket[]>(() => this.tickets().filter(t => t.isVoided));
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
@@ -137,16 +145,59 @@ export class ManageBookingDetailComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set('');
     this.boardingPasses.set([]);
+    this.tickets.set([]);
+    this.ticketsError.set('');
     this.retailApi.retrieveOrder({ bookingReference: ref, givenName, surname }).subscribe({
       next: (order) => {
         this.order.set(order);
         this.loading.set(false);
+        this.loadTickets(ref);
       },
       error: (err: { message?: string }) => {
         this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
         this.loading.set(false);
       }
     });
+  }
+
+  private loadTickets(bookingRef: string): void {
+    this.ticketsLoading.set(true);
+    this.ticketsError.set('');
+    this.retailApi.getTicketsByBookingRef(bookingRef).subscribe({
+      next: (tickets) => {
+        this.tickets.set(tickets);
+        this.ticketsLoading.set(false);
+      },
+      error: () => {
+        this.ticketsError.set('Unable to load ticket details.');
+        this.ticketsLoading.set(false);
+      }
+    });
+  }
+
+  findTicketByNumber(eTicketNumber: string): Ticket | null {
+    return this.tickets().find(t => t.eTicketNumber === eTicketNumber) ?? null;
+  }
+
+  openTicketModal(ticket: Ticket): void {
+    this.selectedTicket.set(ticket);
+  }
+
+  closeTicketModal(): void {
+    this.selectedTicket.set(null);
+  }
+
+  couponStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      OPEN: 'Open', CHECKED_IN: 'Checked in', LIFTED: 'Lifted',
+      FLOWN: 'Flown', REFUNDED: 'Refunded', VOID: 'Void',
+      EXCHANGED: 'Exchanged', PRINT_EXCHANGE: 'Print exchange',
+    };
+    return labels[status] ?? status;
+  }
+
+  passengerTypeLabel(type: string): string {
+    return ({ ADT: 'Adult', CHD: 'Child', INF: 'Infant', YTH: 'Youth' } as Record<string, string>)[type] ?? type;
   }
 
   formatDateTime(dt: string): string {

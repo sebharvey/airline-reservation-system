@@ -601,6 +601,374 @@ h3 {
   background-clip: text;
 }
 
+/* ── E-ticket link button ── */
+.eticket-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--grad-start);
+  font-size: 0.78rem;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.03em;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+
+.eticket-link:hover {
+  color: var(--grad-end);
+}
+
+/* ── Tickets section ── */
+.tickets-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.tickets-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.tickets-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ticket-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 1.5rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ticket-row:last-child {
+  border-bottom: none;
+}
+
+.ticket-row:hover {
+  background: var(--bg-light);
+}
+
+.ticket-row-voided {
+  opacity: 0.65;
+}
+
+.ticket-row-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ticket-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticket-number {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ticket-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.ticket-active {
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  border: 1.5px solid rgba(34, 197, 94, 0.3);
+}
+
+.ticket-voided-badge {
+  background: var(--bg-light);
+  color: var(--text-muted);
+  border: 1.5px solid var(--border);
+}
+
+.ticket-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ticket-pax {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.ticket-amount {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.ticket-row-issued {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ticket-view-arrow {
+  font-size: 1.4rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+/* ── Ticket detail modal ── */
+.ticket-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+}
+
+.ticket-modal-scroll {
+  position: fixed;
+  inset: 0;
+  z-index: 901;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px 40px;
+  pointer-events: none;
+}
+
+.ticket-modal-card {
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 640px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  pointer-events: auto;
+}
+
+.ticket-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 16px;
+  border-bottom: 1.5px solid var(--border);
+  gap: 12px;
+}
+
+.ticket-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.ticket-modal-num {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ticket-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ticket-modal-close:hover {
+  background: var(--bg-light);
+  color: var(--text);
+}
+
+.ticket-modal-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Modal sections ── */
+.tmodal-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tmodal-section:last-child {
+  border-bottom: none;
+}
+
+.tmodal-section-meta {
+  background: var(--bg-light);
+}
+
+.tmodal-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.tmodal-field-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tmodal-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.875rem;
+}
+
+.tmodal-field-full {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.tmodal-label {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+
+.tmodal-value {
+  color: var(--text);
+  text-align: right;
+  word-break: break-all;
+}
+
+.tmodal-value-bold {
+  font-weight: 700;
+}
+
+.tmodal-small {
+  font-size: 0.75rem;
+  word-break: break-word;
+}
+
+/* Tax breakdown */
+.tmodal-tax-list {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.tmodal-tax-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tmodal-tax-row:last-child {
+  border-bottom: none;
+}
+
+.tmodal-tax-desc {
+  color: var(--text-muted);
+}
+
+/* Coupon / history tables */
+.tmodal-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.tmodal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.tmodal-table th {
+  padding: 7px 10px;
+  text-align: left;
+  background: var(--bg-light);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+.tmodal-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.tmodal-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* SSR chips */
+.tmodal-ssr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tmodal-ssr-chip {
+  padding: 4px 10px;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+/* Event type badge */
+.tmodal-event-type {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--bg-light);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
 /* ── Back Link ── */
 .back-link {
   display: inline-flex;
