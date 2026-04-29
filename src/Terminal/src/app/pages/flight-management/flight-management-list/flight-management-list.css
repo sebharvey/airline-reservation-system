@@ -272,25 +272,10 @@
   text-align: right;
 }
 
-/* ── Dispatch button ───────────────────────────────────────────────────── */
-.action-col { width: 110px; text-align: right; white-space: nowrap; }
-
-.dispatch-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  background: var(--grad-start, #6366f1);
-  border: none;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #fff;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.15s;
-}
-.dispatch-btn:hover { opacity: 0.85; }
+/* ── Clickable rows ────────────────────────────────────────────────────── */
+.fd-table tbody tr.clickable-row { cursor: pointer; }
+.fd-table tbody tr.clickable-row:hover td { background: var(--surface-hover, rgba(99, 102, 241, 0.04)); }
+.flight-card.clickable-row { cursor: pointer; }
 
 /* ── Empty / loading ───────────────────────────────────────────────────── */
 .empty-state {
@@ -685,8 +670,6 @@
   .fc-cabin-item { display: flex; align-items: center; gap: 4px; }
   .fc-cabin-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
   .fc-load { display: flex; flex-direction: column; gap: 4px; }
-  .fc-actions { display: flex; gap: 8px; }
-  .fc-btn { flex: 1; justify-content: center; padding: 7px 12px; font-size: 0.8rem; }
 
   /* On mobile the overlay also goes full screen */
   .overlay-panel { width: 100%; }
