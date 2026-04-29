@@ -83,12 +83,11 @@
             <th>Reg</th>
             <th class="load-col">Load</th>
             <th>Status</th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
           @for (flight of flights(); track flight.inventoryId) {
-            <tr [class.row-cancelled]="flight.status === 'Cancelled'">
+            <tr class="clickable-row" [class.row-cancelled]="flight.status === 'Cancelled'" (click)="openFlight(flight)">
               <td class="mono flight-num">{{ flight.flightNumber }}</td>
               <td>
                 <span class="route">
@@ -117,17 +116,12 @@
               <td>
                 <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
               </td>
-              <td class="action-col">
-                <button class="dispatch-btn" (click)="openFlight(flight)">
-                  Dispatch
-                </button>
-              </td>
             </tr>
           }
 
           @if (flights().length === 0) {
             <tr>
-              <td colspan="9" class="empty-row">No flights scheduled.</td>
+              <td colspan="8" class="empty-row">No flights scheduled.</td>
             </tr>
           }
         </tbody>
@@ -137,7 +131,7 @@
     <!-- Mobile cards -->
     <div class="flight-cards">
       @for (flight of flights(); track flight.inventoryId) {
-        <div class="flight-card" [class.flight-card-cancelled]="flight.status === 'Cancelled'">
+        <div class="flight-card clickable-row" [class.flight-card-cancelled]="flight.status === 'Cancelled'" (click)="openFlight(flight)">
           <div class="fc-header">
             <span class="fc-flight mono">{{ flight.flightNumber }}</span>
             <span class="fc-route">{{ flight.origin }}<span class="route-arrow"> → </span>{{ flight.destination }}</span>
@@ -161,9 +155,6 @@
               <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
             </div>
             <span class="load-pct muted">{{ paxOnBoard(flight) }}/{{ flight.totalSeats }} pax · {{ flight.loadFactor | number:'1.0-0' }}% load</span>
-          </div>
-          <div class="fc-actions">
-            <button class="dispatch-btn fc-btn" (click)="openFlight(flight)">Dispatch</button>
           </div>
         </div>
       }
