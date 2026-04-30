@@ -102,10 +102,17 @@ export class CheckInComponent {
 
   selectedPaxOciNotes = computed((): OciNote[] => {
     const b = this.booking();
+    const pax = this.selectedPax();
     const allNotes = b?.orderDetail.orderData?.notes;
-    if (!allNotes?.length) return [];
+    if (!allNotes?.length || !pax) return [];
+    const paxIdInt = this.#parsePaxIdInt(pax.passengerId);
+    const segmentIds = new Set(pax.segmentIds);
     return allNotes
-      .filter(n => n.type === 'OCI')
+      .filter(n =>
+        n.type === 'OCI' &&
+        n.paxId === paxIdInt &&
+        (n.segmentId == null || segmentIds.has(n.segmentId)),
+      )
       .slice()
       .sort((a, b) => a.dateTime.localeCompare(b.dateTime));
   });
