@@ -261,6 +261,7 @@ export interface OrderNote {
   type: string;
   message: string;
   paxId?: number;
+  segmentId?: number;
 }
 
 export interface OrderData {
