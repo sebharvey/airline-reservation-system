@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import { UpperCasePipe } from '@angular/common';
 import {
   WatchlistService,
   WatchlistEntry,
@@ -11,7 +12,7 @@ import {
 @Component({
   selector: 'app-watchlist',
   standalone: true,
-  imports: [FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule, UpperCasePipe],
   templateUrl: './watchlist.html',
   styleUrl: './watchlist.css',
 })

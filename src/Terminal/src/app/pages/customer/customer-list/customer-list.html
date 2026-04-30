@@ -80,7 +80,7 @@
                 <div class="customer-cell">
                   <div class="avatar">{{ customer.givenName[0] }}</div>
                   <div class="customer-info">
-                    <span class="customer-name">{{ customer.givenName }} {{ customer.surname }}</span>
+                    <span class="customer-name">{{ customer | passengerName }}</span>
                   </div>
                 </div>
               </td>

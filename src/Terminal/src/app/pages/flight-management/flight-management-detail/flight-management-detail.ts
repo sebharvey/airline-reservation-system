@@ -1,6 +1,7 @@
 import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { UpperCasePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   InventoryService,
@@ -32,7 +33,7 @@ interface EntryGroup {
 @Component({
   selector: 'app-flight-management-detail',
   standalone: true,
-  imports: [LucideAngularModule, RouterLink, FormsModule],
+  imports: [LucideAngularModule, RouterLink, FormsModule, UpperCasePipe],
   templateUrl: './flight-management-detail.html',
   styleUrl: './flight-management-detail.css',
 })
@@ -390,7 +391,7 @@ export class FlightManagementDetailComponent implements OnInit {
     if (seat.availability === 'available') return `${seat.seatNumber} — Open`;
     const entry = this.manifest()?.entries.find(e => e.seatNumber === seat.seatNumber);
     return entry
-      ? `${seat.seatNumber} — ${entry.surname}, ${entry.givenName}${entry.checkedIn ? ' (Checked in)' : ''}`
+      ? `${seat.seatNumber} — ${entry.surname.toUpperCase()}/${entry.givenName.toUpperCase()}${entry.checkedIn ? ' (Checked in)' : ''}`
       : `${seat.seatNumber} — ${seat.availability}`;
   }
 

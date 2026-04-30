@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { OrderService, OrderDetail, OrderPassenger, PassengerTravelDocument, FlightSegment, OrderItem, OrderPayment, OrderHistoryEvent, OrderNote, SsrOption, SsrPatchAction, Ticket, Document, ItemTotals } from '../../../services/order.service';
+import { PassengerNamePipe } from '../../../pipes/passenger-name.pipe';
 
 interface EditForm {
   givenName: string;
@@ -26,7 +27,7 @@ interface DocDetailState {
 
 @Component({
   selector: 'app-order-detail',
-  imports: [LucideAngularModule],
+  imports: [LucideAngularModule, PassengerNamePipe],
   templateUrl: './order-detail.html',
   styleUrl: './order-detail.css',
 })
@@ -225,7 +226,7 @@ export class OrderDetailComponent implements OnInit {
     for (const pax of this.order()?.orderData?.dataLists?.passengers ?? []) {
       const match = pax.passengerId?.match(/-(\d+)$/);
       if (match) {
-        map.set(parseInt(match[1], 10), `${pax.givenName} ${pax.surname}`.trim());
+        map.set(parseInt(match[1], 10), this.#formatPaxName(pax));
       }
     }
     return map;
@@ -816,7 +817,14 @@ export class OrderDetailComponent implements OnInit {
 
   getPassengerName(passengerRef: string): string {
     const pax = this.passengers().find(p => p.passengerId === passengerRef);
-    return pax ? `${pax.givenName} ${pax.surname}` : passengerRef;
+    return pax ? this.#formatPaxName(pax) : passengerRef;
+  }
+
+  #formatPaxName(pax: { givenName?: string | null; surname?: string | null }): string {
+    const surname = (pax.surname ?? '').toUpperCase().trim();
+    const given = (pax.givenName ?? '').toUpperCase().trim();
+    if (!surname && !given) return '';
+    return surname && given ? `${surname}/${given}` : surname || given;
   }
 
   getSegmentLabel(segmentRef: string): string {

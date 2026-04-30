@@ -101,7 +101,7 @@
           <button class="pax-card-compact" (click)="openPaxModal(pax)">
             <div class="pax-avatar pax-avatar-sm">{{ pax.givenName[0] }}</div>
             <div class="pax-compact-info">
-              <span class="pax-compact-name">{{ pax.givenName }} {{ pax.surname }}</span>
+              <span class="pax-compact-name">{{ pax | passengerName }}</span>
               <span class="pax-compact-type">{{ passengerTypeLabel(pax.type) }}</span>
             </div>
             <span class="pax-chevron">›</span>
@@ -522,7 +522,7 @@
                         </span>
                       </td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
-                      <td>{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
+                      <td>{{ ticket.ticketData?.passenger ? (ticket.ticketData.passenger | passengerName) : ticket.passengerId }}</td>
                       <td class="amount-cell hide-mobile">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -541,7 +541,7 @@
                         <span class="mobile-ticket-amount">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) }}</span>
                       }
                     </div>
-                    <div class="mobile-ticket-pax">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</div>
+                    <div class="mobile-ticket-pax">{{ ticket.ticketData?.passenger ? (ticket.ticketData.passenger | passengerName) : ticket.passengerId }}</div>
                     <div class="mobile-ticket-issued">Issued {{ formatDateTime(ticket.createdAt) }}</div>
                   </div>
                   <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
@@ -587,7 +587,7 @@
                         </span>
                       </td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
-                      <td class="muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</td>
+                      <td class="muted">{{ ticket.ticketData?.passenger ? (ticket.ticketData.passenger | passengerName) : ticket.passengerId }}</td>
                       <td class="amount-cell hide-mobile muted">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -606,7 +606,7 @@
                         <span class="mobile-ticket-amount muted">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) }}</span>
                       }
                     </div>
-                    <div class="mobile-ticket-pax muted">{{ ticket.ticketData?.passenger?.givenName || '' }} {{ ticket.ticketData?.passenger?.surname || ticket.passengerId }}</div>
+                    <div class="mobile-ticket-pax muted">{{ ticket.ticketData?.passenger ? (ticket.ticketData.passenger | passengerName) : ticket.passengerId }}</div>
                     <div class="mobile-ticket-issued muted">Issued {{ formatDateTime(ticket.createdAt) }}</div>
                   </div>
                   <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
@@ -796,7 +796,7 @@
     <div class="modal-header">
       <div class="modal-title-row">
         <div class="pax-avatar">{{ pax.givenName[0] }}</div>
-        <span class="modal-title">{{ pax.givenName }} {{ pax.surname }}</span>
+        <span class="modal-title">{{ pax | passengerName }}</span>
         <span class="pax-type-badge">{{ passengerTypeLabel(pax.type) }}</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
@@ -1335,7 +1335,7 @@
             </div>
             <div class="field-row">
               <span class="field-label">Name</span>
-              <span class="field-value">{{ t.ticketData?.passenger?.givenName }} {{ t.ticketData?.passenger?.surname }}</span>
+              <span class="field-value">{{ t.ticketData?.passenger | passengerName }}</span>
             </div>
             <div class="field-row">
               <span class="field-label">Type</span>
@@ -1827,7 +1827,7 @@
             <select class="edit-input" [value]="addSsrForm().passengerRef" (change)="updateAddSsrField('passengerRef', $any($event.target).value)">
               <option value="">Select passenger…</option>
               @for (pax of passengers(); track pax.passengerId) {
-                <option [value]="pax.passengerId">{{ pax.givenName }} {{ pax.surname }}</option>
+                <option [value]="pax.passengerId">{{ pax | passengerName }}</option>
               }
             </select>
           </div>

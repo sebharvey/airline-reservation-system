@@ -530,7 +530,7 @@
                         <!-- Selection indicator -->
                         @if (activeSeatPax(); as pax) {
                           <div class="sm-selection-indicator">
-                            Selecting for: <strong>{{ pax.givenName }} {{ pax.surname }}</strong>
+                            Selecting for: <strong>{{ pax | passengerName }}</strong>
                             @if (getSelectedSeatForPaxFlight(pax.passengerId, entry.flight.basketItemId); as sel) {
                               <span class="sm-selected-seat"><lucide-icon name="check" [size]="12" /> Seat {{ sel.seatOffer.seatNumber }}</span>
                             }
@@ -663,7 +663,7 @@
                                       <div class="prod-pax-check" [class.checked]="isProductSelected(product.productId, pax.passengerId, null)">
                                         @if (isProductSelected(product.productId, pax.passengerId, null)) { <lucide-icon name="check" [size]="12" /> }
                                       </div>
-                                      <span class="prod-pax-name">{{ pax.givenName || (paxLabel(pax.type) + ' ' + (i + 1)) }} {{ pax.surname }}</span>
+                                      <span class="prod-pax-name">{{ pax.givenName ? (pax | passengerName) : (paxLabel(pax.type) + ' ' + (i + 1)) }}</span>
                                     </div>
                                   }
                                 } @else {
@@ -674,7 +674,7 @@
                                         <div class="prod-pax-check" [class.checked]="isProductSelected(product.productId, pax.passengerId, flight.inventoryId)">
                                           @if (isProductSelected(product.productId, pax.passengerId, flight.inventoryId)) { <lucide-icon name="check" [size]="12" /> }
                                         </div>
-                                        <span class="prod-pax-name">{{ pax.givenName || (paxLabel(pax.type) + ' ' + (i + 1)) }} {{ pax.surname }}</span>
+                                        <span class="prod-pax-name">{{ pax.givenName ? (pax | passengerName) : (paxLabel(pax.type) + ' ' + (i + 1)) }}</span>
                                         <span class="prod-pax-segment">{{ flight.origin }}&#8202;&#8594;&#8202;{{ flight.destination }}</span>
                                       </div>
                                     }
@@ -1030,7 +1030,7 @@
               @for (pax of passengerForms(); track pax.passengerId) {
                 <div class="basket-pax-row">
                   <span class="basket-pax-name">
-                    {{ pax.givenName || '—' }} {{ pax.surname || '—' }}
+                    {{ pax.givenName ? (pax | passengerName) : '—' }}
                   </span>
                   <span class="pax-type-chip pax-chip-sm" [class]="'pax-' + pax.type.toLowerCase()">
                     {{ pax.type }}

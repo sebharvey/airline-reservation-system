@@ -2,6 +2,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AirportComboboxComponent } from '../../components/airport-combobox/airport-combobox';
+import { PassengerNamePipe } from '../../pipes/passenger-name.pipe';
 import { Router } from '@angular/router';
 import {
   NewOrderService,
@@ -76,7 +77,7 @@ const CABIN_ORDER: Record<string, number> = { F: 0, J: 1, W: 2, Y: 3 };
 
 @Component({
   selector: 'app-new-order',
-  imports: [FormsModule, AirportComboboxComponent, LucideAngularModule],
+  imports: [FormsModule, AirportComboboxComponent, LucideAngularModule, PassengerNamePipe],
   templateUrl: './new-order.html',
   styleUrl: './new-order.css',
 })
