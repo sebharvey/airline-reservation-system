@@ -42,14 +42,14 @@
       },
       "chainsTo": [
         {
-          "path": "itineraries[0].legs[0].sessionId",
+          "path": "itineraries[0].segments[0].flights[0].sessionId",
           "as": "sessionId",
           "usedInSteps": [
             2
           ]
         },
         {
-          "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId",
+          "randomArrayPath": "itineraries[*].segments[*].flights[*].cabins[*].fareFamilies[*].offer.offerId",
           "as": "offerId",
           "usedInSteps": [
             2

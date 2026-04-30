@@ -143,7 +143,7 @@ Refund execution is external to the reservation system. The Retail API voids e-t
 
 ### Connecting Itineraries
 
-For connecting itinerary searches, the Retail API calls `POST /v1/search` on the Offer MS **twice** — once for `origin → LHR` and once for `LHR → destination`. It pairs the results and applies a **60-minute minimum connect time (MCT)** filter at LHR before returning composite itinerary options to the channel. Each leg has its own `OfferId`; both are placed in the basket together. Holding, selling, and releasing inventory for a connecting itinerary requires two calls — one per leg. The Offer MS has no concept of multi-leg itineraries.
+For connecting itinerary searches, the Retail API calls `POST /v1/search` on the Offer MS **twice** — once for `origin → LHR` and once for `LHR → destination`. It pairs the results and applies a **60-minute minimum connect time (MCT)** filter at LHR before returning composite itinerary options to the channel. Each flight has its own `OfferId`; both are placed in the basket together. Holding, selling, and releasing inventory for a connecting itinerary requires two calls — one per flight. The Offer MS has no concept of multi-segment itineraries.
 
 ---
 
@@ -153,9 +153,9 @@ For connecting itinerary searches, the Retail API calls `POST /v1/search` on the
 
 ### POST /v1/search/slice
 
-Search for available direct flights for a single directional slice (outbound or inbound). Returns one offer per available fare per matching flight, each with a unique `OfferId`. Delegates to `POST /v1/search` on the Offer MS.
+Search for available flights for a single directional slice (outbound or inbound). Returns itineraries grouped by `segments`, each segment containing a `flights` array. Direct routes return one segment with one flight; connecting routes (via LHR) return two segments each with one flight. The backend detects whether a route is direct or connecting automatically.
 
-**When to use:** Called by the channel for each direction of a direct flight search. Outbound and inbound are searched independently. The Offer MS creates a stored offer snapshot per result, locking prices for 60 minutes.
+**When to use:** Called by the channel for each direction of a search. Outbound and inbound are searched independently. The Offer MS creates a stored offer snapshot per result, locking prices for 60 minutes.
 
 #### Request
 
@@ -181,36 +181,54 @@ Search for available direct flights for a single directional slice (outbound or 
 
 ```json
 {
-  "origin": "LHR",
-  "destination": "JFK",
-  "departureDate": "2026-08-15",
-  "offers": [
+  "itineraries": [
     {
-      "offerId": "9ab12345-6789-0abc-def0-123456789abc",
-      "flightNumber": "AX001",
-      "departureDate": "2026-08-15",
-      "departureTime": "09:30",
-      "arrivalTime": "13:45",
-      "arrivalDayOffset": 0,
-      "origin": "LHR",
-      "destination": "JFK",
-      "aircraftType": "A351",
-      "cabinCode": "J",
-      "fareBasisCode": "JFLEXGB",
-      "fareFamily": "Business Flex",
-      "currencyCode": "GBP",
-      "baseFareAmount": 2500.00,
-      "taxAmount": 450.00,
-      "totalAmount": 2950.00,
-      "isRefundable": true,
-      "isChangeable": true,
-      "changeFeeAmount": 0.00,
-      "cancellationFeeAmount": 0.00,
-      "pointsPrice": 75000,
-      "pointsTaxes": 450.00,
-      "bookingType": "Revenue",
-      "seatsAvailable": 28,
-      "expiresAt": "2026-03-21T15:30:00Z"
+      "segments": [
+        {
+          "flights": [
+            {
+              "sessionId": "a1b2c3d4-0000-0000-0000-000000000001",
+              "inventoryId": "f1e2d3c4-0000-0000-0000-000000000001",
+              "flightNumber": "AX001",
+              "origin": "LHR",
+              "destination": "JFK",
+              "departureDate": "2026-08-15",
+              "departureTime": "09:30",
+              "arrivalTime": "13:45",
+              "arrivalDayOffset": 0,
+              "durationMinutes": 435,
+              "aircraftType": "A351",
+              "cabins": [
+                {
+                  "cabinCode": "J",
+                  "availableSeats": 12,
+                  "fromPrice": 2950.00,
+                  "currency": "GBP",
+                  "fromPoints": 75000,
+                  "fareFamilies": [
+                    {
+                      "fareFamily": "Business Flex",
+                      "offer": {
+                        "offerId": "9ab12345-6789-0abc-def0-123456789abc",
+                        "fareBasisCode": "JFLEXGB",
+                        "basePrice": 2500.00,
+                        "tax": 450.00,
+                        "totalPrice": 2950.00,
+                        "currency": "GBP",
+                        "isRefundable": true,
+                        "isChangeable": true
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "connectionDurationMinutes": null,
+      "combinedFromPrice": 2950.00,
+      "currency": "GBP"
     }
   ]
 }
@@ -218,23 +236,24 @@ Search for available direct flights for a single directional slice (outbound or 
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `offers` | array | One entry per stored offer created. Empty array if no matching flights or fares |
-| `offers[].offerId` | string (UUID) | The `OfferId` to pass to the basket. Single-use, 60-minute TTL |
-| `offers[].flightNumber` | string | e.g. `AX001` |
-| `offers[].departureTime` | string (time) | Local departure time at origin |
-| `offers[].arrivalTime` | string (time) | Local arrival time at destination |
-| `offers[].arrivalDayOffset` | integer | `0` = same day; `1` = next day at destination |
-| `offers[].aircraftType` | string | 4-character aircraft type code |
-| `offers[].fareBasisCode` | string | Revenue management fare basis code |
-| `offers[].fareFamily` | string | Commercial fare family name |
-| `offers[].totalAmount` | number | Total price locked at search time |
-| `offers[].isRefundable` | boolean | Whether the fare permits refund on cancellation |
-| `offers[].isChangeable` | boolean | Whether the fare permits voluntary change |
-| `offers[].changeFeeAmount` | number | Fee charged on voluntary change. `0.00` for fully flexible or non-changeable fares |
-| `offers[].cancellationFeeAmount` | number | Fee deducted from refund on cancellation. `0.00` for fully refundable or non-refundable fares |
-| `offers[].pointsPrice` | integer | Points price for award bookings. `null` for revenue-only fares |
-| `offers[].pointsTaxes` | number | Cash taxes payable on award booking. `null` if `pointsPrice` is `null` |
-| `offers[].expiresAt` | string (datetime) | ISO 8601 UTC offer expiry — `now + 60 minutes` |
+| `itineraries` | array | One entry per bookable itinerary. Empty array if no flights found |
+| `itineraries[].segments` | array | One entry for a direct flight; two entries for a connecting flight via LHR |
+| `itineraries[].segments[].flights` | array | The flights operated on this segment |
+| `itineraries[].segments[].flights[].sessionId` | string (UUID) | Offer MS session ID — must be passed with `offerId` to basket creation |
+| `itineraries[].segments[].flights[].inventoryId` | string (UUID) | Inventory record ID for the flight |
+| `itineraries[].segments[].flights[].flightNumber` | string | e.g. `AX001` |
+| `itineraries[].segments[].flights[].departureTime` | string (time) | Local departure time at origin |
+| `itineraries[].segments[].flights[].arrivalTime` | string (time) | Local arrival time at destination |
+| `itineraries[].segments[].flights[].arrivalDayOffset` | integer | `0` = same day; `1` = next day at destination |
+| `itineraries[].segments[].flights[].durationMinutes` | integer | Block time in minutes |
+| `itineraries[].segments[].flights[].aircraftType` | string | 4-character aircraft type code |
+| `itineraries[].segments[].flights[].cabins[].cabinCode` | string | `F`, `J`, `W`, or `Y` |
+| `itineraries[].segments[].flights[].cabins[].fareFamilies[].offer.offerId` | string (UUID) | The `OfferId` to pass to basket creation. Single-use, 60-minute TTL |
+| `itineraries[].segments[].flights[].cabins[].fareFamilies[].offer.isRefundable` | boolean | Whether the fare permits refund on cancellation |
+| `itineraries[].segments[].flights[].cabins[].fareFamilies[].offer.isChangeable` | boolean | Whether the fare permits voluntary change |
+| `itineraries[].connectionDurationMinutes` | integer \| null | `null` for direct flights; layover minutes at LHR for connecting flights |
+| `itineraries[].combinedFromPrice` | number | Lowest total price across all cabins for this itinerary |
+| `itineraries[].currency` | string | Currency code for `combinedFromPrice` |
 
 #### Error Responses
 
@@ -246,7 +265,7 @@ Search for available direct flights for a single directional slice (outbound or 
 
 ### POST /v1/search/connecting
 
-Search for connecting itinerary options via the LHR hub. Assembles pairs of per-segment offers from the Offer MS, applies a 60-minute MCT at LHR, and returns combined itinerary options each carrying two `OfferId` values — one per leg.
+Search for connecting itinerary options via the LHR hub. Assembles pairs of per-flight offers from the Offer MS, applies a 60-minute MCT at LHR, and returns combined itinerary options each carrying two `OfferId` values — one per flight.
 
 **Orchestration:** Calls `POST /v1/search` on the Offer MS twice — `origin → LHR` and `LHR → destination`. Pairs results where the LHR → destination departure is ≥ 60 minutes after the origin → LHR arrival. Returns only valid pairs.
 
@@ -327,10 +346,10 @@ Search for connecting itinerary options via the LHR hub. Assembles pairs of per-
 | Field | Type | Description |
 |-------|------|-------------|
 | `itineraries` | array | One entry per valid connecting pair satisfying the 60-minute MCT |
-| `itineraries[].totalAmount` | number | Combined total price of both legs |
+| `itineraries[].totalAmount` | number | Combined total price of both flights |
 | `itineraries[].totalPointsPrice` | integer | Combined points price. `null` for revenue-only |
-| `itineraries[].legs` | array | Always exactly 2 entries: leg 1 (origin → LHR) and leg 2 (LHR → destination) |
-| `itineraries[].legs[].offerId` | string (UUID) | `OfferId` for this leg — pass both to `POST /v1/basket` |
+| `itineraries[].legs` | array | Always exactly 2 entries: flight 1 (origin → LHR) and flight 2 (LHR → destination) |
+| `itineraries[].legs[].offerId` | string (UUID) | `OfferId` for this flight — pass both to `POST /v1/basket` |
 
 #### Error Responses
 

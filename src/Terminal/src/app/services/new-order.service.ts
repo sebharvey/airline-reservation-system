@@ -58,7 +58,7 @@ interface ApiCabin {
   fareFamilies: ApiFareFamilyOffer[];
 }
 
-interface ApiLeg {
+interface ApiFlight {
   sessionId: string;
   inventoryId: string;
   flightNumber: string;
@@ -73,8 +73,12 @@ interface ApiLeg {
   cabins: ApiCabin[];
 }
 
+interface ApiSegment {
+  flights: ApiFlight[];
+}
+
 interface ApiItinerary {
-  legs: ApiLeg[];
+  segments: ApiSegment[];
   connectionDurationMinutes: number | null;
   combinedFromPrice: number;
   currency: string;
@@ -263,32 +267,34 @@ export class NewOrderService {
 
     const offers: SearchOffer[] = [];
     for (const itinerary of res.itineraries ?? []) {
-      for (const leg of itinerary.legs ?? []) {
-        for (const cabin of leg.cabins ?? []) {
-          for (const ff of cabin.fareFamilies ?? []) {
-            offers.push({
-              offerId: ff.offer.offerId,
-              sessionId: leg.sessionId,
-              flightNumber: leg.flightNumber,
-              departureDate: leg.departureDate,
-              departureTime: leg.departureTime,
-              arrivalTime: leg.arrivalTime,
-              arrivalDayOffset: leg.arrivalDayOffset,
-              durationMinutes: leg.durationMinutes,
-              origin: leg.origin,
-              destination: leg.destination,
-              aircraftType: leg.aircraftType,
-              cabinCode: cabin.cabinCode,
-              seatsAvailable: cabin.availableSeats,
-              fareFamily: ff.fareFamily,
-              fareBasisCode: ff.offer.fareBasisCode,
-              currencyCode: ff.offer.currency,
-              baseFareAmount: ff.offer.basePrice,
-              taxAmount: ff.offer.tax,
-              totalAmount: ff.offer.totalPrice,
-              isRefundable: ff.offer.isRefundable,
-              isChangeable: ff.offer.isChangeable,
-            });
+      for (const segment of itinerary.segments ?? []) {
+        for (const flight of segment.flights ?? []) {
+          for (const cabin of flight.cabins ?? []) {
+            for (const ff of cabin.fareFamilies ?? []) {
+              offers.push({
+                offerId: ff.offer.offerId,
+                sessionId: flight.sessionId,
+                flightNumber: flight.flightNumber,
+                departureDate: flight.departureDate,
+                departureTime: flight.departureTime,
+                arrivalTime: flight.arrivalTime,
+                arrivalDayOffset: flight.arrivalDayOffset,
+                durationMinutes: flight.durationMinutes,
+                origin: flight.origin,
+                destination: flight.destination,
+                aircraftType: flight.aircraftType,
+                cabinCode: cabin.cabinCode,
+                seatsAvailable: cabin.availableSeats,
+                fareFamily: ff.fareFamily,
+                fareBasisCode: ff.offer.fareBasisCode,
+                currencyCode: ff.offer.currency,
+                baseFareAmount: ff.offer.basePrice,
+                taxAmount: ff.offer.tax,
+                totalAmount: ff.offer.totalPrice,
+                isRefundable: ff.offer.isRefundable,
+                isChangeable: ff.offer.isChangeable,
+              });
+            }
           }
         }
       }

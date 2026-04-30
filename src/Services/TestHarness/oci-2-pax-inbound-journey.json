@@ -47,14 +47,14 @@
       },
       "chainsTo": [
         {
-          "path": "itineraries[0].legs[0].sessionId",
+          "path": "itineraries[0].segments[0].flights[0].sessionId",
           "as": "outboundSessionId",
           "usedInSteps": [
             3
           ]
         },
         {
-          "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId",
+          "randomArrayPath": "itineraries[*].segments[*].flights[*].cabins[*].fareFamilies[*].offer.offerId",
           "as": "outboundOfferId",
           "usedInSteps": [
             3
@@ -92,14 +92,14 @@
       },
       "chainsTo": [
         {
-          "path": "itineraries[0].legs[0].sessionId",
+          "path": "itineraries[0].segments[0].flights[0].sessionId",
           "as": "returnSessionId",
           "usedInSteps": [
             3
           ]
         },
         {
-          "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId",
+          "randomArrayPath": "itineraries[*].segments[*].flights[*].cabins[*].fareFamilies[*].offer.offerId",
           "as": "returnOfferId",
           "usedInSteps": [
             3

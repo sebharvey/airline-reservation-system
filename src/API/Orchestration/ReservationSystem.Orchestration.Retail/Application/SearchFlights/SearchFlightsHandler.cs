@@ -12,11 +12,11 @@ namespace ReservationSystem.Orchestration.Retail.Application.SearchFlights;
 ///
 /// Strategy:
 /// 1. Search the Offer MS for a direct flight on the requested origin → destination.
-/// 2. If direct flights are found, wrap each as a single-leg <see cref="SliceItinerary"/>.
+/// 2. If direct flights are found, wrap each as a single-segment <see cref="SliceItinerary"/>.
 /// 3. If no direct flights exist and neither endpoint is LHR, automatically fall back to
-///    a connecting search via LHR: search origin → LHR (leg 1) and LHR → destination
-///    (leg 2), pair legs that satisfy the 60-minute MCT, and wrap each valid pair as a
-///    two-leg <see cref="SliceItinerary"/>.
+///    a connecting search via LHR: search origin → LHR (segment 1) and LHR → destination
+///    (segment 2), pair segments that satisfy the 60-minute MCT, and wrap each valid pair
+///    as a two-segment <see cref="SliceItinerary"/>.
 /// 4. Return an empty itinerary list if neither strategy produces results.
 ///
 /// The Offer MS has no concept of multi-leg itineraries; all connecting assembly
@@ -78,20 +78,23 @@ public sealed class SearchFlightsHandler
 
             return new SliceItinerary
             {
-                Legs = [new SliceLeg
+                Segments = [new SliceSegment
                 {
-                    SessionId        = result.SessionId,
-                    InventoryId      = f.InventoryId,
-                    FlightNumber     = f.FlightNumber,
-                    Origin           = f.Origin,
-                    Destination      = f.Destination,
-                    DepartureDate    = f.DepartureDate,
-                    DepartureTime    = f.DepartureTime,
-                    ArrivalTime      = f.ArrivalTime,
-                    ArrivalDayOffset = f.ArrivalDayOffset,
-                    DurationMinutes  = f.DurationMinutes,
-                    AircraftType     = f.AircraftType,
-                    Cabins           = cabins
+                    Flights = [new SliceFlight
+                    {
+                        SessionId        = result.SessionId,
+                        InventoryId      = f.InventoryId,
+                        FlightNumber     = f.FlightNumber,
+                        Origin           = f.Origin,
+                        Destination      = f.Destination,
+                        DepartureDate    = f.DepartureDate,
+                        DepartureTime    = f.DepartureTime,
+                        ArrivalTime      = f.ArrivalTime,
+                        ArrivalDayOffset = f.ArrivalDayOffset,
+                        DurationMinutes  = f.DurationMinutes,
+                        AircraftType     = f.AircraftType,
+                        Cabins           = cabins
+                    }]
                 }],
                 ConnectionDurationMinutes = null,
                 CombinedFromPrice = cheapestPrice,
@@ -137,7 +140,7 @@ public sealed class SearchFlightsHandler
             .Zip(leg2ResultsArray)
             .ToDictionary(x => x.First, x => x.Second);
 
-        // Pair legs, applying MCT filter.
+        // Pair segments, applying MCT filter.
         var itineraries = new List<SliceItinerary>();
 
         foreach (var leg1Flight in leg1Result.Flights)
@@ -171,39 +174,45 @@ public sealed class SearchFlightsHandler
 
                 itineraries.Add(new SliceItinerary
                 {
-                    Legs =
+                    Segments =
                     [
-                        new SliceLeg
+                        new SliceSegment
                         {
-                            SessionId        = leg1Result.SessionId,
-                            InventoryId      = leg1Flight.InventoryId,
-                            FlightNumber     = leg1Flight.FlightNumber,
-                            Origin           = leg1Flight.Origin,
-                            Destination      = leg1Flight.Destination,
-                            DepartureDate    = !string.IsNullOrWhiteSpace(leg1Flight.DepartureDate)
-                                                   ? leg1Flight.DepartureDate
-                                                   : command.DepartureDate,
-                            DepartureTime    = leg1Flight.DepartureTime,
-                            ArrivalTime      = leg1Flight.ArrivalTime,
-                            ArrivalDayOffset = leg1Flight.ArrivalDayOffset,
-                            DurationMinutes  = leg1Flight.DurationMinutes,
-                            AircraftType     = leg1Flight.AircraftType,
-                            Cabins           = leg1Cabins
+                            Flights = [new SliceFlight
+                            {
+                                SessionId        = leg1Result.SessionId,
+                                InventoryId      = leg1Flight.InventoryId,
+                                FlightNumber     = leg1Flight.FlightNumber,
+                                Origin           = leg1Flight.Origin,
+                                Destination      = leg1Flight.Destination,
+                                DepartureDate    = !string.IsNullOrWhiteSpace(leg1Flight.DepartureDate)
+                                                       ? leg1Flight.DepartureDate
+                                                       : command.DepartureDate,
+                                DepartureTime    = leg1Flight.DepartureTime,
+                                ArrivalTime      = leg1Flight.ArrivalTime,
+                                ArrivalDayOffset = leg1Flight.ArrivalDayOffset,
+                                DurationMinutes  = leg1Flight.DurationMinutes,
+                                AircraftType     = leg1Flight.AircraftType,
+                                Cabins           = leg1Cabins
+                            }]
                         },
-                        new SliceLeg
+                        new SliceSegment
                         {
-                            SessionId        = leg2Search.SessionId,
-                            InventoryId      = leg2Flight.InventoryId,
-                            FlightNumber     = leg2Flight.FlightNumber,
-                            Origin           = leg2Flight.Origin,
-                            Destination      = leg2Flight.Destination,
-                            DepartureDate    = leg2DepartureDate,
-                            DepartureTime    = leg2Flight.DepartureTime,
-                            ArrivalTime      = leg2Flight.ArrivalTime,
-                            ArrivalDayOffset = leg2Flight.ArrivalDayOffset,
-                            DurationMinutes  = leg2Flight.DurationMinutes,
-                            AircraftType     = leg2Flight.AircraftType,
-                            Cabins           = leg2Cabins
+                            Flights = [new SliceFlight
+                            {
+                                SessionId        = leg2Search.SessionId,
+                                InventoryId      = leg2Flight.InventoryId,
+                                FlightNumber     = leg2Flight.FlightNumber,
+                                Origin           = leg2Flight.Origin,
+                                Destination      = leg2Flight.Destination,
+                                DepartureDate    = leg2DepartureDate,
+                                DepartureTime    = leg2Flight.DepartureTime,
+                                ArrivalTime      = leg2Flight.ArrivalTime,
+                                ArrivalDayOffset = leg2Flight.ArrivalDayOffset,
+                                DurationMinutes  = leg2Flight.DurationMinutes,
+                                AircraftType     = leg2Flight.AircraftType,
+                                Cabins           = leg2Cabins
+                            }]
                         }
                     ],
                     ConnectionDurationMinutes = connectionMins,

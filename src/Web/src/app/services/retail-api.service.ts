@@ -191,7 +191,8 @@ export interface OciRetrieveParams extends RetrieveOrderParams {
 
 // ---- Live API response shape from POST /api/v1/search/slice ----
 // The endpoint returns a unified itinerary list.  Direct flights have a single
-// entry in legs[]; connecting itineraries (via LHR) have two.
+// segment with one flight; connecting itineraries (via LHR) have two segments
+// each with one flight.
 
 interface SliceApiOffer {
   offerId: string;
@@ -218,7 +219,7 @@ interface SliceApiCabin {
   fareFamilies: SliceApiFareFamily[];
 }
 
-interface SliceApiLeg {
+interface SliceApiFlight {
   sessionId: string;
   inventoryId: string;
   flightNumber: string;
@@ -233,8 +234,12 @@ interface SliceApiLeg {
   cabins: SliceApiCabin[];
 }
 
+interface SliceApiSegment {
+  flights: SliceApiFlight[];
+}
+
 interface SliceApiItinerary {
-  legs: SliceApiLeg[];
+  segments: SliceApiSegment[];
   connectionDurationMinutes: number | null;
   combinedFromPrice: number;
   currency: string;
@@ -259,16 +264,16 @@ export interface SearchSliceResult {
   offers: FlightOffer[];
 }
 
-/** Compute the ISO arrival datetime string for a leg, accounting for arrivalDayOffset. */
-function legArrivalDateTime(leg: SliceApiLeg): string {
-  const [y, m, d] = leg.departureDate.split('-').map(Number);
-  const arrival = new Date(Date.UTC(y, m - 1, d + (leg.arrivalDayOffset ?? 0)));
-  return `${arrival.toISOString().slice(0, 10)}T${leg.arrivalTime}:00`;
+/** Compute the ISO arrival datetime string for a flight, accounting for arrivalDayOffset. */
+function flightArrivalDateTime(flight: SliceApiFlight): string {
+  const [y, m, d] = flight.departureDate.split('-').map(Number);
+  const arrival = new Date(Date.UTC(y, m - 1, d + (flight.arrivalDayOffset ?? 0)));
+  return `${arrival.toISOString().slice(0, 10)}T${flight.arrivalTime}:00`;
 }
 
-/** Build a single-leg FlightOffer for basket-state storage (one physical segment). */
+/** Build a single-flight FlightOffer for basket-state storage (one physical segment). */
 function buildLegOffer(
-  leg: SliceApiLeg,
+  leg: SliceApiFlight,
   cabin: SliceApiCabin,
   family: SliceApiFareFamily
 ): FlightOffer {
@@ -280,7 +285,7 @@ function buildLegOffer(
     origin: leg.origin,
     destination: leg.destination,
     departureDateTime: `${leg.departureDate}T${leg.departureTime}:00`,
-    arrivalDateTime: legArrivalDateTime(leg),
+    arrivalDateTime: flightArrivalDateTime(leg),
     aircraftType: leg.aircraftType,
     cabinCode: cabin.cabinCode as CabinCode,
     cabinName: CABIN_NAMES[cabin.cabinCode] ?? cabin.cabinCode,
@@ -304,31 +309,31 @@ function mapApiResponseToResult(response: SliceSearchApiResponse): SearchSliceRe
   const offers: FlightOffer[] = [];
 
   for (const itinerary of response.itineraries) {
-    if (itinerary.legs.length === 1) {
+    if (itinerary.segments.length === 1) {
       // ── Direct flight ──────────────────────────────────────────────────────
-      const leg = itinerary.legs[0];
-      for (const cabin of leg.cabins) {
+      const flight = itinerary.segments[0].flights[0];
+      for (const cabin of flight.cabins) {
         for (const family of cabin.fareFamilies) {
           offers.push({
-            ...buildLegOffer(leg, cabin, family),
+            ...buildLegOffer(flight, cabin, family),
             isConnecting: false
           });
         }
       }
-    } else if (itinerary.legs.length === 2) {
-      // ── Connecting flight (two legs via LHR) ───────────────────────────────
-      const leg1 = itinerary.legs[0];
-      const leg2 = itinerary.legs[1];
+    } else if (itinerary.segments.length === 2) {
+      // ── Connecting flight (two segments via LHR) ───────────────────────────
+      const flight1 = itinerary.segments[0].flights[0];
+      const flight2 = itinerary.segments[1].flights[0];
 
-      // For each cabin available on leg 1, find the matching cabin on leg 2 and
-      // create one combined FlightOffer per cabin.  Fare families within each cabin
-      // are paired by matching name; unmatched families use the cheapest available.
-      for (const cabin1 of leg1.cabins) {
-        const cabin2 = leg2.cabins.find(c => c.cabinCode === cabin1.cabinCode);
+      // For each cabin available on segment 1, find the matching cabin on segment 2
+      // and create one combined FlightOffer per cabin.  Fare families within each
+      // cabin are paired by matching name; unmatched families use the cheapest available.
+      for (const cabin1 of flight1.cabins) {
+        const cabin2 = flight2.cabins.find(c => c.cabinCode === cabin1.cabinCode);
         if (!cabin2) continue;
 
-        // Pair fare families by name where possible; fall back to cheapest leg-2
-        // fare for any leg-1 family that has no name match on leg 2.
+        // Pair fare families by name where possible; fall back to cheapest segment-2
+        // fare for any segment-1 family that has no name match on segment 2.
         const cheapestFamily2 = cabin2.fareFamilies.reduce((min, f) =>
           f.offer.totalPrice < min.offer.totalPrice ? f : min);
 
@@ -336,25 +341,25 @@ function mapApiResponseToResult(response: SliceSearchApiResponse): SearchSliceRe
           const family2 = cabin2.fareFamilies.find(f => f.fareFamily === family1.fareFamily)
             ?? cheapestFamily2;
 
-          // Per-leg FlightOffer objects stored in bookingState (one segment each).
-          const legOffer1 = buildLegOffer(leg1, cabin1, family1);
-          const legOffer2 = buildLegOffer(leg2, cabin2, family2);
+          // Per-flight FlightOffer objects stored in bookingState (one segment each).
+          const legOffer1 = buildLegOffer(flight1, cabin1, family1);
+          const legOffer2 = buildLegOffer(flight2, cabin2, family2);
 
           offers.push({
-            // Primary identifiers use leg 1 values; segments contains both.
+            // Primary identifiers use segment 1 values; segments contains both.
             offerId: family1.offer.offerId,
-            inventoryId: leg1.inventoryId,
+            inventoryId: flight1.inventoryId,
             segments: [
-              { offerId: family1.offer.offerId, sessionId: leg1.sessionId },
-              { offerId: family2.offer.offerId, sessionId: leg2.sessionId }
+              { offerId: family1.offer.offerId, sessionId: flight1.sessionId },
+              { offerId: family2.offer.offerId, sessionId: flight2.sessionId }
             ],
             // Display shows itinerary endpoints.
-            flightNumber: `${leg1.flightNumber} / ${leg2.flightNumber}`,
-            origin: leg1.origin,
-            destination: leg2.destination,
-            departureDateTime: `${leg1.departureDate}T${leg1.departureTime}:00`,
-            arrivalDateTime: legArrivalDateTime(leg2),
-            aircraftType: leg1.aircraftType,
+            flightNumber: `${flight1.flightNumber} / ${flight2.flightNumber}`,
+            origin: flight1.origin,
+            destination: flight2.destination,
+            departureDateTime: `${flight1.departureDate}T${flight1.departureTime}:00`,
+            arrivalDateTime: flightArrivalDateTime(flight2),
+            aircraftType: flight1.aircraftType,
             cabinCode: cabin1.cabinCode as CabinCode,
             cabinName: CABIN_NAMES[cabin1.cabinCode] ?? cabin1.cabinCode,
             fareFamily: family1.fareFamily,
@@ -367,7 +372,7 @@ function mapApiResponseToResult(response: SliceSearchApiResponse): SearchSliceRe
             totalPrice: family1.offer.totalPrice + family2.offer.totalPrice,
             currency: family1.offer.currency,
             seatsAvailable: Math.min(cabin1.availableSeats, cabin2.availableSeats),
-            durationMinutes: leg1.durationMinutes + (itinerary.connectionDurationMinutes ?? 0) + leg2.durationMinutes,
+            durationMinutes: flight1.durationMinutes + (itinerary.connectionDurationMinutes ?? 0) + flight2.durationMinutes,
             pointsPrice: (cabin1.fromPoints != null && cabin2.fromPoints != null)
               ? cabin1.fromPoints + cabin2.fromPoints : undefined,
             pointsTaxes: undefined,
@@ -375,20 +380,20 @@ function mapApiResponseToResult(response: SliceSearchApiResponse): SearchSliceRe
             connectionDurationMinutes: itinerary.connectionDurationMinutes ?? undefined,
             connectingLegs: [
               {
-                flightNumber: leg1.flightNumber,
-                origin: leg1.origin,
-                destination: leg1.destination,
-                departureDateTime: `${leg1.departureDate}T${leg1.departureTime}:00`,
-                arrivalDateTime: legArrivalDateTime(leg1),
-                aircraftType: leg1.aircraftType
+                flightNumber: flight1.flightNumber,
+                origin: flight1.origin,
+                destination: flight1.destination,
+                departureDateTime: `${flight1.departureDate}T${flight1.departureTime}:00`,
+                arrivalDateTime: flightArrivalDateTime(flight1),
+                aircraftType: flight1.aircraftType
               },
               {
-                flightNumber: leg2.flightNumber,
-                origin: leg2.origin,
-                destination: leg2.destination,
-                departureDateTime: `${leg2.departureDate}T${leg2.departureTime}:00`,
-                arrivalDateTime: legArrivalDateTime(leg2),
-                aircraftType: leg2.aircraftType
+                flightNumber: flight2.flightNumber,
+                origin: flight2.origin,
+                destination: flight2.destination,
+                departureDateTime: `${flight2.departureDate}T${flight2.departureTime}:00`,
+                arrivalDateTime: flightArrivalDateTime(flight2),
+                aircraftType: flight2.aircraftType
               }
             ],
             allLegs: [legOffer1, legOffer2]
