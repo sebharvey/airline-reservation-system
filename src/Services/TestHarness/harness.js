@@ -256,16 +256,18 @@
         const assertResults = evaluateAssertions(step.expected.assertions, liveBody);
         const passed        = statusMatch && assertResults.every(r => r.pass);
         const logEntry = {
-            step:           step.step,
-            name:           step.name,
-            method:         api.method,
+            step:               step.step,
+            name:               step.name,
+            method:             api.method,
             url,
-            requestHeaders: { ...fetchOpts.headers },
+            requestHeaders:     { ...fetchOpts.headers },
             requestBody,
-            status:         liveStatus,
-            responseBody:   liveBody,
-            error:          liveError || null,
+            status:             liveStatus,
+            responseBody:       liveBody,
+            error:              liveError || null,
             durationMs,
+            assertionResults:   assertResults,
+            expectedStatusCode: step.expected.statusCode,
         };
         return { passed, liveStatus, liveBody, liveError, durationMs, responseSizeBytes, statusMatch, assertionResults: assertResults, url, logEntry };
     }
@@ -900,9 +902,9 @@
             }
             if (result.liveBody !== null && result.liveBody !== undefined) {
                 if (typeof result.liveBody === 'object') {
-                    html += '<div class="json-block">' + syntaxHighlight(result.liveBody, null, step.chainsTo) + '</div>';
+                    html += '<div class="response-copy-wrapper"><div class="json-block">' + syntaxHighlight(result.liveBody, null, step.chainsTo) + '</div><button class="btn-copy-response" id="btnCopyResponse" title="Copy response to clipboard">&#x1F4CB;</button></div>';
                 } else {
-                    html += '<div class="json-block">' + esc(String(result.liveBody)) + '</div>';
+                    html += '<div class="response-copy-wrapper"><div class="json-block">' + esc(String(result.liveBody)) + '</div><button class="btn-copy-response" id="btnCopyResponse" title="Copy response to clipboard">&#x1F4CB;</button></div>';
                 }
             } else if (!result.liveError) {
                 html += '<div class="no-body">No response body</div>';
@@ -922,6 +924,23 @@
         }
 
         modalBody.innerHTML = html;
+
+        const btnCopyResponse = modalBody.querySelector('#btnCopyResponse');
+        if (btnCopyResponse && result && result.liveBody !== null && result.liveBody !== undefined) {
+            const responseText = typeof result.liveBody === 'object'
+                ? JSON.stringify(result.liveBody, null, 2)
+                : String(result.liveBody);
+            btnCopyResponse.addEventListener('click', async e => {
+                e.stopPropagation();
+                await copyToClipboard(responseText);
+                btnCopyResponse.textContent = '✓';
+                btnCopyResponse.classList.add('copied');
+                setTimeout(() => {
+                    btnCopyResponse.textContent = '📋';
+                    btnCopyResponse.classList.remove('copied');
+                }, 2000);
+            });
+        }
 
         modalBody.querySelectorAll('.assertion-copy-btn').forEach(btn => {
             btn.addEventListener('click', async e => {
@@ -1313,7 +1332,17 @@
         showStepRunning(ref);
         const { liveStatus, liveBody, liveError, durationMs, responseSizeBytes } = await fetchAndParse(url, fetchOpts);
 
-        // Log this interaction
+        // Store chained values from response
+        extractChainsFromResponse(step.chainsTo, liveBody, liveChain, runtimeVars.paxCount);
+
+        // Resolve path parameter chains for subsequent steps
+        resolvePathParamChains(step, currentSteps, liveChain);
+
+        // Determine pass/fail
+        const statusMatch = liveStatus === step.expected.statusCode;
+        const assertionResults = evaluateAssertions(step.expected.assertions, liveBody);
+
+        // Log this interaction (after assertions so results are included)
         logInteraction({
             step: step.step,
             name: step.name,
@@ -1324,20 +1353,12 @@
             status: liveStatus,
             responseBody: liveBody,
             error: liveError || null,
-            durationMs: durationMs
+            durationMs: durationMs,
+            assertionResults: assertionResults,
+            expectedStatusCode: step.expected.statusCode
         });
         btnCopyLogs.disabled = false;
         btnViewLogs.disabled = false;
-
-        // Store chained values from response
-        extractChainsFromResponse(step.chainsTo, liveBody, liveChain, runtimeVars.paxCount);
-
-        // Resolve path parameter chains for subsequent steps
-        resolvePathParamChains(step, currentSteps, liveChain);
-
-        // Determine pass/fail
-        const statusMatch = liveStatus === step.expected.statusCode;
-        const assertionResults = evaluateAssertions(step.expected.assertions, liveBody);
         const passed = statusMatch && assertionResults.every(r => r.pass);
         row.classList.remove('step-running', 'step-positive', 'step-negative', 'result-pass', 'result-fail');
         row.classList.add(passed ? 'result-pass' : 'result-fail');
@@ -1780,6 +1801,10 @@
             if (entry.durationMs !== null && entry.durationMs !== undefined) {
                 lines.push('  Time:   ' + entry.durationMs + ' ms');
             }
+            if (entry.expectedStatusCode !== undefined) {
+                const statusMatch = entry.status === entry.expectedStatusCode;
+                lines.push('  Result: ' + (statusMatch ? 'PASS' : 'FAIL (expected ' + entry.expectedStatusCode + ')'));
+            }
             lines.push('');
             if (entry.responseBody !== null && entry.responseBody !== undefined) {
                 lines.push('  Body:');
@@ -1787,6 +1812,15 @@
             } else {
                 lines.push('  Body: (none)');
             }
+        }
+        if (entry.assertionResults && entry.assertionResults.length) {
+            lines.push('');
+            lines.push('ASSERTIONS');
+            entry.assertionResults.forEach(a => {
+                const status = a.pass ? 'PASS' : 'FAIL';
+                const detail = a.pass ? '' : ' (expected: ' + a.expected + ', got: ' + a.actual + ')';
+                lines.push('  [' + status + '] ' + a.description + detail);
+            });
         }
         return lines.join('\n');
     }
