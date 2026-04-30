@@ -192,9 +192,19 @@
   border-color: rgba(63, 185, 80, 0.45);
 }
 
+.pax-list-item.status-checked-in.selected {
+  background: rgba(63, 185, 80, 0.18);
+  border-color: rgba(63, 185, 80, 0.85);
+}
+
 .pax-list-item.status-failed {
   background: rgba(248, 81, 73, 0.08);
   border-color: rgba(248, 81, 73, 0.45);
+}
+
+.pax-list-item.status-failed.selected {
+  background: rgba(248, 81, 73, 0.18);
+  border-color: rgba(248, 81, 73, 0.85);
 }
 
 .pax-list-info {
