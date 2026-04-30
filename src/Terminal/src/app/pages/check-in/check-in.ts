@@ -11,6 +11,7 @@ import {
 interface PaxFormData {
   passengerId: string;
   ticketNumber: string;
+  segmentIds: number[];
   givenName: string;
   surname: string;
   passengerTypeCode: string;
@@ -59,7 +60,6 @@ export class CheckInComponent {
   selectedPaxIndex = signal<number | null>(null);
   checkingInIndex = signal<number | null>(null);
   checkInResult = signal<CheckInResult | null>(null);
-  selectedSegmentIds = signal<number[]>([]);
 
   scanning = signal(false);
 
@@ -110,15 +110,13 @@ export class CheckInComponent {
     if (!allNotes?.length) return [];
 
     const paxIdInt = this.#parsePaxIdInt(pax.passengerId);
-    const ticketNumber = pax.ticketNumber;
-    const segmentIds = this.selectedSegmentIds();
+    const { segmentIds } = pax;
 
     return allNotes
       .filter(n => {
         if (n.type !== 'OCI') return false;
-        if (paxIdInt !== null && n.paxId !== undefined && n.paxId !== paxIdInt) return false;
-        if (segmentIds.length > 0 && n.segmentId !== undefined && !segmentIds.includes(n.segmentId)) return false;
-        if (ticketNumber && !n.message.includes(ticketNumber)) return false;
+        if (n.paxId !== undefined && n.paxId !== paxIdInt) return false;
+        if (n.segmentId !== undefined && !segmentIds.includes(n.segmentId)) return false;
         return true;
       })
       .slice()
@@ -176,13 +174,6 @@ export class CheckInComponent {
     const lookupResult = this.booking();
     if (!lookupResult) return;
 
-    const segments = lookupResult.orderDetail.orderData?.dataLists?.flightSegments ?? [];
-    const matchingIds = segments
-      .filter(s => s.origin === airport)
-      .map(s => parseInt(s.segmentId, 10))
-      .filter(id => !isNaN(id));
-    this.selectedSegmentIds.set(matchingIds);
-
     const passengers = this.#svc.extractPassengers(
       lookupResult.orderDetail,
       lookupResult.tickets,
@@ -197,6 +188,7 @@ export class CheckInComponent {
       passengers.map(p => ({
         passengerId: p.passengerId,
         ticketNumber: p.ticketNumber,
+        segmentIds: p.segmentIds,
         givenName: p.givenName,
         surname: p.surname,
         passengerTypeCode: p.passengerTypeCode,
@@ -368,7 +360,6 @@ export class CheckInComponent {
     this.selectedPaxIndex.set(null);
     this.departureAirports.set([]);
     this.departureAirport.set('');
-    this.selectedSegmentIds.set([]);
     this.bookingRef.set('');
     this.eTicketNumber.set('');
     this.searchMode.set('bookingRef');

@@ -57,6 +57,7 @@ export interface LookupResponse {
 export interface CheckInPaxEntry {
   passengerId: string;
   ticketNumber: string;
+  segmentIds: number[];
   givenName: string;
   surname: string;
   passengerTypeCode: string;
@@ -166,6 +167,7 @@ export class CheckInService {
     );
 
     const ticketByPaxId = new Map<string, string>();
+    const segmentIdsByPaxId = new Map<string, number[]>();
     for (const item of orderData.orderItems ?? []) {
       if (
         item.itemType === 'Flight' &&
@@ -175,6 +177,12 @@ export class CheckInService {
         matchingSegmentIds.has(item.segmentId)
       ) {
         ticketByPaxId.set(item.passengerId, item.eTicketNumber);
+        const segId = parseInt(item.segmentId, 10);
+        if (!isNaN(segId)) {
+          const existing = segmentIdsByPaxId.get(item.passengerId) ?? [];
+          existing.push(segId);
+          segmentIdsByPaxId.set(item.passengerId, existing);
+        }
       }
     }
 
@@ -202,6 +210,7 @@ export class CheckInService {
         return {
           passengerId: p.passengerId,
           ticketNumber,
+          segmentIds: segmentIdsByPaxId.get(p.passengerId) ?? [],
           givenName: p.givenName,
           surname: p.surname,
           passengerTypeCode: p.passengerTypeCode,
