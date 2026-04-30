@@ -1,13 +1,18 @@
 {
   "journey": {
     "name": "Bookflow \u2014 search, basket, seats, bags & SSR",
-    "description": "End-to-end booking journey via the Retail API: outbound flight search, return flight search, basket creation, passenger entry, seat selection, bag selection, and payment confirmation.",
-    "domain": "Retail",
+    "description": "End-to-end booking journey via the Retail and Operations APIs: outbound flight search, return flight search, basket creation, passenger entry, seat selection, bag selection, payment confirmation, and online check-in for both the outbound (LHR) and inbound (JFK) flights.",
+    "domain": "Retail / Operations",
     "baseUrls": [
       {
         "id": "retail",
         "label": "Retail API",
         "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "operations",
+        "label": "Operations API",
+        "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
       }
     ]
   },
@@ -1643,7 +1648,17 @@
         {
           "field": "bookingReference",
           "usedInSteps": [
-            16
+            16,
+            18,
+            19,
+            20,
+            21,
+            22,
+            24,
+            25,
+            26,
+            27,
+            28
           ]
         }
       ]
@@ -1773,6 +1788,804 @@
             "field": "orderItems[*].eTickets[*].eTicketNumber",
             "assertion": "present",
             "description": "Every flight order item must reference non-empty e-ticket numbers."
+          }
+        ]
+      }
+    },
+    {
+      "step": 18,
+      "name": "Outbound OCI — Retrieve booking for check-in",
+      "description": "Look up the booking by reference, lead passenger name, and departure airport (LHR) to open the outbound check-in session. Returns the list of passengers with ticket numbers. Ticket numbers and passenger IDs are chained to the passport submission, complete check-in, and boarding card steps.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/retrieve",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      },
+      "chainsTo": [
+        {
+          "path": "passengers[0].ticketNumber",
+          "as": "ociOutboundTicketNumber",
+          "usedInSteps": [19, 22, 23]
+        },
+        {
+          "path": "passengers[0].passengerId",
+          "as": "ociOutboundPassengerId",
+          "usedInSteps": [19, 22]
+        },
+        {
+          "path": "passengers[1].ticketNumber",
+          "as": "ociOutboundTicketNumber2",
+          "usedInSteps": [19, 22, 23]
+        },
+        {
+          "path": "passengers[1].passengerId",
+          "as": "ociOutboundPassengerId2",
+          "usedInSteps": [19, 22]
+        },
+        {
+          "path": "passengers[2].ticketNumber",
+          "as": "ociOutboundTicketNumber3",
+          "usedInSteps": [19, 22, 23]
+        },
+        {
+          "path": "passengers[2].passengerId",
+          "as": "ociOutboundPassengerId3",
+          "usedInSteps": [19, 22]
+        },
+        {
+          "path": "passengers[3].ticketNumber",
+          "as": "ociOutboundTicketNumber4",
+          "usedInSteps": [19, 22, 23]
+        },
+        {
+          "path": "passengers[3].passengerId",
+          "as": "ociOutboundPassengerId4",
+          "usedInSteps": [19, 22]
+        },
+        {
+          "path": "passengers[4].ticketNumber",
+          "as": "ociOutboundTicketNumber5",
+          "usedInSteps": [19, 22, 23]
+        },
+        {
+          "path": "passengers[4].passengerId",
+          "as": "ociOutboundPassengerId5",
+          "usedInSteps": [19, 22]
+        },
+        {
+          "path": "passengers[5].ticketNumber",
+          "as": "ociOutboundTicketNumber6",
+          "usedInSteps": [19, 22, 23]
+        },
+        {
+          "path": "passengers[5].passengerId",
+          "as": "ociOutboundPassengerId6",
+          "usedInSteps": [19, 22]
+        }
+      ]
+    },
+    {
+      "step": 19,
+      "name": "Outbound OCI — Submit passport details",
+      "description": "Submit travel document data for each passenger ahead of outbound check-in. Ticket numbers are chained from the retrieve step. Entries for PAX-2 through PAX-6 are included only when the booking holds that many passengers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/pax",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "passengers": [
+            {
+              "ticketNumber": "__CHAIN_ociOutboundTicketNumber__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA1234567",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2019-06-01",
+                "expiryDate": "2030-01-01"
+              }
+            },
+            {
+              "__PAX_MIN__": 2,
+              "ticketNumber": "__CHAIN_ociOutboundTicketNumber2__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA2345678",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2020-03-15",
+                "expiryDate": "2031-03-15"
+              }
+            },
+            {
+              "__PAX_MIN__": 3,
+              "ticketNumber": "__CHAIN_ociOutboundTicketNumber3__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA3456789",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2021-07-20",
+                "expiryDate": "2032-07-20"
+              }
+            },
+            {
+              "__PAX_MIN__": 4,
+              "ticketNumber": "__CHAIN_ociOutboundTicketNumber4__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA4567890",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2018-11-05",
+                "expiryDate": "2029-11-05"
+              }
+            },
+            {
+              "__PAX_MIN__": 5,
+              "ticketNumber": "__CHAIN_ociOutboundTicketNumber5__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA5678901",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2022-04-10",
+                "expiryDate": "2033-04-10"
+              }
+            },
+            {
+              "__PAX_MIN__": 6,
+              "ticketNumber": "__CHAIN_ociOutboundTicketNumber6__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA6789012",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2023-09-01",
+                "expiryDate": "2034-09-01"
+              }
+            }
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          },
+          {
+            "field": "passengers[0].ticketNumber",
+            "from": "ociOutboundTicketNumber",
+            "source": "Step 18 → passengers[0].ticketNumber"
+          },
+          {
+            "field": "passengers[1].ticketNumber",
+            "from": "ociOutboundTicketNumber2",
+            "source": "Step 18 → passengers[1].ticketNumber"
+          },
+          {
+            "field": "passengers[2].ticketNumber",
+            "from": "ociOutboundTicketNumber3",
+            "source": "Step 18 → passengers[2].ticketNumber"
+          },
+          {
+            "field": "passengers[3].ticketNumber",
+            "from": "ociOutboundTicketNumber4",
+            "source": "Step 18 → passengers[3].ticketNumber"
+          },
+          {
+            "field": "passengers[4].ticketNumber",
+            "from": "ociOutboundTicketNumber5",
+            "source": "Step 18 → passengers[4].ticketNumber"
+          },
+          {
+            "field": "passengers[5].ticketNumber",
+            "from": "ociOutboundTicketNumber6",
+            "source": "Step 18 → passengers[5].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 20,
+      "name": "Outbound OCI — Seat selection",
+      "description": "Submit seat selection for the outbound flight during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/seats",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 21,
+      "name": "Outbound OCI — Baggage selection",
+      "description": "Submit baggage selection for the outbound flight during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/bags",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 22,
+      "name": "Outbound OCI — Complete check-in",
+      "description": "Final outbound check-in submission for departure from LHR. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each outbound ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/checkin",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 23,
+      "name": "Outbound OCI — Generate boarding cards",
+      "description": "Request boarding documents for all checked-in outbound tickets departing from LHR. Ticket numbers are chained from the retrieve step; PAX-2 through PAX-6 entries are added by the data chain only when those passengers exist. Returns an array of BCBP-compliant boarding cards — one per passenger.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/boarding-docs",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "departureAirport": "LHR",
+          "ticketNumbers": [
+            "__CHAIN_ociOutboundTicketNumber__"
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "ticketNumbers[0]",
+            "from": "ociOutboundTicketNumber",
+            "source": "Step 18 → passengers[0].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[1]",
+            "from": "ociOutboundTicketNumber2",
+            "source": "Step 18 → passengers[1].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[2]",
+            "from": "ociOutboundTicketNumber3",
+            "source": "Step 18 → passengers[2].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[3]",
+            "from": "ociOutboundTicketNumber4",
+            "source": "Step 18 → passengers[3].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[4]",
+            "from": "ociOutboundTicketNumber5",
+            "source": "Step 18 → passengers[4].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[5]",
+            "from": "ociOutboundTicketNumber6",
+            "source": "Step 18 → passengers[5].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "boardingCards",
+            "assertion": "count",
+            "expected": "__RAND_PAX_COUNT__",
+            "description": "One outbound boarding card must be generated per passenger."
+          }
+        ]
+      }
+    },
+    {
+      "step": 24,
+      "name": "Inbound OCI — Retrieve booking for check-in",
+      "description": "Look up the booking by reference, lead passenger name, and departure airport (JFK) to open the inbound check-in session. Returns the list of passengers with ticket numbers. Ticket numbers and passenger IDs are chained to the passport submission, complete check-in, and boarding card steps.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/retrieve",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      },
+      "chainsTo": [
+        {
+          "path": "passengers[0].ticketNumber",
+          "as": "ociInboundTicketNumber",
+          "usedInSteps": [25, 28, 29]
+        },
+        {
+          "path": "passengers[0].passengerId",
+          "as": "ociInboundPassengerId",
+          "usedInSteps": [25, 28]
+        },
+        {
+          "path": "passengers[1].ticketNumber",
+          "as": "ociInboundTicketNumber2",
+          "usedInSteps": [25, 28, 29]
+        },
+        {
+          "path": "passengers[1].passengerId",
+          "as": "ociInboundPassengerId2",
+          "usedInSteps": [25, 28]
+        },
+        {
+          "path": "passengers[2].ticketNumber",
+          "as": "ociInboundTicketNumber3",
+          "usedInSteps": [25, 28, 29]
+        },
+        {
+          "path": "passengers[2].passengerId",
+          "as": "ociInboundPassengerId3",
+          "usedInSteps": [25, 28]
+        },
+        {
+          "path": "passengers[3].ticketNumber",
+          "as": "ociInboundTicketNumber4",
+          "usedInSteps": [25, 28, 29]
+        },
+        {
+          "path": "passengers[3].passengerId",
+          "as": "ociInboundPassengerId4",
+          "usedInSteps": [25, 28]
+        },
+        {
+          "path": "passengers[4].ticketNumber",
+          "as": "ociInboundTicketNumber5",
+          "usedInSteps": [25, 28, 29]
+        },
+        {
+          "path": "passengers[4].passengerId",
+          "as": "ociInboundPassengerId5",
+          "usedInSteps": [25, 28]
+        },
+        {
+          "path": "passengers[5].ticketNumber",
+          "as": "ociInboundTicketNumber6",
+          "usedInSteps": [25, 28, 29]
+        },
+        {
+          "path": "passengers[5].passengerId",
+          "as": "ociInboundPassengerId6",
+          "usedInSteps": [25, 28]
+        }
+      ]
+    },
+    {
+      "step": 25,
+      "name": "Inbound OCI — Submit passport details",
+      "description": "Submit travel document data for each passenger ahead of inbound check-in. Ticket numbers are chained from the inbound retrieve step. Entries for PAX-2 through PAX-6 are included only when the booking holds that many passengers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/pax",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "passengers": [
+            {
+              "ticketNumber": "__CHAIN_ociInboundTicketNumber__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA1234567",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2019-06-01",
+                "expiryDate": "2030-01-01"
+              }
+            },
+            {
+              "__PAX_MIN__": 2,
+              "ticketNumber": "__CHAIN_ociInboundTicketNumber2__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA2345678",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2020-03-15",
+                "expiryDate": "2031-03-15"
+              }
+            },
+            {
+              "__PAX_MIN__": 3,
+              "ticketNumber": "__CHAIN_ociInboundTicketNumber3__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA3456789",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2021-07-20",
+                "expiryDate": "2032-07-20"
+              }
+            },
+            {
+              "__PAX_MIN__": 4,
+              "ticketNumber": "__CHAIN_ociInboundTicketNumber4__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA4567890",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2018-11-05",
+                "expiryDate": "2029-11-05"
+              }
+            },
+            {
+              "__PAX_MIN__": 5,
+              "ticketNumber": "__CHAIN_ociInboundTicketNumber5__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA5678901",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2022-04-10",
+                "expiryDate": "2033-04-10"
+              }
+            },
+            {
+              "__PAX_MIN__": 6,
+              "ticketNumber": "__CHAIN_ociInboundTicketNumber6__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA6789012",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2023-09-01",
+                "expiryDate": "2034-09-01"
+              }
+            }
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          },
+          {
+            "field": "passengers[0].ticketNumber",
+            "from": "ociInboundTicketNumber",
+            "source": "Step 24 → passengers[0].ticketNumber"
+          },
+          {
+            "field": "passengers[1].ticketNumber",
+            "from": "ociInboundTicketNumber2",
+            "source": "Step 24 → passengers[1].ticketNumber"
+          },
+          {
+            "field": "passengers[2].ticketNumber",
+            "from": "ociInboundTicketNumber3",
+            "source": "Step 24 → passengers[2].ticketNumber"
+          },
+          {
+            "field": "passengers[3].ticketNumber",
+            "from": "ociInboundTicketNumber4",
+            "source": "Step 24 → passengers[3].ticketNumber"
+          },
+          {
+            "field": "passengers[4].ticketNumber",
+            "from": "ociInboundTicketNumber5",
+            "source": "Step 24 → passengers[4].ticketNumber"
+          },
+          {
+            "field": "passengers[5].ticketNumber",
+            "from": "ociInboundTicketNumber6",
+            "source": "Step 24 → passengers[5].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 26,
+      "name": "Inbound OCI — Seat selection",
+      "description": "Submit seat selection for the inbound flight during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/seats",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 27,
+      "name": "Inbound OCI — Baggage selection",
+      "description": "Submit baggage selection for the inbound flight during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/bags",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 28,
+      "name": "Inbound OCI — Complete check-in",
+      "description": "Final inbound check-in submission for departure from JFK. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each inbound ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/checkin",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 15 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 29,
+      "name": "Inbound OCI — Generate boarding cards",
+      "description": "Request boarding documents for all checked-in inbound tickets departing from JFK. Ticket numbers are chained from the inbound retrieve step; PAX-2 through PAX-6 entries are added by the data chain only when those passengers exist. Returns an array of BCBP-compliant boarding cards — one per passenger.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/boarding-docs",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "departureAirport": "JFK",
+          "ticketNumbers": [
+            "__CHAIN_ociInboundTicketNumber__"
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "ticketNumbers[0]",
+            "from": "ociInboundTicketNumber",
+            "source": "Step 24 → passengers[0].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[1]",
+            "from": "ociInboundTicketNumber2",
+            "source": "Step 24 → passengers[1].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[2]",
+            "from": "ociInboundTicketNumber3",
+            "source": "Step 24 → passengers[2].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[3]",
+            "from": "ociInboundTicketNumber4",
+            "source": "Step 24 → passengers[3].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[4]",
+            "from": "ociInboundTicketNumber5",
+            "source": "Step 24 → passengers[4].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[5]",
+            "from": "ociInboundTicketNumber6",
+            "source": "Step 24 → passengers[5].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "boardingCards",
+            "assertion": "count",
+            "expected": "__RAND_PAX_COUNT__",
+            "description": "One inbound boarding card must be generated per passenger."
           }
         ]
       }
