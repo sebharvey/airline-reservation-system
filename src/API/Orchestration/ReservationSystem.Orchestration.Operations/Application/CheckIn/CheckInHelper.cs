@@ -81,7 +81,8 @@ public static class CheckInHelper
     public static List<OrderTimaticNote> BuildTimaticNotes(
         IReadOnlyList<OciTimaticNote> notes,
         IReadOnlyDictionary<string, string>? ticketToName = null,
-        IReadOnlyDictionary<string, string>? ticketToPaxId = null)
+        IReadOnlyDictionary<string, string>? ticketToPaxId = null,
+        int? segmentId = null)
         => notes.Select(n =>
         {
             var checkLabel = n.CheckType switch
@@ -107,10 +108,11 @@ public static class CheckInHelper
                 && ticketToPaxId.TryGetValue(n.TicketNumber, out var pid) ? pid : null;
             return new OrderTimaticNote
             {
-                DateTime = n.Timestamp,
-                Type     = "OCI",
-                Message  = message,
-                PaxId    = ExtractPaxIdInt(paxIdStr)
+                DateTime  = n.Timestamp,
+                Type      = "OCI",
+                Message   = message,
+                PaxId     = ExtractPaxIdInt(paxIdStr),
+                SegmentId = segmentId
             };
         }).ToList();
 
@@ -136,7 +138,7 @@ public static class CheckInHelper
     /// <summary>
     /// Converts watchlist match results into OrderTimaticNote entries for order audit persistence.
     /// </summary>
-    public static List<OrderTimaticNote> BuildWatchlistNotes(IReadOnlyList<WatchlistMatch> matches)
+    public static List<OrderTimaticNote> BuildWatchlistNotes(IReadOnlyList<WatchlistMatch> matches, int? segmentId = null)
     {
         var timestamp = DateTime.UtcNow.ToString("o");
         return matches.Select(m =>
@@ -150,10 +152,11 @@ public static class CheckInHelper
                 : $"Passenger {subject} matched security watchlist entry for passport {m.PassportNumber}: {m.Notes}";
             return new OrderTimaticNote
             {
-                DateTime = timestamp,
-                Type     = "OCI",
-                Message  = detail,
-                PaxId    = ExtractPaxIdInt(m.PassengerId)
+                DateTime  = timestamp,
+                Type      = "OCI",
+                Message   = detail,
+                PaxId     = ExtractPaxIdInt(m.PassengerId),
+                SegmentId = segmentId
             };
         }).ToList();
     }
@@ -166,6 +169,46 @@ public static class CheckInHelper
         if (string.IsNullOrEmpty(paxId)) return null;
         var dash = paxId.LastIndexOf('-');
         return dash >= 0 && int.TryParse(paxId[(dash + 1)..], out var n) ? n : null;
+    }
+
+    /// <summary>
+    /// Resolves the 1-based integer segment ID for the flight leg departing from
+    /// <paramref name="departureAirport"/>. Iterates FLIGHT orderItems in document order;
+    /// prefers the integer suffix of a <c>segmentRef</c> field when present (e.g. "SEG-2" → 2),
+    /// otherwise uses the 1-based position of the matching FLIGHT item in the array.
+    /// </summary>
+    public static int? ParseSegmentIdForDeparture(JsonElement? orderData, string departureAirport)
+    {
+        if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return null;
+        if (!el.TryGetProperty("orderItems", out var orderItems) || orderItems.ValueKind != JsonValueKind.Array)
+            return null;
+
+        var flightIndex = 0;
+        foreach (var item in orderItems.EnumerateArray())
+        {
+            var productType = item.TryGetProperty("productType", out var pt) ? pt.GetString() : null;
+            var itemType    = item.TryGetProperty("type",        out var tp) ? tp.GetString() : null;
+            var isFlight    = string.Equals(productType, "FLIGHT", StringComparison.OrdinalIgnoreCase)
+                           || string.Equals(itemType,    "Flight", StringComparison.OrdinalIgnoreCase);
+            if (!isFlight) continue;
+
+            flightIndex++;
+
+            var origin = item.TryGetProperty("origin", out var orig) ? orig.GetString() : null;
+            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (item.TryGetProperty("segmentRef", out var segRef))
+            {
+                var fromRef = ExtractPaxIdInt(segRef.GetString());
+                if (fromRef.HasValue) return fromRef;
+            }
+
+            return flightIndex;
+        }
+
+        return null;
     }
 
     /// <summary>

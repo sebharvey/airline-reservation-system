@@ -54,6 +54,7 @@ public sealed class OciCheckInHandler
         }
 
         var (ticketToPaxId, paxIdToInfo) = CheckInHelper.ParseOrderLookups(order.OrderData);
+        var segmentId = CheckInHelper.ParseSegmentIdForDeparture(order.OrderData, command.DepartureAirport);
         var tickets = BuildCheckInTickets(ticketToPaxId, paxIdToInfo);
 
         var paxNameByTicket = tickets.ToDictionary(
@@ -85,7 +86,7 @@ public sealed class OciCheckInHandler
         {
             await _noteService.SaveAsync(
                 command.BookingReference,
-                CheckInHelper.BuildWatchlistNotes(watchlistMatches),
+                CheckInHelper.BuildWatchlistNotes(watchlistMatches, segmentId),
                 "OCI check-in",
                 ct);
 
@@ -122,7 +123,7 @@ public sealed class OciCheckInHandler
         {
             await _noteService.SaveAsync(
                 command.BookingReference,
-                CheckInHelper.BuildTimaticNotes(ex.TimaticNotes, paxNameByTicket, paxIdByTicket),
+                CheckInHelper.BuildTimaticNotes(ex.TimaticNotes, paxNameByTicket, paxIdByTicket, segmentId),
                 "OCI check-in",
                 ct);
             throw new InvalidOperationException(ex.Message);
@@ -197,7 +198,7 @@ public sealed class OciCheckInHandler
                     command.DepartureAirport,
                     checkedInAt,
                     paxCheckIn,
-                    CheckInHelper.BuildTimaticNotes(result.TimaticNotes, paxNameByTicket, paxIdByTicket),
+                    CheckInHelper.BuildTimaticNotes(result.TimaticNotes, paxNameByTicket, paxIdByTicket, segmentId),
                     ct);
             }
             catch (Exception ex)

@@ -67,6 +67,7 @@ public sealed class AdminCheckInHandler
         }
 
         var (ticketToPaxId, paxIdToInfo) = CheckInHelper.ParseOrderLookups(order.OrderData);
+        var segmentId = CheckInHelper.ParseSegmentIdForDeparture(order.OrderData, command.DepartureAirport);
 
         // Persist travel documents to the order
         var passengerUpdates = new List<PassengerDocUpdate>();
@@ -140,7 +141,7 @@ public sealed class AdminCheckInHandler
         {
             await _noteService.SaveAsync(
                 command.BookingReference,
-                CheckInHelper.BuildWatchlistNotes(watchlistMatches),
+                CheckInHelper.BuildWatchlistNotes(watchlistMatches, segmentId),
                 "Admin check-in",
                 ct);
 
@@ -155,7 +156,7 @@ public sealed class AdminCheckInHandler
 
             await _noteService.SaveAsync(
                 command.BookingReference,
-                BuildWatchlistOverrideNotes(watchlistMatches, command.OverrideReason),
+                BuildWatchlistOverrideNotes(watchlistMatches, command.OverrideReason, segmentId),
                 "Admin check-in",
                 ct);
         }
@@ -189,7 +190,7 @@ public sealed class AdminCheckInHandler
         {
             await _noteService.SaveAsync(
                 command.BookingReference,
-                CheckInHelper.BuildTimaticNotes(ex.TimaticNotes, ticketToName, ticketToPaxId),
+                CheckInHelper.BuildTimaticNotes(ex.TimaticNotes, ticketToName, ticketToPaxId, segmentId),
                 "Admin check-in",
                 ct);
 
@@ -202,7 +203,7 @@ public sealed class AdminCheckInHandler
 
             await _noteService.SaveAsync(
                 command.BookingReference,
-                BuildOverrideNotes(command.Passengers, ticketToName, command.OverrideReason, ticketToPaxId),
+                BuildOverrideNotes(command.Passengers, ticketToName, command.OverrideReason, ticketToPaxId, segmentId),
                 "Admin check-in",
                 ct);
 
@@ -211,7 +212,7 @@ public sealed class AdminCheckInHandler
 
         await _noteService.SaveAsync(
             command.BookingReference,
-            CheckInHelper.BuildTimaticNotes(checkInResult.TimaticNotes, ticketToName, ticketToPaxId),
+            CheckInHelper.BuildTimaticNotes(checkInResult.TimaticNotes, ticketToName, ticketToPaxId, segmentId),
             "Admin check-in",
             ct);
 
@@ -237,7 +238,8 @@ public sealed class AdminCheckInHandler
 
     private static List<OrderTimaticNote> BuildWatchlistOverrideNotes(
         IReadOnlyList<WatchlistMatch> matches,
-        string? overrideReason)
+        string? overrideReason,
+        int? segmentId = null)
     {
         var reason    = string.IsNullOrWhiteSpace(overrideReason) ? "No reason provided" : overrideReason;
         var timestamp = DateTime.UtcNow.ToString("o");
@@ -247,10 +249,11 @@ public sealed class AdminCheckInHandler
             var subject = name.Length > 0 ? $"{name} (ticket {m.TicketNumber})" : $"ticket {m.TicketNumber}";
             return new OrderTimaticNote
             {
-                DateTime = timestamp,
-                Type     = "OCI",
-                Message  = $"Watchlist override by agent for {subject}: {reason}",
-                PaxId    = CheckInHelper.ExtractPaxIdInt(m.PassengerId)
+                DateTime  = timestamp,
+                Type      = "OCI",
+                Message   = $"Watchlist override by agent for {subject}: {reason}",
+                PaxId     = CheckInHelper.ExtractPaxIdInt(m.PassengerId),
+                SegmentId = segmentId
             };
         }).ToList();
     }
@@ -259,7 +262,8 @@ public sealed class AdminCheckInHandler
         IReadOnlyList<AdminCheckInPassenger> passengers,
         IReadOnlyDictionary<string, string>? ticketToName,
         string? overrideReason,
-        IReadOnlyDictionary<string, string>? ticketToPaxId = null)
+        IReadOnlyDictionary<string, string>? ticketToPaxId = null,
+        int? segmentId = null)
     {
         var reason    = string.IsNullOrWhiteSpace(overrideReason) ? "No reason provided" : overrideReason;
         var timestamp = DateTime.UtcNow.ToString("o");
@@ -276,10 +280,11 @@ public sealed class AdminCheckInHandler
                 && ticketToPaxId.TryGetValue(p.TicketNumber, out var pid) ? pid : null;
             return new OrderTimaticNote
             {
-                DateTime = timestamp,
-                Type     = "OCI",
-                Message  = $"Timatic override by agent for {subject}: {reason}",
-                PaxId    = CheckInHelper.ExtractPaxIdInt(paxIdStr)
+                DateTime  = timestamp,
+                Type      = "OCI",
+                Message   = $"Timatic override by agent for {subject}: {reason}",
+                PaxId     = CheckInHelper.ExtractPaxIdInt(paxIdStr),
+                SegmentId = segmentId
             };
         }).ToList();
     }
