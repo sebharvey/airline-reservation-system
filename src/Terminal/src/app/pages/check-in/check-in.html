@@ -72,29 +72,32 @@
           }
         </button>
       </div>
-
-      @if (departureAirports().length > 0) {
-        <div class="form-group search-airport-group">
-          <label class="field-label">Departure Airport</label>
-          <select
-            class="field-input"
-            [value]="departureAirport()"
-            (change)="selectDeparture($any($event.target).value)"
-            [disabled]="loading()"
-          >
-            <option value="">— Select —</option>
-            @for (airport of departureAirports(); track airport) {
-              <option [value]="airport">{{ airport }}</option>
-            }
-          </select>
-        </div>
-      }
     </div>
 
     @if (error() && !paxForms().length) {
       <div class="error-banner" role="alert">⚠ {{ error() }}</div>
     }
   </div>
+
+  <!-- ── SEGMENT SELECTOR ── -->
+  @if (booking() && departureAirports().length > 0) {
+    <div class="segment-bar">
+      <span class="segment-bar-label">Departure</span>
+      <div class="segment-pills">
+        @for (airport of departureAirports(); track airport; let i = $index) {
+          <button
+            class="segment-pill"
+            [class.segment-pill-active]="departureAirport() === airport"
+            [disabled]="checkingInIndex() !== null"
+            (click)="selectDeparture(airport)"
+          >
+            <span class="segment-number">Seg {{ i + 1 }}</span>
+            <span class="segment-airport">{{ airport }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
 
   <!-- ── PASSENGERS (split layout) ── -->
   @if (paxForms().length > 0) {

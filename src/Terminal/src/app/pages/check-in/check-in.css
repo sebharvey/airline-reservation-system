@@ -69,10 +69,78 @@
   visibility: hidden;
 }
 
-.search-airport-group {
-  flex: 1;
-  min-width: 140px;
+/* Segment selector bar */
+.segment-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 14px 20px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
 }
+
+.segment-bar-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  flex-shrink: 0;
+}
+
+.segment-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.segment-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 7px 22px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  gap: 1px;
+}
+
+.segment-pill:hover:not(.segment-pill-active):not(:disabled) {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.04);
+}
+
+.segment-pill:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.segment-pill-active {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.segment-number {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.segment-pill-active .segment-number { color: var(--grad-start); }
+
+.segment-airport {
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text);
+  letter-spacing: 1.5px;
+}
+
+.segment-pill-active .segment-airport { color: var(--grad-start); }
 
 .section-label {
   font-size: 0.75rem;
