@@ -1,3 +1,9 @@
+/* ── Host ── */
+:host {
+  display: block;
+  width: 100%;
+}
+
 /* ── Payment Card ── */
 .payment-card {
   width: 100%;
