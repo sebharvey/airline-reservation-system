@@ -38,7 +38,7 @@ public sealed class ScheduleFunction
     }
 
     // -------------------------------------------------------------------------
-    // GET /v1/schedules
+    // GET /v1/admin/schedules
     // -------------------------------------------------------------------------
 
     [Function("AdminGetSchedules")]
@@ -47,7 +47,7 @@ public sealed class ScheduleFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSchedulesResponse), Description = "OK — returns all flight schedules")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetSchedules(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedules")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/schedules")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         try
@@ -92,7 +92,7 @@ public sealed class ScheduleFunction
     }
 
     // -------------------------------------------------------------------------
-    // POST /v1/schedules/ssim
+    // POST /v1/admin/schedules/ssim
     // -------------------------------------------------------------------------
 
     [Function("AdminImportSsim")]
@@ -104,7 +104,7 @@ public sealed class ScheduleFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> ImportSsim(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules/ssim")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/schedules/ssim")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
@@ -142,7 +142,7 @@ public sealed class ScheduleFunction
     }
 
     // -------------------------------------------------------------------------
-    // POST /v1/schedules/import-inventory
+    // POST /v1/admin/schedules/import-inventory
     // -------------------------------------------------------------------------
 
     [Function("AdminImportSchedulesToInventory")]
@@ -151,7 +151,7 @@ public sealed class ScheduleFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ImportSchedulesToInventoryResponse), Description = "OK — returns counts of schedules processed, inventories created/skipped, and fares created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> ImportSchedulesToInventory(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules/import-inventory")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/schedules/import-inventory")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<ImportSchedulesToInventoryRequest>(_logger, cancellationToken);

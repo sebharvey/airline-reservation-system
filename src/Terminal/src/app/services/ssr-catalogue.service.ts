@@ -12,7 +12,7 @@ export interface SsrCatalogueEntry {
 @Injectable({ providedIn: 'root' })
 export class SsrCatalogueService {
   #http = inject(HttpClient);
-  #baseUrl = `${environment.retailApiUrl}/api/v1/ssr/options`;
+  #baseUrl = `${environment.retailApiUrl}/api/v1/admin/ssr/options`;
 
   async getAll(): Promise<SsrCatalogueEntry[]> {
     const response = await firstValueFrom(

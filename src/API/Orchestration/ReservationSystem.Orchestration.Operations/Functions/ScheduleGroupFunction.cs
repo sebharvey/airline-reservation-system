@@ -28,7 +28,7 @@ public sealed class ScheduleGroupFunction
     }
 
     // -------------------------------------------------------------------------
-    // GET /v1/schedule-groups
+    // GET /v1/admin/schedule-groups
     // -------------------------------------------------------------------------
 
     [Function("AdminGetScheduleGroups")]
@@ -36,7 +36,7 @@ public sealed class ScheduleGroupFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetScheduleGroupsResponse), Description = "OK — returns all schedule groups")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetScheduleGroups(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedule-groups")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/schedule-groups")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         try
@@ -69,7 +69,7 @@ public sealed class ScheduleGroupFunction
     }
 
     // -------------------------------------------------------------------------
-    // POST /v1/schedule-groups
+    // POST /v1/admin/schedule-groups
     // -------------------------------------------------------------------------
 
     [Function("AdminCreateScheduleGroup")]
@@ -78,7 +78,7 @@ public sealed class ScheduleGroupFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ScheduleGroupSummary), Description = "OK — returns the created schedule group")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateScheduleGroup(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedule-groups")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/schedule-groups")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateScheduleGroupRequest>(_logger, cancellationToken);
@@ -128,7 +128,7 @@ public sealed class ScheduleGroupFunction
     }
 
     // -------------------------------------------------------------------------
-    // PUT /v1/schedule-groups/{scheduleGroupId}
+    // PUT /v1/admin/schedule-groups/{scheduleGroupId}
     // -------------------------------------------------------------------------
 
     [Function("AdminUpdateScheduleGroup")]
@@ -138,7 +138,7 @@ public sealed class ScheduleGroupFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ScheduleGroupSummary), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateScheduleGroup(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/schedule-groups/{scheduleGroupId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/admin/schedule-groups/{scheduleGroupId}")] HttpRequestData req,
         string scheduleGroupId,
         CancellationToken cancellationToken)
     {
@@ -189,7 +189,7 @@ public sealed class ScheduleGroupFunction
     }
 
     // -------------------------------------------------------------------------
-    // DELETE /v1/schedule-groups/{scheduleGroupId}
+    // DELETE /v1/admin/schedule-groups/{scheduleGroupId}
     // -------------------------------------------------------------------------
 
     [Function("AdminDeleteScheduleGroup")]
@@ -198,7 +198,7 @@ public sealed class ScheduleGroupFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteScheduleGroup(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/schedule-groups/{scheduleGroupId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/admin/schedule-groups/{scheduleGroupId}")] HttpRequestData req,
         string scheduleGroupId,
         CancellationToken cancellationToken)
     {

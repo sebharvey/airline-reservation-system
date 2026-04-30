@@ -198,6 +198,38 @@ public sealed class AdminOrderManagementFunction
     }
 
     // -------------------------------------------------------------------------
+    // PATCH /v1/admin/orders/{bookingRef}/ssrs
+    // -------------------------------------------------------------------------
+
+    [Function("AdminUpdateOrderSsrs")]
+    [OpenApiOperation(operationId: "AdminUpdateOrderSsrs", tags: new[] { "Admin Orders" }, Summary = "Add or remove SSRs on a confirmed order (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The 6-character booking reference (PNR)")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "SSR patch actions array")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable — within amendment cut-off window")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    public async Task<HttpResponseData> UpdateOrderSsrs(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/admin/orders/{bookingRef}/ssrs")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for AdminUpdateOrderSsrs");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        try
+        {
+            await _orderServiceClient.UpdateOrderSsrsAsync(bookingRef.ToUpperInvariant(), body, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.OK);
+        }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    // -------------------------------------------------------------------------
     // GET /v1/admin/orders/{bookingRef}/debug
     // TODO: Remove — temporary debug endpoint
     // -------------------------------------------------------------------------

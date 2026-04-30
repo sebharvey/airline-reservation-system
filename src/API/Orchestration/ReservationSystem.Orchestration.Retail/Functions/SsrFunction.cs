@@ -41,4 +41,26 @@ public sealed class SsrFunction
 
         return await req.OkJsonAsync(result);
     }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/ssr/options
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetSsrOptions")]
+    [OpenApiOperation(operationId: "AdminGetSsrOptions", tags: new[] { "Admin SSR" }, Summary = "Retrieve all active SSR codes and labels by category (staff)")]
+    [OpenApiParameter(name: "cabinCode", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Filter SSRs applicable to a specific cabin")]
+    [OpenApiParameter(name: "flightNumbers", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Comma-separated flight numbers to filter applicable SSRs")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSsrOptionsResponse), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    public async Task<HttpResponseData> AdminGetSsrOptions(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/ssr/options")] HttpRequestData req,
+        CancellationToken cancellationToken)
+    {
+        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var query = new GetSsrOptionsQuery(qs["cabinCode"], qs["flightNumbers"]);
+
+        var result = await _getSsrOptionsHandler.HandleAsync(query, cancellationToken);
+
+        return await req.OkJsonAsync(result);
+    }
 }
