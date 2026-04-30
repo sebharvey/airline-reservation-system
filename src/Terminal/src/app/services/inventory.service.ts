@@ -321,7 +321,7 @@ export class InventoryService {
     const params = `flightNumber=${encodeURIComponent(flightNumber)}&aircraftType=${encodeURIComponent(aircraftType)}`;
     return firstValueFrom(
       this.#http.get<FlightSeatmap>(
-        `${environment.retailApiUrl}/api/v1/flights/${inventoryId}/seatmap?${params}`
+        `${environment.retailApiUrl}/api/v1/admin/flights/${inventoryId}/seatmap?${params}`
       )
     );
   }

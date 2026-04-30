@@ -94,7 +94,7 @@ export interface ImportSsimResponse {
 @Injectable({ providedIn: 'root' })
 export class ScheduleService {
   #http = inject(HttpClient);
-  #baseUrl = `${environment.operationsApiUrl}/api/v1`;
+  #baseUrl = `${environment.operationsApiUrl}/api/v1/admin`;
 
   // ── Schedule Groups ─────────────────────────────────────────────────────────
 

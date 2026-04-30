@@ -323,7 +323,7 @@ export class OrderService {
 
   async getSsrOptions(): Promise<SsrOption[]> {
     const response = await firstValueFrom(
-      this.#http.get<{ ssrOptions: SsrOption[] }>(`${environment.retailApiUrl}/api/v1/ssr/options`)
+      this.#http.get<{ ssrOptions: SsrOption[] }>(`${environment.retailApiUrl}/api/v1/admin/ssr/options`)
     );
     return response.ssrOptions;
   }
@@ -331,7 +331,7 @@ export class OrderService {
   async updateOrderSsrs(bookingRef: string, actions: SsrPatchAction[]): Promise<void> {
     await firstValueFrom(
       this.#http.patch(
-        `${environment.retailApiUrl}/api/v1/orders/${bookingRef.toUpperCase()}/ssrs`,
+        `${environment.retailApiUrl}/api/v1/admin/orders/${bookingRef.toUpperCase()}/ssrs`,
         { actions }
       )
     );

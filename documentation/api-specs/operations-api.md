@@ -41,11 +41,11 @@ The Operations API is an internal service called only by the Ops Admin App. Ther
 
 The Operations API coordinates two distinct orchestration flows.
 
-### SSIM import flow (`POST /v1/schedules/ssim?scheduleGroupId=`)
+### SSIM import flow (`POST /v1/admin/schedules/ssim?scheduleGroupId=`)
 
-Parses an IATA SSIM Chapter 7 file and persists the schedule definitions to a specific schedule group in the Schedule MS. Requires a `scheduleGroupId` query parameter. Does not generate inventory. To generate inventory after a SSIM import, call `POST /v1/schedules/import-inventory`.
+Parses an IATA SSIM Chapter 7 file and persists the schedule definitions to a specific schedule group in the Schedule MS. Requires a `scheduleGroupId` query parameter. Does not generate inventory. To generate inventory after a SSIM import, call `POST /v1/admin/schedules/import-inventory`.
 
-### Schedule-to-inventory import flow (`POST /v1/schedules/import-inventory`)
+### Schedule-to-inventory import flow (`POST /v1/admin/schedules/import-inventory`)
 
 Takes schedules stored in the Schedule MS (optionally filtered by `scheduleGroupId` in the request body) and generates `FlightInventory` and `Fare` records in the Offer MS. This is the second step after a SSIM import. The full sequence is:
 
@@ -94,7 +94,7 @@ The Operations API coordinates a multi-step schedule creation flow across the Sc
 
 ## Endpoints
 
-### GET /v1/schedule-groups
+### GET /v1/admin/schedule-groups
 
 Retrieve all schedule groups from the Schedule MS. Returns a summary of each group including name, season dates, active status, and the count of schedules in the group.
 
@@ -126,25 +126,25 @@ No request body. No query parameters.
 
 ---
 
-### POST /v1/schedule-groups
+### POST /v1/admin/schedule-groups
 
 Create a new schedule group.
 
 ---
 
-### PUT /v1/schedule-groups/{scheduleGroupId}
+### PUT /v1/admin/schedule-groups/{scheduleGroupId}
 
 Update an existing schedule group's name, season dates, and active status.
 
 ---
 
-### DELETE /v1/schedule-groups/{scheduleGroupId}
+### DELETE /v1/admin/schedule-groups/{scheduleGroupId}
 
 Delete a schedule group and all its associated flight schedules.
 
 ---
 
-### GET /v1/schedules
+### GET /v1/admin/schedules
 
 Retrieve stored flight schedules from the Schedule MS, optionally filtered by schedule group.
 
@@ -361,11 +361,11 @@ Create a flight schedule. Orchestrates schedule persistence, bulk flight invento
 
 ---
 
-### POST /v1/schedules/import-inventory
+### POST /v1/admin/schedules/import-inventory
 
 Import schedules stored in the Schedule MS into the Offer MS inventory tables. Optionally scoped to a specific schedule group via `scheduleGroupId` in the request body. Cabin seat counts are resolved automatically from the Seat MS aircraft type configuration — no cabin definitions are required in the request. For each schedule, operating dates are computed from the `ValidFrom`/`ValidTo` range and `DaysOfWeek` bitmask. For each operating date and each cabin in the aircraft type's configuration, a `FlightInventory` record is created. If a record already exists for that combination, it is skipped. Fares are then created for each newly created inventory record from stored fare rules.
 
-**When to use:** Called after a SSIM import (via `POST /v1/schedules/ssim`) to activate the stored schedules for booking. Can be re-run at any time — existing inventory is never duplicated or overwritten.
+**When to use:** Called after a SSIM import (via `POST /v1/admin/schedules/ssim`) to activate the stored schedules for booking. Can be re-run at any time — existing inventory is never duplicated or overwritten.
 
 #### Request
 
