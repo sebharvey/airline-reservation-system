@@ -128,7 +128,8 @@ public sealed class UpdateOrderCheckInHandler
                     ["type"]     = note.Type,
                     ["message"]  = note.Message
                 };
-                if (note.PaxId.HasValue) obj["paxId"] = note.PaxId.Value;
+                if (note.PaxId.HasValue)     obj["paxId"]     = note.PaxId.Value;
+                if (note.SegmentId.HasValue) obj["segmentId"] = note.SegmentId.Value;
                 notesArray.Add(obj);
             }
         }

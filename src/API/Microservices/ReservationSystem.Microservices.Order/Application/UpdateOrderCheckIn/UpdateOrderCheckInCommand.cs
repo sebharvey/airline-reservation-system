@@ -6,7 +6,7 @@ public sealed record UpdateOrderCheckInPassenger(
     string Status,
     string Message);
 
-public sealed record UpdateOrderCheckInNote(string DateTime, string Type, string Message, int? PaxId = null);
+public sealed record UpdateOrderCheckInNote(string DateTime, string Type, string Message, int? PaxId = null, int? SegmentId = null);
 
 public sealed record UpdateOrderCheckInCommand(
     string BookingReference,
