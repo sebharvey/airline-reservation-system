@@ -617,6 +617,35 @@ body {
     color: var(--positive);
 }
 
+.response-copy-wrapper {
+    position: relative;
+}
+.btn-copy-response {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    padding: 0.15rem 0.35rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+    transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+    line-height: 1;
+}
+.btn-copy-response:hover {
+    opacity: 1;
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.btn-copy-response.copied {
+    opacity: 1;
+    color: var(--positive);
+    border-color: var(--positive);
+}
+
 .live-url {
     font-family: var(--font-mono);
     font-size: 0.68rem;
