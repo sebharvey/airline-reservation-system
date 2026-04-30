@@ -111,7 +111,7 @@ export class CheckInComponent {
       .filter(n =>
         n.type === 'OCI' &&
         n.paxId === paxIdInt &&
-        (n.segmentId == null || segmentIds.has(n.segmentId)),
+        (segmentIds.size === 0 || n.segmentId == null || segmentIds.has(n.segmentId)),
       )
       .slice()
       .sort((a, b) => a.dateTime.localeCompare(b.dateTime));

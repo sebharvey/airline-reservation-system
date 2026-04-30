@@ -166,6 +166,13 @@ export class CheckInService {
       segments.filter(s => s.origin === departureAirport).map(s => s.segmentId),
     );
 
+    // Map each inventory-ID (GUID) to its 1-based position across all flight segments.
+    // This matches the server-side flightIndex used by CheckInHelper.ParseSegmentIdForDeparture
+    // when writing the integer segmentId onto OCI audit notes.
+    const segIndexByGuid = new Map<string, number>(
+      segments.map((s, i) => [s.segmentId, i + 1] as [string, number]),
+    );
+
     const ticketByPaxId = new Map<string, string>();
     const segmentIdsByPaxId = new Map<string, number[]>();
     for (const item of orderData.orderItems ?? []) {
@@ -177,11 +184,10 @@ export class CheckInService {
         matchingSegmentIds.has(item.segmentId)
       ) {
         ticketByPaxId.set(item.passengerId, item.eTicketNumber);
-        const lastDash = item.segmentId.lastIndexOf('-');
-        const segId = parseInt(lastDash >= 0 ? item.segmentId.slice(lastDash + 1) : item.segmentId, 10);
-        if (!isNaN(segId)) {
+        const segId = segIndexByGuid.get(item.segmentId);
+        if (segId !== undefined) {
           const existing = segmentIdsByPaxId.get(item.passengerId) ?? [];
-          existing.push(segId);
+          if (!existing.includes(segId)) existing.push(segId);
           segmentIdsByPaxId.set(item.passengerId, existing);
         }
       }
