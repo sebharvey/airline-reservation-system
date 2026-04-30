@@ -41,13 +41,15 @@ public sealed class SearchConnectingFlightsHandler
             command.PaxCount, command.BookingType, command.IncludePrivateFares,
             command.CustomerContext, cancellationToken);
 
-        if (leg1Result.Flights.Count == 0)
+        var leg1Flights = leg1Result.Segments.SelectMany(s => s.Flights).ToList();
+
+        if (leg1Flights.Count == 0)
             return new ConnectingSearchResponse { Itineraries = [] };
 
         // Step 2 — determine unique LHR arrival dates from all leg1 results and search
         // leg2 for each in parallel.  Most routes produce a single arrival date but the
         // handler handles the general case (e.g. if overnight leg1 flights exist).
-        var uniqueArrivalDates = leg1Result.Flights
+        var uniqueArrivalDates = leg1Flights
             .Select(f => depDate.AddDays(f.ArrivalDayOffset))
             .Distinct()
             .ToList();
@@ -68,7 +70,7 @@ public sealed class SearchConnectingFlightsHandler
         // Step 3 — pair legs and apply MCT filter.
         var itineraries = new List<ConnectingItinerary>();
 
-        foreach (var leg1Flight in leg1Result.Flights)
+        foreach (var leg1Flight in leg1Flights)
         {
             if (!TimeOnly.TryParse(leg1Flight.ArrivalTime, out var leg1ArrivalTime)) continue;
 
@@ -76,11 +78,12 @@ public sealed class SearchConnectingFlightsHandler
             var leg1ArrivalDt   = leg1ArrivalDate.ToDateTime(leg1ArrivalTime);
 
             if (!leg2ByArrivalDate.TryGetValue(leg1ArrivalDate, out var leg2Search)) continue;
-            if (leg2Search.Flights.Count == 0) continue;
+            var leg2Flights = leg2Search.Segments.SelectMany(s => s.Flights).ToList();
+            if (leg2Flights.Count == 0) continue;
 
             var leg1Cabins = BuildCabins(leg1Flight.Offers);
 
-            foreach (var leg2Flight in leg2Search.Flights)
+            foreach (var leg2Flight in leg2Flights)
             {
                 if (!TimeOnly.TryParse(leg2Flight.DepartureTime, out var leg2DepTime)) continue;
 

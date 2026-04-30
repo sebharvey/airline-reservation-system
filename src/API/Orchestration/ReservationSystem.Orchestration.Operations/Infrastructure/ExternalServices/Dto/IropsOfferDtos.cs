@@ -20,13 +20,25 @@ public sealed class OfferSearchRequest
     public bool IncludePrivateFares { get; init; } = false;
 }
 
+public sealed class OfferSegmentDto
+{
+    [JsonPropertyName("origin")]
+    public string Origin { get; init; } = string.Empty;
+
+    [JsonPropertyName("destination")]
+    public string Destination { get; init; } = string.Empty;
+
+    [JsonPropertyName("flights")]
+    public IReadOnlyList<OfferFlightDto> Flights { get; init; } = [];
+}
+
 public sealed class OfferSearchResponse
 {
     [JsonPropertyName("sessionId")]
     public string? SessionId { get; init; }
 
-    [JsonPropertyName("flights")]
-    public IReadOnlyList<OfferFlightDto> Flights { get; init; } = [];
+    [JsonPropertyName("segments")]
+    public IReadOnlyList<OfferSegmentDto> Segments { get; init; } = [];
 }
 
 public sealed class OfferFlightDto

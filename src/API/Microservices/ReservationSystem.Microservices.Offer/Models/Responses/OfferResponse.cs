@@ -96,6 +96,18 @@ public sealed class FlightOfferItem
     public IReadOnlyList<CabinOfferItem> Offers { get; init; } = [];
 }
 
+public sealed class SegmentOfferItem
+{
+    [JsonPropertyName("origin")]
+    public string Origin { get; init; } = string.Empty;
+
+    [JsonPropertyName("destination")]
+    public string Destination { get; init; } = string.Empty;
+
+    [JsonPropertyName("flights")]
+    public IReadOnlyList<FlightOfferItem> Flights { get; init; } = [];
+}
+
 public sealed class SearchOffersResponse
 {
     [JsonPropertyName("sessionId")]
@@ -110,8 +122,8 @@ public sealed class SearchOffersResponse
     [JsonPropertyName("departureDate")]
     public string DepartureDate { get; init; } = string.Empty;
 
-    [JsonPropertyName("flights")]
-    public IReadOnlyList<FlightOfferItem> Flights { get; init; } = [];
+    [JsonPropertyName("segments")]
+    public IReadOnlyList<SegmentOfferItem> Segments { get; init; } = [];
 }
 
 public sealed class StoredOfferResponse

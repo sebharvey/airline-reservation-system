@@ -53,7 +53,7 @@ public static class NdcXmlBuilder
         XNamespace ns = NsUri;
 
         // Assign stable keys for each flight and passenger type.
-        var segKeys = searchResult.Flights
+        var segKeys = searchResult.Segments.SelectMany(s => s.Flights)
             .Select((f, i) => new { f.InventoryId, SegKey = $"SEG{i + 1}", OdKey = $"OD{i + 1}" })
             .ToDictionary(x => x.InventoryId, x => (x.SegKey, x.OdKey));
 
@@ -91,7 +91,7 @@ public static class NdcXmlBuilder
     {
         var airlineOffers = new XElement(ns + "AirlineOffers");
 
-        foreach (var flight in searchResult.Flights)
+        foreach (var flight in searchResult.Segments.SelectMany(s => s.Flights))
         {
             if (!segKeys.TryGetValue(flight.InventoryId, out var keys)) continue;
 
@@ -222,7 +222,7 @@ public static class NdcXmlBuilder
     {
         var list = new XElement(ns + "FlightSegmentList");
 
-        foreach (var flight in searchResult.Flights)
+        foreach (var flight in searchResult.Segments.SelectMany(s => s.Flights))
         {
             if (!segKeys.TryGetValue(flight.InventoryId, out var keys)) continue;
 
@@ -267,7 +267,7 @@ public static class NdcXmlBuilder
     {
         var list = new XElement(ns + "OriginDestinationList");
 
-        foreach (var flight in searchResult.Flights)
+        foreach (var flight in searchResult.Segments.SelectMany(s => s.Flights))
         {
             if (!segKeys.TryGetValue(flight.InventoryId, out var keys)) continue;
 

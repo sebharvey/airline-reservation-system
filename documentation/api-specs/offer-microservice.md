@@ -508,48 +508,54 @@ Search flight inventory for a single segment (origin, destination, date, pax cou
   "origin": "LHR",
   "destination": "JFK",
   "departureDate": "2026-08-15",
-  "flights": [
+  "segments": [
     {
-      "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "flightNumber": "AX001",
       "origin": "LHR",
       "destination": "JFK",
-      "departureDate": "2026-08-15",
-      "departureTime": "08:00",
-      "arrivalTime": "11:10",
-      "arrivalDayOffset": 0,
-      "aircraftType": "A351",
-      "expiresAt": "2026-08-15T09:00:00Z",
-      "offers": [
+      "flights": [
         {
-          "offerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "cabinCode": "J",
-          "fareBasisCode": "JFLEXGB",
-          "fareFamily": "Business Flex",
-          "currencyCode": "GBP",
-          "baseFareAmount": 1850.00,
-          "taxAmount": 220.00,
-          "totalAmount": 2070.00,
-          "isRefundable": true,
-          "isChangeable": true,
-          "bookingType": "Revenue",
-          "seatsAvailable": 8,
-          "pointsPrice": null
-        },
-        {
-          "offerId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-          "cabinCode": "Y",
-          "fareBasisCode": "YFLEX",
-          "fareFamily": "Economy Flex",
-          "currencyCode": "GBP",
-          "baseFareAmount": 420.00,
-          "taxAmount": 85.00,
-          "totalAmount": 505.00,
-          "isRefundable": true,
-          "isChangeable": true,
-          "bookingType": "Revenue",
-          "seatsAvailable": 42,
-          "pointsPrice": 18000
+          "inventoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "flightNumber": "AX001",
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureDate": "2026-08-15",
+          "departureTime": "08:00",
+          "arrivalTime": "11:10",
+          "arrivalDayOffset": 0,
+          "aircraftType": "A351",
+          "expiresAt": "2026-08-15T09:00:00Z",
+          "offers": [
+            {
+              "offerId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "cabinCode": "J",
+              "fareBasisCode": "JFLEXGB",
+              "fareFamily": "Business Flex",
+              "currencyCode": "GBP",
+              "baseFareAmount": 1850.00,
+              "taxAmount": 220.00,
+              "totalAmount": 2070.00,
+              "isRefundable": true,
+              "isChangeable": true,
+              "bookingType": "Revenue",
+              "seatsAvailable": 8,
+              "pointsPrice": null
+            },
+            {
+              "offerId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+              "cabinCode": "Y",
+              "fareBasisCode": "YFLEX",
+              "fareFamily": "Economy Flex",
+              "currencyCode": "GBP",
+              "baseFareAmount": 420.00,
+              "taxAmount": 85.00,
+              "totalAmount": 505.00,
+              "isRefundable": true,
+              "isChangeable": true,
+              "bookingType": "Revenue",
+              "seatsAvailable": 42,
+              "pointsPrice": 18000
+            }
+          ]
         }
       ]
     }
@@ -563,31 +569,34 @@ Search flight inventory for a single segment (origin, destination, date, pax cou
 | `origin` | string | Echoed back |
 | `destination` | string | Echoed back |
 | `departureDate` | string (date) | Echoed back |
-| `flights` | array | One entry per matching flight. May be empty if no inventory with sufficient availability found |
-| `flights[].inventoryId` | string (UUID) | `FlightInventory` row identifier |
-| `flights[].flightNumber` | string | Flight number |
-| `flights[].origin` | string | IATA origin code |
-| `flights[].destination` | string | IATA destination code |
-| `flights[].departureDate` | string (date) | ISO 8601 departure date |
-| `flights[].departureTime` | string (time) | Local departure time at origin |
-| `flights[].arrivalTime` | string (time) | Local arrival time at destination |
-| `flights[].arrivalDayOffset` | integer | `0` = same day; `1` = next day at destination |
-| `flights[].aircraftType` | string | Aircraft type code |
-| `flights[].expiresAt` | string (datetime) | ISO 8601 UTC expiry of all offers for this flight (`CreatedAt + 60 minutes`) |
-| `flights[].offers` | array | One entry per cabin/fare combination stored for this flight |
-| `flights[].offers[].offerId` | string (UUID) | Per-fare offer identifier; pass to `POST /v1/basket` as part of `offerIds[]` |
-| `flights[].offers[].cabinCode` | string | Cabin class (`F`, `J`, `W`, `Y`) |
-| `flights[].offers[].fareBasisCode` | string | Fare basis code |
-| `flights[].offers[].fareFamily` | string | Commercial fare family name |
-| `flights[].offers[].currencyCode` | string | ISO 4217 currency code |
-| `flights[].offers[].baseFareAmount` | number | Base fare at search time |
-| `flights[].offers[].taxAmount` | number | Taxes at search time |
-| `flights[].offers[].totalAmount` | number | Total price at search time |
-| `flights[].offers[].isRefundable` | boolean | Refundability condition at search time |
-| `flights[].offers[].isChangeable` | boolean | Changeability condition at search time |
-| `flights[].offers[].bookingType` | string | `Revenue` or `Reward` |
-| `flights[].offers[].seatsAvailable` | integer | Seats available at search time (informational) |
-| `flights[].offers[].pointsPrice` | integer | Points price. `null` for revenue-only fares |
+| `segments` | array | One entry per route segment. The Offer MS always returns exactly one segment (it has no concept of multi-leg itineraries). May contain an empty `flights` array if no matching inventory was found |
+| `segments[].origin` | string | IATA origin code for this segment |
+| `segments[].destination` | string | IATA destination code for this segment |
+| `segments[].flights` | array | One entry per matching flight in this segment |
+| `segments[].flights[].inventoryId` | string (UUID) | `FlightInventory` row identifier |
+| `segments[].flights[].flightNumber` | string | Flight number |
+| `segments[].flights[].origin` | string | IATA origin code |
+| `segments[].flights[].destination` | string | IATA destination code |
+| `segments[].flights[].departureDate` | string (date) | ISO 8601 departure date |
+| `segments[].flights[].departureTime` | string (time) | Local departure time at origin |
+| `segments[].flights[].arrivalTime` | string (time) | Local arrival time at destination |
+| `segments[].flights[].arrivalDayOffset` | integer | `0` = same day; `1` = next day at destination |
+| `segments[].flights[].aircraftType` | string | Aircraft type code |
+| `segments[].flights[].expiresAt` | string (datetime) | ISO 8601 UTC expiry of all offers for this flight (`CreatedAt + 60 minutes`) |
+| `segments[].flights[].offers` | array | One entry per cabin/fare combination stored for this flight |
+| `segments[].flights[].offers[].offerId` | string (UUID) | Per-fare offer identifier; pass to `POST /v1/basket` as part of `offerIds[]` |
+| `segments[].flights[].offers[].cabinCode` | string | Cabin class (`F`, `J`, `W`, `Y`) |
+| `segments[].flights[].offers[].fareBasisCode` | string | Fare basis code |
+| `segments[].flights[].offers[].fareFamily` | string | Commercial fare family name |
+| `segments[].flights[].offers[].currencyCode` | string | ISO 4217 currency code |
+| `segments[].flights[].offers[].baseFareAmount` | number | Base fare at search time |
+| `segments[].flights[].offers[].taxAmount` | number | Taxes at search time |
+| `segments[].flights[].offers[].totalAmount` | number | Total price at search time |
+| `segments[].flights[].offers[].isRefundable` | boolean | Refundability condition at search time |
+| `segments[].flights[].offers[].isChangeable` | boolean | Changeability condition at search time |
+| `segments[].flights[].offers[].bookingType` | string | `Revenue` or `Reward` |
+| `segments[].flights[].offers[].seatsAvailable` | integer | Seats available at search time (informational) |
+| `segments[].flights[].offers[].pointsPrice` | integer | Points price. `null` for revenue-only fares |
 
 #### Error Responses
 
