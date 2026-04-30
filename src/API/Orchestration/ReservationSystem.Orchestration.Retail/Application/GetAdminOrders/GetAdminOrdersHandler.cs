@@ -100,9 +100,9 @@ public sealed class GetAdminOrdersHandler
                     passengers.GetArrayLength() > 0)
                 {
                     var first = passengers[0];
-                    var given = first.TryGetProperty("givenName", out var gn) ? gn.GetString() : "";
-                    var surname = first.TryGetProperty("surname", out var sn) ? sn.GetString() : "";
-                    leadName = $"{given} {surname}".Trim();
+                    var surname = (first.TryGetProperty("surname", out var sn) ? sn.GetString() : "")?.ToUpperInvariant().Trim() ?? "";
+                    var given  = (first.TryGetProperty("givenName", out var gn) ? gn.GetString() : "")?.ToUpperInvariant().Trim() ?? "";
+                    leadName = surname.Length > 0 && given.Length > 0 ? $"{surname}/{given}" : surname + given;
                 }
             }
             catch { }
