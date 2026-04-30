@@ -177,7 +177,8 @@ export class CheckInService {
         matchingSegmentIds.has(item.segmentId)
       ) {
         ticketByPaxId.set(item.passengerId, item.eTicketNumber);
-        const segId = parseInt(item.segmentId, 10);
+        const lastDash = item.segmentId.lastIndexOf('-');
+        const segId = parseInt(lastDash >= 0 ? item.segmentId.slice(lastDash + 1) : item.segmentId, 10);
         if (!isNaN(segId)) {
           const existing = segmentIdsByPaxId.get(item.passengerId) ?? [];
           existing.push(segId);
