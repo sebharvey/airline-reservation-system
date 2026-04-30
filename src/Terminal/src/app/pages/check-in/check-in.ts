@@ -109,16 +109,13 @@ export class CheckInComponent {
     if (!allNotes?.length) return [];
 
     const paxIdInt = this.#parsePaxIdInt(pax.passengerId);
-
-    const segments = orderData!.dataLists?.flightSegments ?? [];
-    const segIdx = segments.findIndex(s => s.origin === this.departureAirport());
-    const segmentIdInt = segIdx >= 0 ? segIdx + 1 : null;
+    const ticketNumber = pax.ticketNumber;
 
     return allNotes
       .filter(n => {
         if (n.type !== 'OCI') return false;
         if (paxIdInt !== null && n.paxId !== undefined && n.paxId !== paxIdInt) return false;
-        if (segmentIdInt !== null && n.segmentId !== undefined && n.segmentId !== segmentIdInt) return false;
+        if (ticketNumber && !n.message.includes(ticketNumber)) return false;
         return true;
       })
       .slice()
