@@ -103,10 +103,15 @@ export class CheckInComponent {
   selectedPaxOciNotes = computed((): OciNote[] => {
     const b = this.booking();
     const pax = this.selectedPax();
+    const airport = this.departureAirport();
     const allNotes = b?.orderDetail.orderData?.notes;
     if (!allNotes?.length || !pax) return [];
     const paxIdInt = this.#parsePaxIdInt(pax.passengerId);
     const segmentIds = new Set(pax.segmentIds);
+    if (segmentIds.size === 0 && airport) {
+      const allSegs = b!.orderDetail.orderData?.dataLists?.flightSegments ?? [];
+      allSegs.forEach((s, i) => { if (s.origin === airport) segmentIds.add(i + 1); });
+    }
     return allNotes
       .filter(n =>
         n.type === 'OCI' &&
