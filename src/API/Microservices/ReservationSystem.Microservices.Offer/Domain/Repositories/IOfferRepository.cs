@@ -3,7 +3,7 @@ namespace ReservationSystem.Microservices.Offer.Domain.Repositories;
 public sealed record InventoryHoldRecord(
     Guid HoldId,
     Guid OrderId,
-    string? PassengerId,
+    int? PassengerId,
     string CabinCode,
     string? SeatNumber,
     string Status,
@@ -45,11 +45,11 @@ public interface IOfferRepository
 
     // InventoryHold
     Task<int> GetHoldCountAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
-    Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, string? passengerId, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default);
+    Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, int? passengerId, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default);
     Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
     Task DeleteHoldsAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default);
     Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default);
-    Task<bool> UpdateHoldSeatAsync(Guid inventoryId, Guid orderId, string passengerId, string seatNumber, CancellationToken ct = default);
+    Task<bool> UpdateHoldSeatAsync(Guid inventoryId, Guid orderId, int passengerId, string seatNumber, CancellationToken ct = default);
 
     // SeatReservation
     Task<IReadOnlyList<(string SeatNumber, string Status, Guid BasketId)>> GetSeatReservationsAsync(Guid inventoryId, CancellationToken ct = default);

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
@@ -216,7 +217,7 @@ public sealed class AdminDisruptionCancelHandler
         List<ReplacementOption> allOptions,
         CancellationToken ct)
     {
-        var passengerIds = order.Passengers.Select(p => p.PassengerId).ToList();
+        var passengerIds = order.Passengers.Select(p => CheckInHelper.ExtractPaxIdInt(p.PassengerId)).OfType<int>().ToList();
         var heldLegs = new List<ReplacementLeg>();
 
         // Hold seats on each leg; release all held legs and return Failed if any hold fails

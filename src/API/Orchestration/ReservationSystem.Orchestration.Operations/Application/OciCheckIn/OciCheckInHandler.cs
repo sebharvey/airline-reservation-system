@@ -158,13 +158,15 @@ public sealed class OciCheckInHandler
             {
                 foreach (var ticketResult in ticketsWithNewSeat)
                 {
-                    if (!paxIdByTicket.TryGetValue(ticketResult.TicketNumber, out var passengerId))
+                    if (!paxIdByTicket.TryGetValue(ticketResult.TicketNumber, out var passengerIdStr))
                         continue;
+                    var passengerId = CheckInHelper.ExtractPaxIdInt(passengerIdStr);
+                    if (passengerId is null) continue;
 
                     try
                     {
                         await _offerServiceClient.UpdateHoldSeatAsync(
-                            inventoryId.Value, order.OrderId, passengerId, ticketResult.SeatNumber!, ct);
+                            inventoryId.Value, order.OrderId, passengerId.Value, ticketResult.SeatNumber!, ct);
 
                         _logger.LogInformation(
                             "Updated inventory hold seat to {Seat} for passenger {PassengerId} on inventory {InventoryId}",

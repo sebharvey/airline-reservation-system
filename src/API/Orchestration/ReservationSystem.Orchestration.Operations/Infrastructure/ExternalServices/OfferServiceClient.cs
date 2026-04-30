@@ -280,7 +280,7 @@ public sealed class OfferServiceClient
     public async Task HoldInventoryAsync(
         Guid inventoryId,
         string cabinCode,
-        IReadOnlyList<string> passengerIds,
+        IReadOnlyList<int> passengerIds,
         Guid orderId,
         CancellationToken cancellationToken = default)
     {
@@ -358,7 +358,7 @@ public sealed class OfferServiceClient
     public async Task UpdateHoldSeatAsync(
         Guid inventoryId,
         Guid orderId,
-        string passengerId,
+        int passengerId,
         string seatNumber,
         CancellationToken cancellationToken = default)
     {

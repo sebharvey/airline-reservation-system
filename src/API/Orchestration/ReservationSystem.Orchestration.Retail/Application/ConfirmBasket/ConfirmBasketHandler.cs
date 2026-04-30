@@ -848,11 +848,11 @@ public sealed class ConfirmBasketHandler
             await Task.WhenAll(inventoryItems.Select(item =>
             {
                 var (inventoryId, cabinCode) = item;
-                List<(string? SeatNumber, string? PassengerId)> passengers;
+                List<(string? SeatNumber, int? PassengerId)> passengers;
                 if (seatsByInventory.TryGetValue(inventoryId.ToString(), out var seats) && seats.Count > 0)
                     passengers = seats;
                 else
-                    passengers = passengerIds.Select(id => ((string?)null, (string?)id)).ToList();
+                    passengers = passengerIds.Select(id => ((string?)null, id)).ToList();
 
                 return _offerServiceClient.HoldInventoryAsync(inventoryId, cabinCode, passengers, orderId, holdType, standbyPriority, cancellationToken);
             }));
@@ -1376,13 +1376,13 @@ public sealed class ConfirmBasketHandler
 
     private static (
         List<(Guid InventoryId, string CabinCode)> items,
-        List<string> passengerIds,
-        Dictionary<string, List<(string? SeatNumber, string? PassengerId)>> seatsByInventory)
+        List<int?> passengerIds,
+        Dictionary<string, List<(string? SeatNumber, int? PassengerId)>> seatsByInventory)
         ParseBasketDataForInventorySell(string basketDataJson)
     {
         var items = new List<(Guid, string)>();
-        var passengerIds = new List<string>();
-        var seatsByInventory = new Dictionary<string, List<(string? SeatNumber, string? PassengerId)>>(StringComparer.OrdinalIgnoreCase);
+        var passengerIds = new List<int?>();
+        var seatsByInventory = new Dictionary<string, List<(string? SeatNumber, int? PassengerId)>>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -1396,7 +1396,7 @@ public sealed class ConfirmBasketHandler
                 {
                     var paxId = p.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null;
                     if (!string.IsNullOrEmpty(paxId))
-                        passengerIds.Add(paxId);
+                        passengerIds.Add(ExtractPaxId(paxId));
                 }
             }
 
@@ -1412,7 +1412,7 @@ public sealed class ConfirmBasketHandler
                     {
                         if (!seatsByInventory.ContainsKey(segId))
                             seatsByInventory[segId] = [];
-                        seatsByInventory[segId].Add((string.IsNullOrEmpty(seatNum) ? null : seatNum, paxId));
+                        seatsByInventory[segId].Add((string.IsNullOrEmpty(seatNum) ? null : seatNum, ExtractPaxId(paxId)));
                     }
                 }
             }
@@ -1442,6 +1442,13 @@ public sealed class ConfirmBasketHandler
     /// Format: base64("{flightNumber}-{departureDate}-{cabinCode}-{seatNumber}")
     /// e.g. base64("AX001-2026-04-12-Y-35A") → "35A"
     /// </summary>
+    private static int? ExtractPaxId(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        var dash = id.LastIndexOf('-');
+        return dash >= 0 && int.TryParse(id[(dash + 1)..], out var n) ? n : int.TryParse(id, out n) ? n : null;
+    }
+
     private static string? DecodeSeatNumber(string? seatOfferId)
     {
         if (string.IsNullOrEmpty(seatOfferId)) return null;

@@ -1,6 +1,6 @@
 namespace ReservationSystem.Microservices.Offer.Application.HoldInventory;
 
-public sealed record PaxHold(string? SeatNumber, string? PassengerId);
+public sealed record PaxHold(string? SeatNumber, int? PassengerId);
 
 public sealed record HoldInventoryCommand(
     Guid InventoryId,

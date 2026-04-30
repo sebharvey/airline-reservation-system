@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Operations.Models.Responses;
@@ -117,7 +118,7 @@ public sealed class AdminDisruptionRebookOrderHandler
         RebookReplacementOption replacement,
         CancellationToken ct)
     {
-        var passengerIds = order.Passengers.Select(p => p.PassengerId).ToList();
+        var passengerIds = order.Passengers.Select(p => CheckInHelper.ExtractPaxIdInt(p.PassengerId)).OfType<int>().ToList();
         var heldLegs = new List<RebookReplacementLeg>();
 
         foreach (var leg in replacement.Legs)

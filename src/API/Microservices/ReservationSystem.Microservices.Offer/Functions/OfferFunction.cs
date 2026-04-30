@@ -512,7 +512,7 @@ public sealed class OfferFunction
             passengers = passengersEl.EnumerateArray()
                 .Select(p => new PaxHold(
                     SeatNumber:  p.TryGetProperty("seatNumber",  out var sn)  && sn.ValueKind  == JsonValueKind.String ? sn.GetString()  : null,
-                    PassengerId: p.TryGetProperty("passengerId", out var pid) && pid.ValueKind == JsonValueKind.String ? pid.GetString() : null))
+                    PassengerId: p.TryGetProperty("passengerId", out var pid) && pid.ValueKind == JsonValueKind.Number ? pid.GetInt32() : null))
                 .ToList();
         }
         else if (body.TryGetProperty("paxCount", out var paxCountEl) && paxCountEl.ValueKind == JsonValueKind.Number)
@@ -1080,12 +1080,12 @@ public sealed class OfferFunction
             return await req.BadRequestAsync("'inventoryId' (GUID) is required.");
         if (!body.TryGetProperty("orderId", out var orderEl) || !Guid.TryParse(orderEl.GetString(), out var orderId))
             return await req.BadRequestAsync("'orderId' (GUID) is required.");
-        if (!body.TryGetProperty("passengerId", out var paxEl) || string.IsNullOrWhiteSpace(paxEl.GetString()))
-            return await req.BadRequestAsync("'passengerId' is required.");
+        if (!body.TryGetProperty("passengerId", out var paxEl) || paxEl.ValueKind != JsonValueKind.Number)
+            return await req.BadRequestAsync("'passengerId' (integer) is required.");
         if (!body.TryGetProperty("seatNumber", out var seatEl) || string.IsNullOrWhiteSpace(seatEl.GetString()))
             return await req.BadRequestAsync("'seatNumber' is required.");
 
-        var command = new UpdateHoldSeatCommand(inventoryId, orderId, paxEl.GetString()!, seatEl.GetString()!);
+        var command = new UpdateHoldSeatCommand(inventoryId, orderId, paxEl.GetInt32(), seatEl.GetString()!);
         var updated = await _updateHoldSeatHandler.HandleAsync(command, ct);
 
         return updated

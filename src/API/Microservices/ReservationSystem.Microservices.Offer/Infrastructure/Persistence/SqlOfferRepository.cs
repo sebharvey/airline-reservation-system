@@ -632,7 +632,7 @@ public sealed class SqlOfferRepository : IOfferRepository
                 commandTimeout: _options.CommandTimeoutSeconds));
     }
 
-    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, string? passengerId, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default)
+    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, int? passengerId, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default)
     {
         const string sql = """
             INSERT INTO [offer].[InventoryHold]
@@ -715,7 +715,7 @@ public sealed class SqlOfferRepository : IOfferRepository
         return rows.Select(r => new InventoryHoldRecord(
             HoldId:          (Guid)r.HoldId,
             OrderId:         (Guid)r.OrderId,
-            PassengerId:     (string?)r.PassengerId,
+            PassengerId:     (int?)r.PassengerId,
             CabinCode:       (string)r.CabinCode,
             SeatNumber:      (string?)r.SeatNumber,
             Status:          (string)r.Status,
@@ -725,7 +725,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             .ToList().AsReadOnly();
     }
 
-    public async Task<bool> UpdateHoldSeatAsync(Guid inventoryId, Guid orderId, string passengerId, string seatNumber, CancellationToken ct = default)
+    public async Task<bool> UpdateHoldSeatAsync(Guid inventoryId, Guid orderId, int passengerId, string seatNumber, CancellationToken ct = default)
     {
         const string sql = """
             UPDATE [offer].[InventoryHold]
