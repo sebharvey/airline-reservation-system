@@ -2,7 +2,7 @@ using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Offer.Application.UpdateHoldSeat;
 
-public sealed record UpdateHoldSeatCommand(Guid InventoryId, Guid OrderId, string PassengerId, string SeatNumber);
+public sealed record UpdateHoldSeatCommand(Guid InventoryId, Guid OrderId, int PassengerId, string SeatNumber);
 
 public sealed class UpdateHoldSeatHandler
 {

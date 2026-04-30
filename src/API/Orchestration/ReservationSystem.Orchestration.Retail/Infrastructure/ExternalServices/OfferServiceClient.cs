@@ -134,7 +134,7 @@ public sealed class OfferServiceClient
     }
 
     public async Task HoldInventoryAsync(
-        Guid inventoryId, string cabinCode, IReadOnlyList<(string? SeatNumber, string? PassengerId)> passengers, Guid orderId,
+        Guid inventoryId, string cabinCode, IReadOnlyList<(string? SeatNumber, int? PassengerId)> passengers, Guid orderId,
         string holdType = "Revenue", short? standbyPriority = null,
         CancellationToken cancellationToken = default)
     {

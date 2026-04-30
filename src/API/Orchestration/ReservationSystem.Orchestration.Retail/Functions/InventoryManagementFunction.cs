@@ -206,33 +206,34 @@ public sealed class InventoryManagementFunction
                 ? JsonNode.Parse(order.OrderData.Value.GetRawText())?.AsObject()
                 : null;
 
-            // Build passengerId → name map from dataLists.passengers.
-            var passengerNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var passengerTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            // Build passengerId (int) → name/type maps from dataLists.passengers.
+            var passengerNames = new Dictionary<int, string>();
+            var passengerTypes = new Dictionary<int, string>();
             if (orderData?["dataLists"]?["passengers"] is JsonArray paxArray)
             {
                 foreach (var p in paxArray)
                 {
                     if (p is not JsonObject pObj) continue;
-                    var id      = pObj["passengerId"]?.GetValue<string>();
+                    var idStr   = pObj["passengerId"]?.GetValue<string>();
                     var given   = pObj["givenName"]?.GetValue<string>() ?? string.Empty;
                     var surname = pObj["surname"]?.GetValue<string>() ?? string.Empty;
                     var type    = pObj["type"]?.GetValue<string>() ?? pObj["ptcCode"]?.GetValue<string>();
-                    if (id is not null)
+                    var id      = ExtractPaxId(idStr);
+                    if (id.HasValue)
                     {
-                        passengerNames[id] = $"{given} {surname}".Trim();
-                        if (type is not null) passengerTypes[id] = type;
+                        passengerNames[id.Value] = $"{given} {surname}".Trim();
+                        if (type is not null) passengerTypes[id.Value] = type;
                     }
                 }
             }
 
             // Resolve passenger name — prefer hold's stored name if already enriched.
             var passengerName = hold.PassengerName;
-            if (string.IsNullOrEmpty(passengerName) && hold.PassengerId is not null)
-                passengerNames.TryGetValue(hold.PassengerId, out passengerName);
+            if (string.IsNullOrEmpty(passengerName) && hold.PassengerId.HasValue)
+                passengerNames.TryGetValue(hold.PassengerId.Value, out passengerName);
 
-            var passengerType = hold.PassengerId is not null
-                ? passengerTypes.GetValueOrDefault(hold.PassengerId)
+            var passengerType = hold.PassengerId.HasValue
+                ? passengerTypes.GetValueOrDefault(hold.PassengerId.Value)
                 : null;
 
             // Find the flight order item for this inventory segment.
@@ -277,12 +278,10 @@ public sealed class InventoryManagementFunction
                     if (item is not JsonObject oi) continue;
                     var pt     = oi["productType"]?.GetValue<string>();
                     var segId  = oi["segmentId"]?.GetValue<string>();
-                    var paxId  = oi["passengerId"]?.GetValue<string>();
+                    var paxId  = ExtractPaxId(oi["passengerId"]?.GetValue<string>());
 
                     if (!string.Equals(segId, inventoryId, StringComparison.OrdinalIgnoreCase)) continue;
-                    if (!string.IsNullOrEmpty(hold.PassengerId) &&
-                        !string.IsNullOrEmpty(paxId) &&
-                        !string.Equals(paxId, hold.PassengerId, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (hold.PassengerId.HasValue && paxId.HasValue && paxId.Value != hold.PassengerId.Value) continue;
 
                     if (string.Equals(pt, "SEAT", StringComparison.OrdinalIgnoreCase))
                     {
@@ -346,29 +345,30 @@ public sealed class InventoryManagementFunction
     /// Uses passengerId stored on the hold when available.
     /// Falls back to seat-assignment lookup for holds without a stored passengerId.
     /// </summary>
-    private static string? ResolvePassengerName(OrderMsOrderResult? order, string inventoryId, string? seatNumber, string? passengerId)
+    private static string? ResolvePassengerName(OrderMsOrderResult? order, string inventoryId, string? seatNumber, int? passengerId)
     {
         if (order?.OrderData is not { } data) return null;
         try
         {
-            // Build passengerId → full name map from dataLists.passengers.
-            var paxById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            // Build passengerId (int) → full name map from dataLists.passengers.
+            var paxById = new Dictionary<int, string>();
             if (data.TryGetProperty("dataLists", out var dataLists) &&
                 dataLists.TryGetProperty("passengers", out var passEl) &&
                 passEl.ValueKind == JsonValueKind.Array)
             {
                 foreach (var p in passEl.EnumerateArray())
                 {
-                    var id      = p.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null;
+                    var idStr   = p.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null;
                     var given   = p.TryGetProperty("givenName",   out var g)   ? g.GetString()   : null;
                     var surname = p.TryGetProperty("surname",     out var s)   ? s.GetString()   : null;
-                    if (id != null)
-                        paxById[id] = $"{given} {surname}".Trim();
+                    var id      = ExtractPaxId(idStr);
+                    if (id.HasValue)
+                        paxById[id.Value] = $"{given} {surname}".Trim();
                 }
             }
 
             // Direct lookup via the passengerId stored on the hold (preferred path).
-            if (!string.IsNullOrEmpty(passengerId) && paxById.TryGetValue(passengerId, out var directName))
+            if (passengerId.HasValue && paxById.TryGetValue(passengerId.Value, out var directName))
                 return directName;
 
             // Seat-assignment lookup for holds created before PassengerId was stored.
@@ -381,10 +381,10 @@ public sealed class InventoryManagementFunction
                     if (!string.Equals(pt, "SEAT", StringComparison.OrdinalIgnoreCase)) continue;
                     var segId = orderItem.TryGetProperty("segmentId",   out var sid)  ? sid.GetString()  : null;
                     var sn    = orderItem.TryGetProperty("seatNumber",  out var s)    ? s.GetString()    : null;
-                    var paxId = orderItem.TryGetProperty("passengerId", out var pid)  ? pid.GetString()  : null;
+                    var paxId = ExtractPaxId(orderItem.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null);
                     if (string.Equals(segId, inventoryId, StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(sn, seatNumber, StringComparison.OrdinalIgnoreCase) &&
-                        paxId != null && paxById.TryGetValue(paxId, out var name))
+                        paxId.HasValue && paxById.TryGetValue(paxId.Value, out var name))
                     {
                         return name;
                     }
@@ -394,5 +394,12 @@ public sealed class InventoryManagementFunction
             return null;
         }
         catch { return null; }
+    }
+
+    private static int? ExtractPaxId(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        var dash = id.LastIndexOf('-');
+        return dash >= 0 && int.TryParse(id[(dash + 1)..], out var n) ? n : int.TryParse(id, out n) ? n : null;
     }
 }

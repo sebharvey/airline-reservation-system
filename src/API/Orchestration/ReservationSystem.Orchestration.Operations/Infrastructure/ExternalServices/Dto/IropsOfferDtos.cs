@@ -152,7 +152,7 @@ public sealed class HoldInventoryRequest
 public sealed class HoldInventoryPassengerDto
 {
     [JsonPropertyName("passengerId")]
-    public string? PassengerId { get; init; }
+    public int? PassengerId { get; init; }
 }
 
 public sealed class ReleaseInventoryRequest
