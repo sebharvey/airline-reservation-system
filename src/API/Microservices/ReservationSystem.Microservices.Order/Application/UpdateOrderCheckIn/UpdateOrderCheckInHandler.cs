@@ -124,6 +124,7 @@ public sealed class UpdateOrderCheckInHandler
             {
                 var obj = new JsonObject
                 {
+                    ["noteId"]   = Guid.NewGuid().ToString(),
                     ["dateTime"] = note.DateTime,
                     ["type"]     = note.Type,
                     ["message"]  = note.Message
@@ -136,6 +137,7 @@ public sealed class UpdateOrderCheckInHandler
 
         notesArray.Add(new JsonObject
         {
+            ["noteId"]   = Guid.NewGuid().ToString(),
             ["dateTime"] = command.CheckedInAt,
             ["type"] = "CHECK-IN",
             ["message"] = noteMessage

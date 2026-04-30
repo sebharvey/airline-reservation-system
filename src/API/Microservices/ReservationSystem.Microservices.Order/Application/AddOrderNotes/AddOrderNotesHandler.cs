@@ -49,6 +49,7 @@ public sealed class AddOrderNotesHandler
         {
             var obj = new JsonObject
             {
+                ["noteId"]   = Guid.NewGuid().ToString(),
                 ["dateTime"] = note.DateTime,
                 ["type"]     = note.Type,
                 ["message"]  = note.Message
