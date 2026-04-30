@@ -522,7 +522,7 @@
                         </span>
                       </td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
-                      <td>{{ ticket.ticketData?.passenger ? (ticket.ticketData.passenger | passengerName) : ticket.passengerId }}</td>
+                      <td>{{ ticket.ticketData?.passenger ? (ticket.ticketData!.passenger | passengerName) : ticket.passengerId }}</td>
                       <td class="amount-cell hide-mobile">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -541,7 +541,7 @@
                         <span class="mobile-ticket-amount">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) }}</span>
                       }
                     </div>
-                    <div class="mobile-ticket-pax">{{ ticket.ticketData?.passenger ? (ticket.ticketData.passenger | passengerName) : ticket.passengerId }}</div>
+                    <div class="mobile-ticket-pax">{{ ticket.ticketData?.passenger ? (ticket.ticketData!.passenger | passengerName) : ticket.passengerId }}</div>
                     <div class="mobile-ticket-issued">Issued {{ formatDateTime(ticket.createdAt) }}</div>
                   </div>
                   <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
@@ -587,7 +587,7 @@
                         </span>
                       </td>
                       <td class="hide-mobile muted">{{ formatDateTime(ticket.createdAt) }}</td>
-                      <td class="muted">{{ ticket.ticketData?.passenger ? (ticket.ticketData.passenger | passengerName) : ticket.passengerId }}</td>
+                      <td class="muted">{{ ticket.ticketData?.passenger ? (ticket.ticketData!.passenger | passengerName) : ticket.passengerId }}</td>
                       <td class="amount-cell hide-mobile muted">{{ ticket.ticketData?.fareConstruction?.totalAmount != null ? formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) : '—' }}</td>
                       <td><button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button></td>
                     </tr>
@@ -606,7 +606,7 @@
                         <span class="mobile-ticket-amount muted">{{ formatAmount(ticket.ticketData!.fareConstruction!.totalAmount, ticket.ticketData!.fareConstruction!.currency) }}</span>
                       }
                     </div>
-                    <div class="mobile-ticket-pax muted">{{ ticket.ticketData?.passenger ? (ticket.ticketData.passenger | passengerName) : ticket.passengerId }}</div>
+                    <div class="mobile-ticket-pax muted">{{ ticket.ticketData?.passenger ? (ticket.ticketData!.passenger | passengerName) : ticket.passengerId }}</div>
                     <div class="mobile-ticket-issued muted">Issued {{ formatDateTime(ticket.createdAt) }}</div>
                   </div>
                   <button class="view-btn" (click)="openTicketModal(ticket); $event.stopPropagation()">View</button>
