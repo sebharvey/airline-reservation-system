@@ -3,6 +3,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { PassengerNamePipe } from '../../../pipes/passenger-name.pipe';
 import {
   CustomerService,
   CustomerDetail,
@@ -80,7 +81,7 @@ export const LANGUAGES = [
 
 @Component({
   selector: 'app-customer-detail',
-  imports: [FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule, PassengerNamePipe],
   templateUrl: './customer-detail.html',
   styleUrl: './customer-detail.css',
 })

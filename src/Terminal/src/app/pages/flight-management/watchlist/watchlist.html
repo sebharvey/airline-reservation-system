@@ -176,8 +176,8 @@
         <tbody>
           @for (entry of filtered(); track entry.watchlistId) {
             <tr class="rule-row">
-              <td class="mono bold">{{ entry.surname }}</td>
-              <td class="mono">{{ entry.givenName }}</td>
+              <td class="mono bold">{{ entry.surname | uppercase }}</td>
+              <td class="mono">{{ entry.givenName | uppercase }}</td>
               <td>{{ formatDob(entry.dateOfBirth) }}</td>
               <td><span class="badge badge-passport">{{ entry.passportNumber }}</span></td>
               <td class="notes-cell">{{ entry.notes || '—' }}</td>

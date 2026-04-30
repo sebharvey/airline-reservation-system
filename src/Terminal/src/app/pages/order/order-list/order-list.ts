@@ -58,8 +58,13 @@ export class OrderListComponent implements OnInit {
           ? `${segments[0].origin} → ${this.#getTurnaroundDestination(segments)}`
           : '';
         const passengers = result.orderData?.dataLists?.passengers ?? [];
-        const leadPassengerName = passengers.length > 0
-          ? `${passengers[0].givenName} ${passengers[0].surname}`.trim()
+        const p0 = passengers[0];
+        const leadPassengerName = p0
+          ? (() => {
+              const s = (p0.surname ?? '').toUpperCase().trim();
+              const g = (p0.givenName ?? '').toUpperCase().trim();
+              return s && g ? `${s}/${g}` : s || g;
+            })()
           : '';
         this.orders.set([{ ...result, route, leadPassengerName } as unknown as OrderSummary]);
       } else {

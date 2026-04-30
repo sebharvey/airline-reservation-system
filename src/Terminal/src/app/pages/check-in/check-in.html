@@ -116,7 +116,7 @@
           >
             <div class="avatar small-avatar">{{ pax.givenName[0] }}</div>
             <div class="pax-list-info">
-              <span class="pax-list-name">{{ pax.givenName }} {{ pax.surname }}</span>
+              <span class="pax-list-name">{{ pax | passengerName }}</span>
               <span class="pax-list-meta">
                 <span class="pax-type-badge">{{ paxTypeLabel(pax.passengerTypeCode) }}</span>
                 <span class="mono small-text">{{ pax.ticketNumber }}</span>
@@ -144,7 +144,7 @@
       <div class="pax-detail-panel">
         @if (selectedPax()) {
           <p class="section-label" style="margin-top: 0">
-            Travel documents — {{ selectedPax()!.givenName }} {{ selectedPax()!.surname }}
+            Travel documents — {{ selectedPax() | passengerName }}
           </p>
           <div class="pax-detail-inner">
 
@@ -235,7 +235,7 @@
                   } @else if (paxStatuses()[selectedPaxIndex()!] === 'checked-in') {
                     ✓ Checked In
                   } @else {
-                    ✓ Check In {{ selectedPax()!.givenName }} {{ selectedPax()!.surname }}
+                    ✓ Check In {{ selectedPax() | passengerName }}
                   }
                 </button>
               </div>
@@ -297,7 +297,7 @@
             {{ checkInResult()!.success ? 'Check-In Successful' : 'Check-In Failed' }}
           </h2>
           <p class="modal-subtitle">
-            {{ checkInResult()!.givenName }} {{ checkInResult()!.surname }}
+            {{ checkInResult() | passengerName }}
             &nbsp;·&nbsp;
             <span class="pax-type-badge">{{ paxTypeLabel(checkInResult()!.passengerTypeCode) }}</span>
           </p>

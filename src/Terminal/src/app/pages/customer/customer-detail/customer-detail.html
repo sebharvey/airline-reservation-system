@@ -11,7 +11,7 @@
       <div class="customer-header-info">
         <div class="header-avatar">{{ c.givenName[0] }}</div>
         <div class="header-text">
-          <h1 class="header-name">{{ c.givenName }} {{ c.surname }}</h1>
+          <h1 class="header-name">{{ c | passengerName }}</h1>
           <div class="header-meta">
             <span class="loyalty-copy-wrap mono">
               {{ c.loyaltyNumber }}

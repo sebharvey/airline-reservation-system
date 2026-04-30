@@ -7,6 +7,7 @@ import {
   PaxSubmission,
   TimaticNote,
 } from '../../services/check-in.service';
+import { PassengerNamePipe } from '../../pipes/passenger-name.pipe';
 
 interface PaxFormData {
   passengerId: string;
@@ -38,6 +39,7 @@ interface CheckInResult {
 
 @Component({
   selector: 'app-check-in',
+  imports: [PassengerNamePipe],
   templateUrl: './check-in.html',
   styleUrl: './check-in.css',
 })

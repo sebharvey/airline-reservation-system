@@ -182,8 +182,8 @@
                       <td>
                         <span class="cabin-code-badge cabin-{{ entry.cabinCode.toLowerCase() }}">{{ entry.cabinCode }}</span>
                       </td>
-                      <td class="pax-name">{{ entry.givenName }}</td>
-                      <td class="pax-name">{{ entry.surname }}</td>
+                      <td class="pax-name">{{ entry.givenName | uppercase }}</td>
+                      <td class="pax-name">{{ entry.surname | uppercase }}</td>
                       <td class="mono muted">{{ entry.dateOfBirth ?? '—' }}</td>
                       <td>{{ entry.gender ?? '—' }}</td>
                       <td><span class="ptc-badge">{{ entry.ptcCode }}</span></td>
