@@ -37,6 +37,15 @@ using ReservationSystem.Microservices.Order.Application.DeactivateSsrOption;
 using ReservationSystem.Microservices.Order.Application.AddOrderNotes;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderCheckIn;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSsrs;
+using ReservationSystem.Microservices.Order.Application.AddBasketOffer;
+using ReservationSystem.Microservices.Order.Application.QueryOrders;
+using ReservationSystem.Microservices.Order.Application.GetIropsOrders;
+using ReservationSystem.Microservices.Order.Application.GetIropsOrdersByIds;
+using ReservationSystem.Microservices.Order.Application.GetOrderByETicket;
+using ReservationSystem.Microservices.Order.Application.RetrieveOrder;
+using ReservationSystem.Microservices.Order.Application.GetOrderBookingReferences;
+using ReservationSystem.Microservices.Order.Application.GetRecentOrders;
+using ReservationSystem.Microservices.Order.Application.GetOrderDebug;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
 using ReservationSystem.Microservices.Order.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Caching;
@@ -116,6 +125,15 @@ var host = new HostBuilder()
         services.AddScoped<CreateSsrOptionHandler>();
         services.AddScoped<UpdateSsrOptionHandler>();
         services.AddScoped<DeactivateSsrOptionHandler>();
+        services.AddScoped<AddBasketOfferHandler>();
+        services.AddScoped<QueryOrdersHandler>();
+        services.AddScoped<GetIropsOrdersHandler>();
+        services.AddScoped<GetIropsOrdersByIdsHandler>();
+        services.AddScoped<GetOrderByETicketHandler>();
+        services.AddScoped<RetrieveOrderHandler>();
+        services.AddScoped<GetOrderBookingReferencesHandler>();
+        services.AddScoped<GetRecentOrdersHandler>();
+        services.AddScoped<GetOrderDebugHandler>();
     })
     .Build();
 

@@ -3,7 +3,10 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using ReservationSystem.Orchestration.Admin.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Admin.Application.CreateSsrOption;
+using ReservationSystem.Orchestration.Admin.Application.DeactivateSsrOption;
+using ReservationSystem.Orchestration.Admin.Application.GetSsrOptions;
+using ReservationSystem.Orchestration.Admin.Application.UpdateSsrOption;
 using ReservationSystem.Orchestration.Admin.Models.Requests;
 using ReservationSystem.Orchestration.Admin.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
@@ -19,12 +22,23 @@ namespace ReservationSystem.Orchestration.Admin.Functions;
 /// </summary>
 public sealed class SsrManagementFunction
 {
-    private readonly OrderServiceClient _orderServiceClient;
+    private readonly GetSsrOptionsHandler _getSsrOptionsHandler;
+    private readonly CreateSsrOptionHandler _createSsrOptionHandler;
+    private readonly UpdateSsrOptionHandler _updateSsrOptionHandler;
+    private readonly DeactivateSsrOptionHandler _deactivateSsrOptionHandler;
     private readonly ILogger<SsrManagementFunction> _logger;
 
-    public SsrManagementFunction(OrderServiceClient orderServiceClient, ILogger<SsrManagementFunction> logger)
+    public SsrManagementFunction(
+        GetSsrOptionsHandler getSsrOptionsHandler,
+        CreateSsrOptionHandler createSsrOptionHandler,
+        UpdateSsrOptionHandler updateSsrOptionHandler,
+        DeactivateSsrOptionHandler deactivateSsrOptionHandler,
+        ILogger<SsrManagementFunction> logger)
     {
-        _orderServiceClient = orderServiceClient;
+        _getSsrOptionsHandler = getSsrOptionsHandler;
+        _createSsrOptionHandler = createSsrOptionHandler;
+        _updateSsrOptionHandler = updateSsrOptionHandler;
+        _deactivateSsrOptionHandler = deactivateSsrOptionHandler;
         _logger = logger;
     }
 
@@ -41,22 +55,9 @@ public sealed class SsrManagementFunction
     {
         try
         {
-            var msResult = await _orderServiceClient.GetSsrOptionsAsync(cancellationToken);
-
-            var response = new SsrOptionListResponse
-            {
-                SsrOptions = msResult.SsrOptions
-                    .Select(o => new SsrOptionSummary
-                    {
-                        SsrCode = o.SsrCode,
-                        Label = o.Label,
-                        Category = o.Category
-                    })
-                    .ToList()
-                    .AsReadOnly()
-            };
-
-            return await req.OkJsonAsync(response);
+            var query = new GetSsrOptionsQuery();
+            var result = await _getSsrOptionsHandler.HandleAsync(query, cancellationToken);
+            return await req.OkJsonAsync(result);
         }
         catch (Exception ex)
         {
@@ -91,28 +92,13 @@ public sealed class SsrManagementFunction
 
         try
         {
-            var body = new
-            {
-                ssrCode = request.SsrCode.ToUpperInvariant(),
-                label = request.Label,
-                category = request.Category
-            };
-
-            var result = await _orderServiceClient.CreateSsrOptionAsync(body, cancellationToken);
-
-            var response = new SsrOptionResponse
-            {
-                SsrCatalogueId = result.SsrCatalogueId,
-                SsrCode = result.SsrCode,
-                Label = result.Label,
-                Category = result.Category,
-                IsActive = result.IsActive
-            };
+            var command = new CreateSsrOptionCommand(request.SsrCode, request.Label, request.Category);
+            var result = await _createSsrOptionHandler.HandleAsync(command, cancellationToken);
 
             var httpResponse = req.CreateResponse(HttpStatusCode.Created);
             httpResponse.Headers.Add("Content-Type", "application/json");
             await httpResponse.WriteStringAsync(
-                System.Text.Json.JsonSerializer.Serialize(response, ReservationSystem.Shared.Common.Json.SharedJsonOptions.CamelCase));
+                System.Text.Json.JsonSerializer.Serialize(result, ReservationSystem.Shared.Common.Json.SharedJsonOptions.CamelCase));
             return httpResponse;
         }
         catch (InvalidOperationException ex)
@@ -149,20 +135,13 @@ public sealed class SsrManagementFunction
 
         try
         {
-            var body = new { label = request.Label, category = request.Category };
-            var result = await _orderServiceClient.UpdateSsrOptionAsync(ssrCode.ToUpperInvariant(), body, cancellationToken);
+            var command = new UpdateSsrOptionCommand(ssrCode, request.Label, request.Category);
+            var result = await _updateSsrOptionHandler.HandleAsync(command, cancellationToken);
 
             if (result is null)
                 return await req.NotFoundAsync("SSR code not found.");
 
-            return await req.OkJsonAsync(new SsrOptionResponse
-            {
-                SsrCatalogueId = result.SsrCatalogueId,
-                SsrCode = result.SsrCode,
-                Label = result.Label,
-                Category = result.Category,
-                IsActive = result.IsActive
-            });
+            return await req.OkJsonAsync(result);
         }
         catch (Exception ex)
         {
@@ -187,7 +166,8 @@ public sealed class SsrManagementFunction
     {
         try
         {
-            var found = await _orderServiceClient.DeactivateSsrOptionAsync(ssrCode.ToUpperInvariant(), cancellationToken);
+            var command = new DeactivateSsrOptionCommand(ssrCode);
+            var found = await _deactivateSsrOptionHandler.HandleAsync(command, cancellationToken);
 
             if (!found)
                 return await req.NotFoundAsync("SSR code not found.");

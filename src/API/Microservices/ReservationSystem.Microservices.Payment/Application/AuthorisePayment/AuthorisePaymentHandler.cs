@@ -71,6 +71,18 @@ public sealed class AuthorisePaymentHandler
         }
         else
         {
+            if (!IsValidLuhn(command.CardNumber))
+                throw new ArgumentException("Card number is invalid.");
+
+            if (!IsValidExpiryDate(command.ExpiryDate))
+                throw new ArgumentException("Card expiry date is invalid or in the past.");
+
+            var isAmex = command.CardNumber.Length >= 2 && command.CardNumber[0] == '3'
+                && (command.CardNumber[1] == '4' || command.CardNumber[1] == '7');
+            var expectedCvvLength = isAmex ? 4 : 3;
+            if (command.Cvv.Length != expectedCvvLength || !command.Cvv.All(char.IsDigit))
+                throw new ArgumentException($"Security code must be {expectedCvvLength} digits.");
+
             cardLast4 = command.CardNumber.Length >= 4
                 ? command.CardNumber[^4..]
                 : command.CardNumber;
@@ -114,5 +126,66 @@ public sealed class AuthorisePaymentHandler
             '3' when cardNumber.Length >= 2 && (cardNumber[1] == '4' || cardNumber[1] == '7') => "Amex",
             _ => "Unknown"
         };
+    }
+
+    // -------------------------------------------------------------------------
+    // Luhn algorithm — validates card number check digit
+    // -------------------------------------------------------------------------
+
+    private static bool IsValidLuhn(string cardNumber)
+    {
+        if (string.IsNullOrWhiteSpace(cardNumber))
+            return false;
+
+        var sum = 0;
+        var alternate = false;
+
+        for (var i = cardNumber.Length - 1; i >= 0; i--)
+        {
+            if (!char.IsDigit(cardNumber[i]))
+                return false;
+
+            var digit = cardNumber[i] - '0';
+
+            if (alternate)
+            {
+                digit *= 2;
+                if (digit > 9)
+                    digit -= 9;
+            }
+
+            sum += digit;
+            alternate = !alternate;
+        }
+
+        return sum % 10 == 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // Expiry date — validates MM/YY format and that the card has not expired
+    // -------------------------------------------------------------------------
+
+    private static bool IsValidExpiryDate(string expiryDate)
+    {
+        if (string.IsNullOrWhiteSpace(expiryDate))
+            return false;
+
+        var parts = expiryDate.Split('/');
+        if (parts.Length != 2)
+            return false;
+
+        if (!int.TryParse(parts[0], out var month) || !int.TryParse(parts[1], out var year))
+            return false;
+
+        if (month < 1 || month > 12)
+            return false;
+
+        if (year < 100)
+            year += 2000;
+
+        var now = DateTime.UtcNow;
+
+        // Card is valid through the end of the expiry month
+        return year > now.Year || (year == now.Year && month >= now.Month);
     }
 }
