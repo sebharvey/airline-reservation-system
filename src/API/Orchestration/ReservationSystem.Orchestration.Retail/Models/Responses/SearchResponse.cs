@@ -3,14 +3,16 @@ namespace ReservationSystem.Orchestration.Retail.Models.Responses;
 // ── Unified slice search response types ──────────────────────────────────────
 // Returned by POST /v1/search/slice.
 // Both direct and connecting itineraries use this shape; direct flights have a
-// single entry in Legs while connecting itineraries have two.
+// single segment containing one flight, connecting itineraries have two segments
+// each containing one flight.
 
 /// <summary>
 /// Response from POST /v1/search/slice.
-/// Contains one entry per bookable itinerary.  Direct flights have a single leg;
-/// connecting flights (via LHR) have two.  The web client does not need to know
-/// in advance whether a route is direct or connecting — the backend detects this
-/// automatically and falls back to connecting search when no direct flight exists.
+/// Contains one entry per bookable itinerary.  Direct flights have a single segment
+/// with one flight; connecting flights (via LHR) have two segments each with one
+/// flight.  The web client does not need to know in advance whether a route is direct
+/// or connecting — the backend detects this automatically and falls back to connecting
+/// search when no direct flight exists.
 /// </summary>
 public sealed class SliceSearchResponse
 {
@@ -18,12 +20,12 @@ public sealed class SliceSearchResponse
 }
 
 /// <summary>
-/// One bookable itinerary — either a direct single-leg flight or a two-leg
+/// One bookable itinerary — either a direct single-segment flight or a two-segment
 /// connecting option via LHR.
 /// </summary>
 public sealed class SliceItinerary
 {
-    public IReadOnlyList<SliceLeg> Legs { get; init; } = [];
+    public IReadOnlyList<SliceSegment> Segments { get; init; } = [];
     /// <summary>
     /// Null for direct flights; layover minutes at LHR for connecting flights.
     /// </summary>
@@ -33,11 +35,20 @@ public sealed class SliceItinerary
 }
 
 /// <summary>
-/// One flight leg within an itinerary.  Each leg carries its own SessionId because
+/// One journey segment within an itinerary.  Each segment contains the flights
+/// operated on that origin–destination pair.
+/// </summary>
+public sealed class SliceSegment
+{
+    public IReadOnlyList<SliceFlight> Flights { get; init; } = [];
+}
+
+/// <summary>
+/// One flight within a segment.  Each flight carries its own SessionId because
 /// the Offer MS creates an independent StoredOffer per search; the client must pass
 /// the correct SessionId alongside each OfferId when creating the basket.
 /// </summary>
-public sealed class SliceLeg
+public sealed class SliceFlight
 {
     public Guid SessionId { get; init; }
     public Guid InventoryId { get; init; }
