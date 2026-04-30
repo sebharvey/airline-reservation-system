@@ -1,7 +1,7 @@
 {
   "journey": {
     "name": "Full customer journey",
-    "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs for 2 passengers: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation.",
+    "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs for 2 passengers: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation. Check-in is performed for both the outbound (LHR) and inbound (JFK) flights.",
     "domain": "Retail / Operations",
     "baseUrls": [
       {
@@ -441,7 +441,12 @@
             9,
             10,
             11,
-            12
+            12,
+            14,
+            15,
+            16,
+            17,
+            18
           ]
         }
       ]
@@ -727,6 +732,291 @@
             "assertion": "count",
             "expected": 2,
             "description": "Exactly 2 boarding cards must be generated for the two passengers."
+          }
+        ]
+      }
+    },
+    {
+      "step": 14,
+      "name": "Retrieve booking for check-in (inbound)",
+      "description": "Look up the booking by reference, lead passenger name, and departure airport JFK to open the inbound check-in session. Returns the list of passengers with ticket numbers for the inbound flight segment. checkInEligible confirms the booking is within the 24-hour check-in window for the return leg.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/retrieve",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      },
+      "chainsTo": [
+        {
+          "path": "passengers[0].ticketNumber",
+          "as": "inboundTicketNumber",
+          "usedInSteps": [
+            15,
+            18,
+            19
+          ]
+        },
+        {
+          "path": "passengers[0].passengerId",
+          "as": "inboundPassengerId",
+          "usedInSteps": [
+            15,
+            18
+          ]
+        },
+        {
+          "path": "passengers[1].ticketNumber",
+          "as": "inboundTicketNumber2",
+          "usedInSteps": [
+            15,
+            18,
+            19
+          ]
+        },
+        {
+          "path": "passengers[1].passengerId",
+          "as": "inboundPassengerId2",
+          "usedInSteps": [
+            15,
+            18
+          ]
+        }
+      ]
+    },
+    {
+      "step": 15,
+      "name": "Submit passport details (inbound)",
+      "description": "Submit travel document data for each passenger for the inbound flight. The Operations API validates the passport issue and expiry dates before persisting the document to the order via the Order microservice.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/pax",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "passengers": [
+            {
+              "ticketNumber": "__CHAIN_inboundTicketNumber__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA1234567",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2019-06-01",
+                "expiryDate": "2030-01-01"
+              }
+            },
+            {
+              "ticketNumber": "__CHAIN_inboundTicketNumber2__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA7654321",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2020-03-15",
+                "expiryDate": "2031-03-15"
+              }
+            }
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          },
+          {
+            "field": "passengers[0].ticketNumber",
+            "from": "inboundTicketNumber",
+            "source": "Step 14 → passengers[0].ticketNumber"
+          },
+          {
+            "field": "passengers[1].ticketNumber",
+            "from": "inboundTicketNumber2",
+            "source": "Step 14 → passengers[1].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 16,
+      "name": "Seat selection (inbound)",
+      "description": "Submit seat selection for the inbound flight during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/seats",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 17,
+      "name": "Baggage selection (inbound)",
+      "description": "Submit baggage selection for the inbound flight during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/bags",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 18,
+      "name": "Complete check-in (inbound)",
+      "description": "Final check-in submission for the inbound flight. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each inbound ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/checkin",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "JFK"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 19,
+      "name": "Generate boarding cards (inbound)",
+      "description": "Request boarding documents for the inbound checked-in tickets. The Operations API proxies the request to the Delivery microservice, which retrieves each ticket from delivery.Ticket, filters to segments checked in for departure airport JFK, and generates the BCBP string. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/boarding-docs",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "departureAirport": "JFK",
+          "ticketNumbers": [
+            "__CHAIN_inboundTicketNumber__",
+            "__CHAIN_inboundTicketNumber2__"
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "ticketNumbers[0]",
+            "from": "inboundTicketNumber",
+            "source": "Step 14 → passengers[0].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[1]",
+            "from": "inboundTicketNumber2",
+            "source": "Step 14 → passengers[1].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "boardingCards",
+            "assertion": "count",
+            "expected": 2,
+            "description": "Exactly 2 boarding cards must be generated for the two passengers on the inbound flight."
           }
         ]
       }
