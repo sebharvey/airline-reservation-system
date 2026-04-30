@@ -3,7 +3,14 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using ReservationSystem.Orchestration.Admin.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Admin.Application.CreateUser;
+using ReservationSystem.Orchestration.Admin.Application.DeleteUser;
+using ReservationSystem.Orchestration.Admin.Application.GetAllUsers;
+using ReservationSystem.Orchestration.Admin.Application.GetUser;
+using ReservationSystem.Orchestration.Admin.Application.ResetPassword;
+using ReservationSystem.Orchestration.Admin.Application.SetUserStatus;
+using ReservationSystem.Orchestration.Admin.Application.UnlockUser;
+using ReservationSystem.Orchestration.Admin.Application.UpdateUser;
 using ReservationSystem.Orchestration.Admin.Models.Requests;
 using ReservationSystem.Orchestration.Admin.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
@@ -19,12 +26,35 @@ namespace ReservationSystem.Orchestration.Admin.Functions;
 /// </summary>
 public sealed class UserManagementFunction
 {
-    private readonly UserServiceClient _userServiceClient;
+    private readonly GetAllUsersHandler _getAllUsersHandler;
+    private readonly GetUserHandler _getUserHandler;
+    private readonly CreateUserHandler _createUserHandler;
+    private readonly UpdateUserHandler _updateUserHandler;
+    private readonly SetUserStatusHandler _setUserStatusHandler;
+    private readonly UnlockUserHandler _unlockUserHandler;
+    private readonly ResetPasswordHandler _resetPasswordHandler;
+    private readonly DeleteUserHandler _deleteUserHandler;
     private readonly ILogger<UserManagementFunction> _logger;
 
-    public UserManagementFunction(UserServiceClient userServiceClient, ILogger<UserManagementFunction> logger)
+    public UserManagementFunction(
+        GetAllUsersHandler getAllUsersHandler,
+        GetUserHandler getUserHandler,
+        CreateUserHandler createUserHandler,
+        UpdateUserHandler updateUserHandler,
+        SetUserStatusHandler setUserStatusHandler,
+        UnlockUserHandler unlockUserHandler,
+        ResetPasswordHandler resetPasswordHandler,
+        DeleteUserHandler deleteUserHandler,
+        ILogger<UserManagementFunction> logger)
     {
-        _userServiceClient = userServiceClient;
+        _getAllUsersHandler = getAllUsersHandler;
+        _getUserHandler = getUserHandler;
+        _createUserHandler = createUserHandler;
+        _updateUserHandler = updateUserHandler;
+        _setUserStatusHandler = setUserStatusHandler;
+        _unlockUserHandler = unlockUserHandler;
+        _resetPasswordHandler = resetPasswordHandler;
+        _deleteUserHandler = deleteUserHandler;
         _logger = logger;
     }
 
@@ -41,22 +71,9 @@ public sealed class UserManagementFunction
     {
         try
         {
-            var users = await _userServiceClient.GetAllUsersAsync(cancellationToken);
-
-            var response = users.Select(u => new UserResponse
-            {
-                UserId = u.UserId,
-                Username = u.Username,
-                Email = u.Email,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                IsActive = u.IsActive,
-                IsLocked = u.IsLocked,
-                LastLoginAt = u.LastLoginAt,
-                CreatedAt = u.CreatedAt
-            }).ToList();
-
-            return await req.OkJsonAsync(response);
+            var query = new GetAllUsersQuery();
+            var result = await _getAllUsersHandler.HandleAsync(query, cancellationToken);
+            return await req.OkJsonAsync(result);
         }
         catch (Exception ex)
         {
@@ -81,25 +98,13 @@ public sealed class UserManagementFunction
     {
         try
         {
-            var user = await _userServiceClient.GetUserAsync(userId, cancellationToken);
+            var query = new GetUserQuery(userId);
+            var result = await _getUserHandler.HandleAsync(query, cancellationToken);
 
-            if (user is null)
+            if (result is null)
                 return await req.NotFoundAsync("User not found.");
 
-            var response = new UserResponse
-            {
-                UserId = user.UserId,
-                Username = user.Username,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                IsActive = user.IsActive,
-                IsLocked = user.IsLocked,
-                LastLoginAt = user.LastLoginAt,
-                CreatedAt = user.CreatedAt
-            };
-
-            return await req.OkJsonAsync(response);
+            return await req.OkJsonAsync(result);
         }
         catch (Exception ex)
         {
@@ -136,22 +141,13 @@ public sealed class UserManagementFunction
 
         try
         {
-            var body = new
-            {
-                username = request.Username,
-                email = request.Email,
-                password = request.Password,
-                firstName = request.FirstName,
-                lastName = request.LastName
-            };
+            var command = new CreateUserCommand(request.Username, request.Email, request.Password, request.FirstName, request.LastName);
+            var result = await _createUserHandler.HandleAsync(command, cancellationToken);
 
-            var result = await _userServiceClient.CreateUserAsync(body, cancellationToken);
-
-            var response = new AddUserResponse { UserId = result.UserId };
             var httpResponse = req.CreateResponse(HttpStatusCode.Created);
             httpResponse.Headers.Add("Content-Type", "application/json");
             await httpResponse.WriteStringAsync(
-                System.Text.Json.JsonSerializer.Serialize(response, ReservationSystem.Shared.Common.Json.SharedJsonOptions.CamelCase));
+                System.Text.Json.JsonSerializer.Serialize(result, ReservationSystem.Shared.Common.Json.SharedJsonOptions.CamelCase));
             return httpResponse;
         }
         catch (ArgumentException ex)
@@ -189,14 +185,8 @@ public sealed class UserManagementFunction
 
         try
         {
-            var body = new
-            {
-                firstName = request!.FirstName,
-                lastName = request.LastName,
-                email = request.Email
-            };
-
-            var found = await _userServiceClient.UpdateUserAsync(userId, body, cancellationToken);
+            var command = new UpdateUserCommand(userId, request!.FirstName, request.LastName, request.Email);
+            var found = await _updateUserHandler.HandleAsync(command, cancellationToken);
 
             if (!found)
                 return await req.NotFoundAsync("User not found.");
@@ -237,23 +227,22 @@ public sealed class UserManagementFunction
         var (request, error) = await req.TryDeserializeBodyAsync<SetUserStatusRequest>(_logger, cancellationToken);
         if (error is not null) return error;
 
+        req.FunctionContext.Items.TryGetValue("StaffUserId", out var staffIdObj);
+        Guid.TryParse(staffIdObj as string, out var staffUserId);
+
         try
         {
-            if (!request!.IsActive &&
-                req.FunctionContext.Items.TryGetValue("StaffUserId", out var staffIdObj) &&
-                staffIdObj is string staffId &&
-                Guid.TryParse(staffId, out var staffUserId) &&
-                staffUserId == userId)
-            {
-                return await req.ForbiddenAsync("You cannot deactivate your own account.");
-            }
-
-            var found = await _userServiceClient.SetUserStatusAsync(userId, request.IsActive, cancellationToken);
+            var command = new SetUserStatusCommand(userId, request!.IsActive, staffUserId);
+            var found = await _setUserStatusHandler.HandleAsync(command, cancellationToken);
 
             if (!found)
                 return await req.NotFoundAsync("User not found.");
 
             return req.NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.ForbiddenAsync(ex.Message);
         }
         catch (Exception ex)
         {
@@ -278,7 +267,8 @@ public sealed class UserManagementFunction
     {
         try
         {
-            var found = await _userServiceClient.UnlockUserAsync(userId, cancellationToken);
+            var command = new UnlockUserCommand(userId);
+            var found = await _unlockUserHandler.HandleAsync(command, cancellationToken);
 
             if (!found)
                 return await req.NotFoundAsync("User not found.");
@@ -316,7 +306,8 @@ public sealed class UserManagementFunction
 
         try
         {
-            var found = await _userServiceClient.ResetPasswordAsync(userId, request.NewPassword, cancellationToken);
+            var command = new ResetPasswordCommand(userId, request.NewPassword);
+            var found = await _resetPasswordHandler.HandleAsync(command, cancellationToken);
 
             if (!found)
                 return await req.NotFoundAsync("User not found.");
@@ -349,22 +340,22 @@ public sealed class UserManagementFunction
         Guid userId,
         CancellationToken cancellationToken)
     {
+        req.FunctionContext.Items.TryGetValue("StaffUserId", out var staffIdObj);
+        Guid.TryParse(staffIdObj as string, out var staffUserId);
+
         try
         {
-            if (req.FunctionContext.Items.TryGetValue("StaffUserId", out var staffIdObj) &&
-                staffIdObj is string staffId &&
-                Guid.TryParse(staffId, out var staffUserId) &&
-                staffUserId == userId)
-            {
-                return await req.ForbiddenAsync("You cannot delete your own account.");
-            }
-
-            var found = await _userServiceClient.DeleteUserAsync(userId, cancellationToken);
+            var command = new DeleteUserCommand(userId, staffUserId);
+            var found = await _deleteUserHandler.HandleAsync(command, cancellationToken);
 
             if (!found)
                 return await req.NotFoundAsync("User not found.");
 
             return req.NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.ForbiddenAsync(ex.Message);
         }
         catch (Exception ex)
         {

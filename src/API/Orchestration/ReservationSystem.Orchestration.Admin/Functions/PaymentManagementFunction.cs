@@ -3,7 +3,9 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using ReservationSystem.Orchestration.Admin.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Admin.Application.GetPayment;
+using ReservationSystem.Orchestration.Admin.Application.GetPaymentEvents;
+using ReservationSystem.Orchestration.Admin.Application.GetPaymentsByDate;
 using ReservationSystem.Orchestration.Admin.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
@@ -18,12 +20,20 @@ namespace ReservationSystem.Orchestration.Admin.Functions;
 /// </summary>
 public sealed class PaymentManagementFunction
 {
-    private readonly PaymentServiceClient _paymentServiceClient;
+    private readonly GetPaymentsByDateHandler _getPaymentsByDateHandler;
+    private readonly GetPaymentHandler _getPaymentHandler;
+    private readonly GetPaymentEventsHandler _getPaymentEventsHandler;
     private readonly ILogger<PaymentManagementFunction> _logger;
 
-    public PaymentManagementFunction(PaymentServiceClient paymentServiceClient, ILogger<PaymentManagementFunction> logger)
+    public PaymentManagementFunction(
+        GetPaymentsByDateHandler getPaymentsByDateHandler,
+        GetPaymentHandler getPaymentHandler,
+        GetPaymentEventsHandler getPaymentEventsHandler,
+        ILogger<PaymentManagementFunction> logger)
     {
-        _paymentServiceClient = paymentServiceClient;
+        _getPaymentsByDateHandler = getPaymentsByDateHandler;
+        _getPaymentHandler = getPaymentHandler;
+        _getPaymentEventsHandler = getPaymentEventsHandler;
         _logger = logger;
     }
 
@@ -52,29 +62,9 @@ public sealed class PaymentManagementFunction
 
         try
         {
-            var payments = await _paymentServiceClient.GetPaymentsByDateAsync(date, cancellationToken);
-
-            var response = payments.Select(p => new AdminPaymentListItemResponse
-            {
-                PaymentId        = p.PaymentId,
-                BookingReference = p.BookingReference,
-                Method           = p.Method,
-                CardType         = p.CardType,
-                CardLast4        = p.CardLast4,
-                CurrencyCode     = p.CurrencyCode,
-                Amount           = p.Amount,
-                AuthorisedAmount = p.AuthorisedAmount,
-                SettledAmount    = p.SettledAmount,
-                Status           = p.Status,
-                AuthorisedAt     = p.AuthorisedAt,
-                SettledAt        = p.SettledAt,
-                Description      = p.Description,
-                CreatedAt        = p.CreatedAt,
-                UpdatedAt        = p.UpdatedAt,
-                EventCount       = p.EventCount
-            }).ToList();
-
-            return await req.OkJsonAsync(response);
+            var query = new GetPaymentsByDateQuery(date);
+            var result = await _getPaymentsByDateHandler.HandleAsync(query, cancellationToken);
+            return await req.OkJsonAsync(result);
         }
         catch (Exception ex)
         {
@@ -99,31 +89,13 @@ public sealed class PaymentManagementFunction
     {
         try
         {
-            var payment = await _paymentServiceClient.GetPaymentAsync(paymentId, cancellationToken);
+            var query = new GetPaymentQuery(paymentId);
+            var result = await _getPaymentHandler.HandleAsync(query, cancellationToken);
 
-            if (payment is null)
+            if (result is null)
                 return await req.NotFoundAsync($"Payment '{paymentId}' not found.");
 
-            var response = new AdminPaymentResponse
-            {
-                PaymentId        = payment.PaymentId,
-                BookingReference = payment.BookingReference,
-                Method           = payment.Method,
-                CardType         = payment.CardType,
-                CardLast4        = payment.CardLast4,
-                CurrencyCode     = payment.CurrencyCode,
-                Amount           = payment.Amount,
-                AuthorisedAmount = payment.AuthorisedAmount,
-                SettledAmount    = payment.SettledAmount,
-                Status           = payment.Status,
-                AuthorisedAt     = payment.AuthorisedAt,
-                SettledAt        = payment.SettledAt,
-                Description      = payment.Description,
-                CreatedAt        = payment.CreatedAt,
-                UpdatedAt        = payment.UpdatedAt
-            };
-
-            return await req.OkJsonAsync(response);
+            return await req.OkJsonAsync(result);
         }
         catch (Exception ex)
         {
@@ -148,26 +120,13 @@ public sealed class PaymentManagementFunction
     {
         try
         {
-            var payment = await _paymentServiceClient.GetPaymentAsync(paymentId, cancellationToken);
+            var query = new GetPaymentEventsQuery(paymentId);
+            var result = await _getPaymentEventsHandler.HandleAsync(query, cancellationToken);
 
-            if (payment is null)
+            if (result is null)
                 return await req.NotFoundAsync($"Payment '{paymentId}' not found.");
 
-            var events = await _paymentServiceClient.GetPaymentEventsAsync(paymentId, cancellationToken);
-
-            var response = events.Select(e => new AdminPaymentEventResponse
-            {
-                PaymentEventId = e.PaymentEventId,
-                PaymentId      = e.PaymentId,
-                EventType      = e.EventType,
-                ProductType    = e.ProductType,
-                Amount         = e.Amount,
-                CurrencyCode   = e.CurrencyCode,
-                Notes          = e.Notes,
-                CreatedAt      = e.CreatedAt
-            }).ToList();
-
-            return await req.OkJsonAsync(response);
+            return await req.OkJsonAsync(result);
         }
         catch (Exception ex)
         {

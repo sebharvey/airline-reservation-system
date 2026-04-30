@@ -2,9 +2,12 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Delivery.Application.DeleteManifestFlight;
+using ReservationSystem.Microservices.Delivery.Application.GetManifest;
 using ReservationSystem.Microservices.Delivery.Application.RebookManifest;
+using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSeat;
+using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSsrs;
 using ReservationSystem.Microservices.Delivery.Application.WriteManifest;
-using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Models.Requests;
 using ReservationSystem.Microservices.Delivery.Models.Responses;
 using ReservationSystem.Shared.Common.Http;
@@ -17,18 +20,27 @@ public sealed class ManifestFunction
 {
     private readonly WriteManifestHandler _writeHandler;
     private readonly RebookManifestHandler _rebookHandler;
-    private readonly IManifestRepository _manifestRepository;
+    private readonly GetManifestHandler _getManifestHandler;
+    private readonly UpdateManifestSeatHandler _updateManifestSeatHandler;
+    private readonly DeleteManifestFlightHandler _deleteManifestFlightHandler;
+    private readonly UpdateManifestSsrsHandler _updateManifestSsrsHandler;
     private readonly ILogger<ManifestFunction> _logger;
 
     public ManifestFunction(
         WriteManifestHandler writeHandler,
         RebookManifestHandler rebookHandler,
-        IManifestRepository manifestRepository,
+        GetManifestHandler getManifestHandler,
+        UpdateManifestSeatHandler updateManifestSeatHandler,
+        DeleteManifestFlightHandler deleteManifestFlightHandler,
+        UpdateManifestSsrsHandler updateManifestSsrsHandler,
         ILogger<ManifestFunction> logger)
     {
         _writeHandler = writeHandler;
         _rebookHandler = rebookHandler;
-        _manifestRepository = manifestRepository;
+        _getManifestHandler = getManifestHandler;
+        _updateManifestSeatHandler = updateManifestSeatHandler;
+        _deleteManifestFlightHandler = deleteManifestFlightHandler;
+        _updateManifestSsrsHandler = updateManifestSsrsHandler;
         _logger = logger;
     }
 
@@ -51,7 +63,8 @@ public sealed class ManifestFunction
         if (!DateOnly.TryParseExact(departureDateRaw, "yyyy-MM-dd", out var departureDate))
             return await req.BadRequestAsync("departureDate must be in yyyy-MM-dd format.");
 
-        var entries = await _manifestRepository.GetByFlightAsync(flightNumber, departureDate, cancellationToken);
+        var query = new GetManifestQuery(flightNumber, departureDate);
+        var entries = await _getManifestHandler.HandleAsync(query, cancellationToken);
 
         if (entries.Count == 0)
             return req.CreateResponse(HttpStatusCode.NotFound);
@@ -145,7 +158,8 @@ public sealed class ManifestFunction
         if (inventoryId == Guid.Empty)
             return await req.BadRequestAsync("inventoryId is required.");
 
-        var updated = await _manifestRepository.UpdateSeatByETicketAsync(eTicketNumber, inventoryId, newSeatNumber, cancellationToken);
+        var command = new UpdateManifestSeatCommand(eTicketNumber, inventoryId, newSeatNumber);
+        var updated = await _updateManifestSeatHandler.HandleAsync(command, cancellationToken);
 
         return updated
             ? req.CreateResponse(HttpStatusCode.NoContent)
@@ -168,8 +182,8 @@ public sealed class ManifestFunction
         if (!DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out var departureDateOnly))
             return await req.BadRequestAsync("departureDate must be in yyyy-MM-dd format.");
 
-        var deleted = await _manifestRepository.DeleteByBookingAndFlightAsync(
-            bookingReference, flightNumber, departureDateOnly, cancellationToken);
+        var command = new DeleteManifestFlightCommand(bookingReference, flightNumber, departureDateOnly);
+        var deleted = await _deleteManifestFlightHandler.HandleAsync(command, cancellationToken);
 
         if (deleted == 0)
             return req.CreateResponse(HttpStatusCode.NotFound);
@@ -201,8 +215,8 @@ public sealed class ManifestFunction
             e => e.ETicketNumber,
             e => e.SsrCodes.Count > 0 ? JsonSerializer.Serialize(e.SsrCodes) : (string?)null);
 
-        var updated = await _manifestRepository.UpdateSsrCodesByBookingAsync(
-            bookingReference, ssrsByETicket, cancellationToken);
+        var ssrsCommand = new UpdateManifestSsrsCommand(bookingReference, ssrsByETicket);
+        var updated = await _updateManifestSsrsHandler.HandleAsync(ssrsCommand, cancellationToken);
 
         if (updated == 0)
             return req.CreateResponse(HttpStatusCode.NotFound);

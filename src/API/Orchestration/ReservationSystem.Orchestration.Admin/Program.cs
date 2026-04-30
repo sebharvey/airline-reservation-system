@@ -10,6 +10,21 @@ using ReservationSystem.Shared.Common.Health;
 using ReservationSystem.Shared.Business.Middleware;
 using ReservationSystem.Orchestration.Admin.Swagger;
 using ReservationSystem.Orchestration.Admin.Application.Login;
+using ReservationSystem.Orchestration.Admin.Application.GetPaymentsByDate;
+using ReservationSystem.Orchestration.Admin.Application.GetPayment;
+using ReservationSystem.Orchestration.Admin.Application.GetPaymentEvents;
+using ReservationSystem.Orchestration.Admin.Application.GetSsrOptions;
+using ReservationSystem.Orchestration.Admin.Application.CreateSsrOption;
+using ReservationSystem.Orchestration.Admin.Application.UpdateSsrOption;
+using ReservationSystem.Orchestration.Admin.Application.DeactivateSsrOption;
+using ReservationSystem.Orchestration.Admin.Application.GetAllUsers;
+using ReservationSystem.Orchestration.Admin.Application.GetUser;
+using ReservationSystem.Orchestration.Admin.Application.CreateUser;
+using ReservationSystem.Orchestration.Admin.Application.UpdateUser;
+using ReservationSystem.Orchestration.Admin.Application.SetUserStatus;
+using ReservationSystem.Orchestration.Admin.Application.UnlockUser;
+using ReservationSystem.Orchestration.Admin.Application.ResetPassword;
+using ReservationSystem.Orchestration.Admin.Application.DeleteUser;
 using ReservationSystem.Orchestration.Admin.Infrastructure.ExternalServices;
 
 var host = new HostBuilder()
@@ -63,6 +78,27 @@ var host = new HostBuilder()
 
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<LoginHandler>();
+
+        // Payment
+        services.AddScoped<GetPaymentsByDateHandler>();
+        services.AddScoped<GetPaymentHandler>();
+        services.AddScoped<GetPaymentEventsHandler>();
+
+        // SSR
+        services.AddScoped<GetSsrOptionsHandler>();
+        services.AddScoped<CreateSsrOptionHandler>();
+        services.AddScoped<UpdateSsrOptionHandler>();
+        services.AddScoped<DeactivateSsrOptionHandler>();
+
+        // User
+        services.AddScoped<GetAllUsersHandler>();
+        services.AddScoped<GetUserHandler>();
+        services.AddScoped<CreateUserHandler>();
+        services.AddScoped<UpdateUserHandler>();
+        services.AddScoped<SetUserStatusHandler>();
+        services.AddScoped<UnlockUserHandler>();
+        services.AddScoped<ResetPasswordHandler>();
+        services.AddScoped<DeleteUserHandler>();
     })
     .Build();
 

@@ -3,11 +3,11 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using ReservationSystem.Microservices.Order.Application.AddBasketOffer;
 using ReservationSystem.Microservices.Order.Application.CreateBasket;
 using ReservationSystem.Microservices.Order.Application.ExpireBasket;
 using ReservationSystem.Microservices.Order.Application.GetBasket;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketBags;
-using ReservationSystem.Microservices.Order.Application.UpdateBasketFlights;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketPassengers;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketProducts;
 using ReservationSystem.Microservices.Order.Application.UpdateBasketSeats;
@@ -19,15 +19,14 @@ using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Shared.Common.Json;
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace ReservationSystem.Microservices.Order.Functions;
 
 public sealed class BasketFunction
 {
+    private readonly AddBasketOfferHandler _addBasketOfferHandler;
     private readonly CreateBasketHandler _createBasketHandler;
     private readonly GetBasketHandler _getBasketHandler;
-    private readonly UpdateBasketFlightsHandler _updateFlightsHandler;
     private readonly UpdateBasketSeatsHandler _updateSeatsHandler;
     private readonly UpdateBasketBagsHandler _updateBagsHandler;
     private readonly UpdateBasketPassengersHandler _updatePassengersHandler;
@@ -37,9 +36,9 @@ public sealed class BasketFunction
     private readonly ILogger<BasketFunction> _logger;
 
     public BasketFunction(
+        AddBasketOfferHandler addBasketOfferHandler,
         CreateBasketHandler createBasketHandler,
         GetBasketHandler getBasketHandler,
-        UpdateBasketFlightsHandler updateFlightsHandler,
         UpdateBasketSeatsHandler updateSeatsHandler,
         UpdateBasketBagsHandler updateBagsHandler,
         UpdateBasketPassengersHandler updatePassengersHandler,
@@ -48,9 +47,9 @@ public sealed class BasketFunction
         ExpireBasketHandler expireBasketHandler,
         ILogger<BasketFunction> logger)
     {
+        _addBasketOfferHandler = addBasketOfferHandler;
         _createBasketHandler = createBasketHandler;
         _getBasketHandler = getBasketHandler;
-        _updateFlightsHandler = updateFlightsHandler;
         _updateSeatsHandler = updateSeatsHandler;
         _updateBagsHandler = updateBagsHandler;
         _updatePassengersHandler = updatePassengersHandler;
@@ -143,64 +142,20 @@ public sealed class BasketFunction
         try { body = await new StreamReader(req.Body).ReadToEndAsync(ct); }
         catch (Exception ex) { _logger.LogWarning(ex, "Failed to read body"); return await req.BadRequestAsync("Failed to read request body."); }
 
-        // Validate offer expiry before processing
         try
         {
-            using var doc = JsonDocument.Parse(body);
-            if (doc.RootElement.TryGetProperty("offerExpiresAt", out var expiresAtProp))
-            {
-                var offerExpiresAt = expiresAtProp.GetDateTime();
-                if (offerExpiresAt <= DateTime.UtcNow)
-                    return await req.GoneAsync("Offer has expired and is no longer available.");
-            }
-        }
-        catch (JsonException) { /* Let the handler deal with malformed JSON */ }
-
-        // Build the updated offers array: existing offers + new offer appended
-        var existingBasket = await _getBasketHandler.HandleAsync(new GetBasketQuery(basketId), ct);
-        if (existingBasket is null) return req.CreateResponse(HttpStatusCode.NotFound);
-
-        var nextItemNumber = 1;
-        var offersArray = new JsonArray();
-
-        if (!string.IsNullOrEmpty(existingBasket.BasketData))
-        {
-            try
-            {
-                var basketNode = JsonNode.Parse(existingBasket.BasketData)?.AsObject();
-                if (basketNode?["flightOffers"] is JsonArray existing)
-                {
-                    nextItemNumber = existing.Count + 1;
-                    foreach (var item in existing)
-                        offersArray.Add(item?.DeepClone());
-                }
-            }
-            catch { }
-        }
-
-        // Append the new offer with an assigned basketItemId
-        try
-        {
-            var newOffer = JsonNode.Parse(body)!.AsObject();
-            newOffer["basketItemId"] = $"BI-{nextItemNumber}";
-            offersArray.Add(newOffer);
-        }
-        catch (JsonException) { return await req.BadRequestAsync("Invalid offer JSON."); }
-
-        var command = new UpdateBasketFlightsCommand(basketId, offersArray.ToJsonString());
-        try
-        {
-            var basket = await _updateFlightsHandler.HandleAsync(command, ct);
-            if (basket is null) return req.CreateResponse(HttpStatusCode.NotFound);
+            var command = new AddBasketOfferCommand(basketId, body);
+            var result = await _addBasketOfferHandler.HandleAsync(command, ct);
+            if (result is null) return req.CreateResponse(HttpStatusCode.NotFound);
             return await req.OkJsonAsync(new
             {
-                basketId = basket.BasketId,
-                basketItemId = $"BI-{nextItemNumber}",
-                totalFareAmount = basket.TotalFareAmount ?? 0m,
-                totalAmount = basket.TotalAmount ?? 0m
+                basketId = result.BasketId,
+                basketItemId = result.BasketItemId,
+                totalFareAmount = result.TotalFareAmount,
+                totalAmount = result.TotalAmount
             });
         }
-        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.GoneAsync(ex.Message); }
     }
 
     // PUT /v1/basket/{basketId}/passengers

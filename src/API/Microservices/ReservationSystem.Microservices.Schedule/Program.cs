@@ -5,8 +5,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Microservices.Schedule.Swagger;
+using ReservationSystem.Microservices.Schedule.Application.CreateScheduleGroup;
+using ReservationSystem.Microservices.Schedule.Application.DeleteScheduleGroup;
+using ReservationSystem.Microservices.Schedule.Application.GetScheduleGroups;
 using ReservationSystem.Microservices.Schedule.Application.GetSchedules;
 using ReservationSystem.Microservices.Schedule.Application.ImportSchedules;
+using ReservationSystem.Microservices.Schedule.Application.UpdateScheduleGroup;
 using ReservationSystem.Microservices.Schedule.Domain.Repositories;
 using ReservationSystem.Microservices.Schedule.Infrastructure.Persistence;
 using ReservationSystem.Shared.Common.Caching;
@@ -59,6 +63,10 @@ var host = new HostBuilder()
         // ── Application use-case handlers ──────────────────────────────────────
         services.AddScoped<ImportSchedulesHandler>();
         services.AddScoped<GetSchedulesHandler>();
+        services.AddScoped<GetScheduleGroupsHandler>();
+        services.AddScoped<CreateScheduleGroupHandler>();
+        services.AddScoped<UpdateScheduleGroupHandler>();
+        services.AddScoped<DeleteScheduleGroupHandler>();
     })
     .Build();
 

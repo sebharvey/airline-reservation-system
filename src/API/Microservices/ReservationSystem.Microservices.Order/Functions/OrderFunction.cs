@@ -18,7 +18,14 @@ using ReservationSystem.Microservices.Order.Application.UpdateOrderETickets;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderPassengers;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSeats;
 using ReservationSystem.Microservices.Order.Application.UpdateOrderSsrs;
-using ReservationSystem.Microservices.Order.Domain.Repositories;
+using ReservationSystem.Microservices.Order.Application.QueryOrders;
+using ReservationSystem.Microservices.Order.Application.GetIropsOrders;
+using ReservationSystem.Microservices.Order.Application.GetIropsOrdersByIds;
+using ReservationSystem.Microservices.Order.Application.GetOrderByETicket;
+using ReservationSystem.Microservices.Order.Application.RetrieveOrder;
+using ReservationSystem.Microservices.Order.Application.GetOrderBookingReferences;
+using ReservationSystem.Microservices.Order.Application.GetRecentOrders;
+using ReservationSystem.Microservices.Order.Application.GetOrderDebug;
 using ReservationSystem.Microservices.Order.Models.Mappers;
 using ReservationSystem.Microservices.Order.Models.Requests;
 using ReservationSystem.Microservices.Order.Models.Responses;
@@ -46,7 +53,14 @@ public sealed class OrderFunction
     private readonly ChangeOrderHandler _changeOrderHandler;
     private readonly RebookOrderHandler _rebookOrderHandler;
     private readonly DeleteDraftOrderHandler _deleteDraftOrderHandler;
-    private readonly IOrderRepository _orderRepository;
+    private readonly QueryOrdersHandler _queryOrdersHandler;
+    private readonly GetIropsOrdersHandler _getIropsOrdersHandler;
+    private readonly GetIropsOrdersByIdsHandler _getIropsOrdersByIdsHandler;
+    private readonly GetOrderByETicketHandler _getOrderByETicketHandler;
+    private readonly RetrieveOrderHandler _retrieveOrderHandler;
+    private readonly GetOrderBookingReferencesHandler _getOrderBookingReferencesHandler;
+    private readonly GetRecentOrdersHandler _getRecentOrdersHandler;
+    private readonly GetOrderDebugHandler _getOrderDebugHandler;
     private readonly ILogger<OrderFunction> _logger;
 
     public OrderFunction(
@@ -65,7 +79,14 @@ public sealed class OrderFunction
         ChangeOrderHandler changeOrderHandler,
         RebookOrderHandler rebookOrderHandler,
         DeleteDraftOrderHandler deleteDraftOrderHandler,
-        IOrderRepository orderRepository,
+        QueryOrdersHandler queryOrdersHandler,
+        GetIropsOrdersHandler getIropsOrdersHandler,
+        GetIropsOrdersByIdsHandler getIropsOrdersByIdsHandler,
+        GetOrderByETicketHandler getOrderByETicketHandler,
+        RetrieveOrderHandler retrieveOrderHandler,
+        GetOrderBookingReferencesHandler getOrderBookingReferencesHandler,
+        GetRecentOrdersHandler getRecentOrdersHandler,
+        GetOrderDebugHandler getOrderDebugHandler,
         ILogger<OrderFunction> logger)
     {
         _createOrderHandler = createOrderHandler;
@@ -83,7 +104,14 @@ public sealed class OrderFunction
         _changeOrderHandler = changeOrderHandler;
         _rebookOrderHandler = rebookOrderHandler;
         _deleteDraftOrderHandler = deleteDraftOrderHandler;
-        _orderRepository = orderRepository;
+        _queryOrdersHandler = queryOrdersHandler;
+        _getIropsOrdersHandler = getIropsOrdersHandler;
+        _getIropsOrdersByIdsHandler = getIropsOrdersByIdsHandler;
+        _getOrderByETicketHandler = getOrderByETicketHandler;
+        _retrieveOrderHandler = retrieveOrderHandler;
+        _getOrderBookingReferencesHandler = getOrderBookingReferencesHandler;
+        _getRecentOrdersHandler = getRecentOrdersHandler;
+        _getOrderDebugHandler = getOrderDebugHandler;
         _logger = logger;
     }
 
@@ -163,32 +191,9 @@ public sealed class OrderFunction
         var bookingRef = body.GetProperty("bookingReference").GetString()!;
         var surname = body.GetProperty("surname").GetString()!;
 
-        var order = await _getOrderHandler.HandleAsync(new GetOrderQuery(bookingRef), ct);
+        var order = await _retrieveOrderHandler.HandleAsync(new RetrieveOrderQuery(bookingRef, surname), ct);
         if (order is null)
             return await req.NotFoundAsync($"No order found for booking reference {bookingRef}.");
-
-        // Validate surname match
-        try
-        {
-            using var doc = JsonDocument.Parse(order.OrderData);
-            var hasMatch = false;
-            if (doc.RootElement.TryGetProperty("dataLists", out var dataLists) &&
-                dataLists.TryGetProperty("passengers", out var passengers))
-            {
-                foreach (var pax in passengers.EnumerateArray())
-                {
-                    if (pax.TryGetProperty("surname", out var sn) &&
-                        string.Equals(sn.GetString(), surname, StringComparison.OrdinalIgnoreCase))
-                    {
-                        hasMatch = true;
-                        break;
-                    }
-                }
-            }
-            if (!hasMatch)
-                return await req.NotFoundAsync($"No order found for booking reference {bookingRef} and surname {surname}.");
-        }
-        catch { }
 
         return await req.OkJsonAsync(OrderMapper.ToResponse(order));
     }
@@ -214,7 +219,7 @@ public sealed class OrderFunction
         if (string.IsNullOrWhiteSpace(flightNumber) || string.IsNullOrWhiteSpace(departureDate))
             return await req.BadRequestAsync("Query parameters 'flightNumber' and 'departureDate' are required.");
 
-        var orders = await _orderRepository.GetByFlightAsync(flightNumber, departureDate, status, ct);
+        var orders = await _queryOrdersHandler.HandleAsync(new QueryOrdersQuery(flightNumber, departureDate, status), ct);
 
         if (orders.Count == 0)
             return await req.NotFoundAsync($"No orders found for flight {flightNumber} on {departureDate}.");
@@ -247,12 +252,7 @@ public sealed class OrderFunction
         if (string.IsNullOrWhiteSpace(flightNumber) || string.IsNullOrWhiteSpace(departureDate))
             return await req.BadRequestAsync("Query parameters 'flightNumber' and 'departureDate' are required.");
 
-        var orders = await _orderRepository.GetByFlightAsync(flightNumber, departureDate, status, ct);
-
-        var projected = orders
-            .Select(o => ProjectToIropsDto(o, flightNumber, departureDate))
-            .Where(dto => dto is not null)
-            .ToList();
+        var projected = await _getIropsOrdersHandler.HandleAsync(new GetIropsOrdersQuery(flightNumber, departureDate, status), ct);
 
         return await req.OkJsonAsync(new
         {
@@ -294,150 +294,13 @@ public sealed class OrderFunction
         var flightNumber = fnEl.GetString()!;
         var departureDate = ddEl.GetString()!;
 
-        var orders = await _orderRepository.GetByIdsAsync(orderIds, ct);
-
-        var projected = orders
-            .Where(o => o.OrderStatus == "Confirmed")
-            .Select(o => ProjectToIropsDto(o, flightNumber, departureDate))
-            .Where(dto => dto is not null)
-            .ToList();
+        var projected = await _getIropsOrdersByIdsHandler.HandleAsync(new GetIropsOrdersByIdsQuery(orderIds, flightNumber, departureDate), ct);
 
         return await req.OkJsonAsync(new
         {
             count = projected.Count,
             orders = projected
         });
-    }
-
-    private static object? ProjectToIropsDto(
-        Domain.Entities.Order order,
-        string flightNumber,
-        string departureDate)
-    {
-        if (string.IsNullOrEmpty(order.BookingReference)) return null;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(order.OrderData);
-            var root = doc.RootElement;
-
-            var bookingType = root.TryGetProperty("bookingType", out var bt)
-                ? bt.GetString() ?? "Revenue" : "Revenue";
-
-            // Loyalty number from first passenger
-            string? loyaltyNumber = null;
-            if (root.TryGetProperty("dataLists", out var dl) &&
-                dl.TryGetProperty("passengers", out var paxList) &&
-                paxList.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var pax in paxList.EnumerateArray())
-                {
-                    if (pax.TryGetProperty("loyaltyNumber", out var ln) &&
-                        ln.ValueKind != JsonValueKind.Null)
-                    {
-                        loyaltyNumber = ln.GetString();
-                        break;
-                    }
-                }
-            }
-
-            // Points for reward bookings
-            var totalPointsAmount = 0;
-            if (root.TryGetProperty("pointsRedemption", out var pr) &&
-                pr.TryGetProperty("totalPointsAmount", out var tpa))
-                tpa.TryGetInt32(out totalPointsAmount);
-
-            // Payment reference for refunds
-            string? originalPaymentId = null;
-            if (root.TryGetProperty("payments", out var payments) &&
-                payments.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var payment in payments.EnumerateArray())
-                {
-                    if (payment.TryGetProperty("paymentReference", out var payRef) &&
-                        payRef.ValueKind != JsonValueKind.Null)
-                    {
-                        originalPaymentId = payRef.GetString();
-                        break;
-                    }
-                }
-            }
-
-            // Find the FLIGHT order item matching the cancelled flight
-            object? segment = null;
-            if (root.TryGetProperty("orderItems", out var items) &&
-                items.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var item in items.EnumerateArray())
-                {
-                    if (item.TryGetProperty("productType", out var pt) &&
-                        pt.GetString() != "FLIGHT") continue;
-
-                    var fn = item.TryGetProperty("flightNumber", out var fnEl) ? fnEl.GetString() : null;
-                    var dd = item.TryGetProperty("departureDate", out var ddEl) ? ddEl.GetString() : null;
-
-                    if (fn != flightNumber || dd != departureDate) continue;
-
-                    var inventoryIdStr = item.TryGetProperty("inventoryId", out var invEl)
-                        ? invEl.GetString() : null;
-                    Guid.TryParse(inventoryIdStr, out var inventoryId);
-
-                    segment = new
-                    {
-                        segmentId = item.TryGetProperty("offerId", out var oid) ? oid.GetString() ?? "" : "",
-                        inventoryId,
-                        flightNumber = fn,
-                        departureDate = dd,
-                        cabinCode = item.TryGetProperty("cabinCode", out var cc) ? cc.GetString() ?? "" : "",
-                        origin = item.TryGetProperty("origin", out var org) ? org.GetString() ?? "" : "",
-                        destination = item.TryGetProperty("destination", out var dest) ? dest.GetString() ?? "" : ""
-                    };
-                    break;
-                }
-            }
-
-            if (segment is null) return null;
-
-            // Passengers
-            var passengers = new List<object>();
-            if (root.TryGetProperty("dataLists", out var dl2) &&
-                dl2.TryGetProperty("passengers", out var paxArr) &&
-                paxArr.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var pax in paxArr.EnumerateArray())
-                {
-                    passengers.Add(new
-                    {
-                        passengerId = pax.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "",
-                        givenName = pax.TryGetProperty("givenName", out var gn) ? gn.GetString() ?? "" : "",
-                        surname = pax.TryGetProperty("surname", out var sn) ? sn.GetString() ?? "" : "",
-                        passengerType = pax.TryGetProperty("passengerType", out var ptype)
-                            ? ptype.GetString() ?? "ADT" : "ADT",
-                        eTicketNumbers = Array.Empty<string>()
-                    });
-                }
-            }
-
-            return new
-            {
-                orderId = order.OrderId,
-                bookingReference = order.BookingReference,
-                bookingType,
-                loyaltyNumber,
-                loyaltyTier = (string?)null,
-                bookingDate = order.CreatedAt,
-                totalPaid = order.TotalAmount ?? 0m,
-                totalPointsAmount,
-                originalPaymentId,
-                currencyCode = order.CurrencyCode,
-                segment,
-                passengers
-            };
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     // GET /v1/orders/{bookingRef}
@@ -473,7 +336,7 @@ public sealed class OrderFunction
         if (string.IsNullOrWhiteSpace(eTicketNumber))
             return await req.BadRequestAsync("'eTicketNumber' is required.");
 
-        var order = await _orderRepository.GetByETicketNumberAsync(eTicketNumber.Trim(), ct);
+        var order = await _getOrderByETicketHandler.HandleAsync(new GetOrderByETicketQuery(eTicketNumber.Trim()), ct);
         if (order is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
         return await req.OkJsonAsync(OrderMapper.ToResponse(order));
@@ -760,7 +623,7 @@ public sealed class OrderFunction
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/debug/orders/{bookingRef}")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
-        var order = await _orderRepository.GetByBookingReferenceAsync(bookingRef.ToUpperInvariant(), ct);
+        var order = await _getOrderDebugHandler.HandleAsync(new GetOrderDebugQuery(bookingRef.ToUpperInvariant()), ct);
         if (order is null)
             return req.CreateResponse(HttpStatusCode.NotFound);
 
@@ -807,7 +670,7 @@ public sealed class OrderFunction
             orderIds.Add(id);
         }
 
-        var refs = await _orderRepository.GetBookingReferencesByIdsAsync(orderIds, ct);
+        var refs = await _getOrderBookingReferencesHandler.HandleAsync(new GetOrderBookingReferencesQuery(orderIds), ct);
         return await req.OkJsonAsync(refs.Select(kvp => new { orderId = kvp.Key, bookingReference = kvp.Value }));
     }
 
@@ -824,7 +687,7 @@ public sealed class OrderFunction
         if (!int.TryParse(query["limit"], out var limit) || limit <= 0 || limit > 100)
             limit = 10;
 
-        var orders = await _orderRepository.GetRecentAsync(limit, CancellationToken.None);
+        var orders = await _getRecentOrdersHandler.HandleAsync(new GetRecentOrdersQuery(limit), ct);
         return await req.OkJsonAsync(orders.Select(o => OrderMapper.ToResponse(o)));
     }
 
