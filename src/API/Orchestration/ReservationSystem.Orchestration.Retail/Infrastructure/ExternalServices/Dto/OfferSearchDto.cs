@@ -43,6 +43,16 @@ public sealed class FlightItemDto
 }
 
 /// <summary>
+/// A segment in the search response, grouping flights for a single origin–destination leg.
+/// </summary>
+public sealed class SegmentItemDto
+{
+    public string Origin { get; init; } = string.Empty;
+    public string Destination { get; init; } = string.Empty;
+    public IReadOnlyList<FlightItemDto> Flights { get; init; } = [];
+}
+
+/// <summary>
 /// Top-level search result from POST /v1/search on the Offer MS.
 /// </summary>
 public sealed class OfferSearchResultDto
@@ -51,7 +61,7 @@ public sealed class OfferSearchResultDto
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
     public string DepartureDate { get; init; } = string.Empty;
-    public IReadOnlyList<FlightItemDto> Flights { get; init; } = [];
+    public IReadOnlyList<SegmentItemDto> Segments { get; init; } = [];
 }
 
 /// <summary>

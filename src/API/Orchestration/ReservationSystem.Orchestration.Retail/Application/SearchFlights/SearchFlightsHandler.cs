@@ -49,7 +49,7 @@ public sealed class SearchFlightsHandler
             command.CustomerContext,
             cancellationToken);
 
-        if (directResult.Flights.Count > 0)
+        if (directResult.Segments.Any(s => s.Flights.Count > 0))
             return BuildDirectResponse(directResult);
 
         // ── Step 2: connecting fallback (only when neither endpoint is LHR) ───
@@ -70,7 +70,7 @@ public sealed class SearchFlightsHandler
     private static SliceSearchResponse BuildDirectResponse(
         OfferSearchResultDto result)
     {
-        var itineraries = result.Flights.Select(f =>
+        var itineraries = result.Segments.SelectMany(s => s.Flights).Select(f =>
         {
             var cabins = BuildCabins(f.Offers);
             var cheapestPrice = cabins.Count > 0 ? cabins.Min(c => c.FromPrice) : 0m;
@@ -118,12 +118,14 @@ public sealed class SearchFlightsHandler
             command.PaxCount, command.BookingType, command.IncludePrivateFares,
             command.CustomerContext, cancellationToken);
 
-        if (leg1Result.Flights.Count == 0)
+        var leg1Flights = leg1Result.Segments.SelectMany(s => s.Flights).ToList();
+
+        if (leg1Flights.Count == 0)
             return new SliceSearchResponse { Itineraries = [] };
 
         // Derive the unique LHR arrival dates across all leg-1 flights, then search
         // each in parallel for the leg-2 segment (LHR → destination).
-        var uniqueArrivalDates = leg1Result.Flights
+        var uniqueArrivalDates = leg1Flights
             .Select(f => depDate.AddDays(f.ArrivalDayOffset))
             .Distinct()
             .ToList();
@@ -143,7 +145,7 @@ public sealed class SearchFlightsHandler
         // Pair segments, applying MCT filter.
         var itineraries = new List<SliceItinerary>();
 
-        foreach (var leg1Flight in leg1Result.Flights)
+        foreach (var leg1Flight in leg1Flights)
         {
             if (!TimeOnly.TryParse(leg1Flight.ArrivalTime, out var leg1ArrivalTime)) continue;
 
@@ -151,11 +153,12 @@ public sealed class SearchFlightsHandler
             var leg1ArrivalDt   = leg1ArrivalDate.ToDateTime(leg1ArrivalTime);
 
             if (!leg2ByArrivalDate.TryGetValue(leg1ArrivalDate, out var leg2Search)) continue;
-            if (leg2Search.Flights.Count == 0) continue;
+            var leg2Flights = leg2Search.Segments.SelectMany(s => s.Flights).ToList();
+            if (leg2Flights.Count == 0) continue;
 
             var leg1Cabins = BuildCabins(leg1Flight.Offers);
 
-            foreach (var leg2Flight in leg2Search.Flights)
+            foreach (var leg2Flight in leg2Flights)
             {
                 if (!TimeOnly.TryParse(leg2Flight.DepartureTime, out var leg2DepTime)) continue;
 

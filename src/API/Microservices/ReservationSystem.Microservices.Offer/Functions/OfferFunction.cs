@@ -353,7 +353,15 @@ public sealed class OfferFunction
             origin        = command.Origin,
             destination   = command.Destination,
             departureDate = command.DepartureDate,
-            flights
+            segments = new[]
+            {
+                new
+                {
+                    origin      = command.Origin,
+                    destination = command.Destination,
+                    flights
+                }
+            }
         });
     }
 
