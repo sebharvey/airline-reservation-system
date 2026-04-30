@@ -231,6 +231,15 @@ export class OrderDetailComponent implements OnInit {
     return map;
   });
 
+  departureBySegmentId = computed<Map<number, string>>(() => {
+    const map = new Map<number, string>();
+    const segments = this.order()?.orderData?.dataLists?.flightSegments ?? [];
+    segments.forEach((seg, i) => {
+      if (seg.origin) map.set(i + 1, seg.origin);
+    });
+    return map;
+  });
+
   ngOnInit(): void {
     this.bookingRef = this.#route.snapshot.paramMap.get('bookingRef') ?? '';
     this.loadOrder();
