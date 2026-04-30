@@ -34,6 +34,7 @@ interface AdminOrderDetail {
     };
     orderItems: AdminOrderItem[];
     eTickets?: { eTicketNumber: string; passengerId: string }[];
+    notes?: OciNote[];
   } | null;
 }
 
@@ -87,6 +88,14 @@ export interface TimaticNote {
   ticketNumber: string;
   status: string;
   detail: string;
+}
+
+export interface OciNote {
+  dateTime: string;
+  type: string;
+  message: string;
+  paxId?: number;
+  segmentId?: number;
 }
 
 export interface BoardingCard {
