@@ -1,0 +1,735 @@
+{
+  "journey": {
+    "name": "Full customer journey",
+    "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs for 2 passengers: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation.",
+    "domain": "Retail / Operations",
+    "baseUrls": [
+      {
+        "id": "retail",
+        "label": "Retail API",
+        "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "operations",
+        "label": "Operations API",
+        "url": "https://reservation-system-db-api-operations-gzfhekfvawaubkbs.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Search outbound flights",
+      "description": "Search for available outbound flights from LHR to JFK for a single adult passenger on a Revenue booking. Returns a sessionId and a list of flights with cabin and fare-family offers. The sessionId and a selected outbound offerId are forwarded to the basket creation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/slice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureDate": "__RAND_DEPART_DATE__",
+          "paxCount": 2,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      },
+      "chainsTo": [
+        {
+          "path": "itineraries[0].legs[0].sessionId",
+          "as": "outboundSessionId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId",
+          "as": "outboundOfferId",
+          "usedInSteps": [
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Search return flights",
+      "description": "Search for available return flights from JFK back to LHR for the same passenger on the return date. Returns a second sessionId and flight list. The sessionId and a selected return offerId are forwarded to the basket creation step alongside the outbound selections.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/search/slice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "origin": "JFK",
+          "destination": "LHR",
+          "departureDate": "__RAND_RETURN_DATE__",
+          "paxCount": 2,
+          "bookingType": "Revenue"
+        }
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      },
+      "chainsTo": [
+        {
+          "path": "itineraries[0].legs[0].sessionId",
+          "as": "returnSessionId",
+          "usedInSteps": [
+            3
+          ]
+        },
+        {
+          "randomArrayPath": "itineraries[*].legs[*].cabins[*].fareFamilies[*].offer.offerId",
+          "as": "returnOfferId",
+          "usedInSteps": [
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Create basket",
+      "description": "Create a new basket containing the selected outbound and return flight offers. Each segment pairs an offerId with the sessionId from its respective search. The loyalty number is included so points can be accrued on confirmation. Returns a basketId used for all subsequent basket operations.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "segments": [
+            {
+              "offerId": "bc2f449f-a828-4826-a97c-4378531d7253",
+              "sessionId": "518c85cc-8618-4a20-8874-235461e10e11"
+            },
+            {
+              "offerId": "19714659-fdbe-4593-9037-948ff69178ca",
+              "sessionId": "0255ac95-b136-4785-a0c4-45da1767e854"
+            }
+          ],
+          "channelCode": "WEB",
+          "currency": "GBP",
+          "bookingType": "Revenue",
+          "loyaltyNumber": "AX8564125"
+        },
+        "dataChain": [
+          {
+            "field": "segments[0].offerId",
+            "from": "outboundOfferId",
+            "source": "Step 1 → random offer from search results"
+          },
+          {
+            "field": "segments[0].sessionId",
+            "from": "outboundSessionId",
+            "source": "Step 1 → response.sessionId"
+          },
+          {
+            "field": "segments[1].offerId",
+            "from": "returnOfferId",
+            "source": "Step 2 → random offer from search results"
+          },
+          {
+            "field": "segments[1].sessionId",
+            "from": "returnSessionId",
+            "source": "Step 2 → response.sessionId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201
+      },
+      "expected": {
+        "statusCode": 201
+      },
+      "chainsTo": [
+        {
+          "field": "basketId",
+          "usedInSteps": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ]
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Get basket summary",
+      "description": "Reprice all offers in the basket and retrieve a pricing summary with tax line breakdowns. This call triggers the Offer MS to refresh fare amounts from live cabin occupancy and FareRule data, copies tax lines into the stored offer, and sets validated = true on each inventory entry — unblocking the confirmation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}/summary",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "flights",
+            "assertion": "present",
+            "description": "flights array must be present and non-empty."
+          },
+          {
+            "field": "flights[*].validated",
+            "assertion": "equals",
+            "expected": true,
+            "description": "Every flight in the summary must have validated = true after repricing."
+          }
+        ]
+      }
+    },
+    {
+      "step": 5,
+      "name": "Get basket",
+      "description": "Retrieve the basket immediately after creation to verify the initial state. Confirms both flight offers are present as basket items and that the basket status is Active.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      },
+      "chainsTo": [
+        {
+          "path": "basketData.flightOffers[0].inventoryId",
+          "as": "outboundInventoryId",
+          "usedInSteps": [
+            8
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[0].flightNumber",
+          "as": "outboundFlightNumber",
+          "usedInSteps": [
+            8
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[0].aircraftType",
+          "as": "outboundAircraftType",
+          "usedInSteps": [
+            8
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[0].basketItemId",
+          "as": "outboundBasketItemId",
+          "usedInSteps": [
+            10
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].inventoryId",
+          "as": "returnInventoryId",
+          "usedInSteps": [
+            9
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].flightNumber",
+          "as": "returnFlightNumber",
+          "usedInSteps": [
+            9
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].aircraftType",
+          "as": "returnAircraftType",
+          "usedInSteps": [
+            9
+          ]
+        },
+        {
+          "path": "basketData.flightOffers[1].basketItemId",
+          "as": "returnBasketItemId",
+          "usedInSteps": [
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "name": "Add passengers",
+      "description": "Add passenger details to the basket. Each passenger record includes personal details, contact information, and an optional loyalty number for points accrual. The passengerId (PAX-1, PAX-2 …) is assigned by the caller and must be consistent across seats and bags additions.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/passengers",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": [
+          {
+            "passengerId": "PAX-1",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME__",
+            "surname": "__RAND_SURNAME__",
+            "dob": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "loyaltyNumber": "__RAND_LOYALTY_NUMBER__",
+            "contacts": {
+              "email": "__RAND_EMAIL__",
+              "phone": "__RAND_PHONE__"
+            },
+            "docs": []
+          },
+          {
+            "passengerId": "PAX-2",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME_2__",
+            "surname": "__RAND_SURNAME_2__",
+            "dob": "__RAND_DOB_2__",
+            "gender": "__RAND_GENDER_2__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL_2__",
+              "phone": "__RAND_PHONE_2__"
+            },
+            "docs": []
+          }
+        ],
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 7,
+      "name": "Confirm and pay — valid card",
+      "description": "Submit payment with a card number that passes the Luhn check to confirm the basket and create the order. The basket transitions to Confirmed and an orderId is returned.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket/{basketId}/confirm",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-3"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "channelCode": "TEST",
+          "payment": {
+            "method": "CreditCard",
+            "cardNumber": "4111111111111111",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "__RAND_GIVEN_NAME__ __RAND_SURNAME__"
+          },
+          "loyaltyPointsToRedeem": null
+        },
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 3 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201
+      },
+      "expected": {
+        "statusCode": 201,
+        "assertions": [
+          {
+            "field": "orderItems[*].eTickets[*]",
+            "assertion": "count",
+            "expected": 4,
+            "description": "Exactly four e-ticket objects must be present — one per passenger per flight segment."
+          },
+          {
+            "field": "orderItems[*].eTickets[*].eTicketNumber",
+            "assertion": "present",
+            "description": "Every e-ticket must carry a non-empty eTicketNumber in the format '932-NNNNNNNNNN'."
+          }
+        ]
+      },
+      "chainsTo": [
+        {
+          "field": "bookingReference",
+          "as": "bookingReference",
+          "usedInSteps": [
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "name": "Retrieve booking for check-in",
+      "description": "Look up the booking by reference, lead passenger name, and departure airport to open the check-in session. Returns the list of passengers with ticket numbers and, if the passenger is logged in and holds a loyalty profile, pre-populated travel document data. checkInEligible confirms the booking is within the 24-hour check-in window.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/retrieve",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      },
+      "chainsTo": [
+        {
+          "path": "passengers[0].ticketNumber",
+          "as": "ticketNumber",
+          "usedInSteps": [
+            9,
+            12,
+            13
+          ]
+        },
+        {
+          "path": "passengers[0].passengerId",
+          "as": "passengerId",
+          "usedInSteps": [
+            9,
+            12
+          ]
+        },
+        {
+          "path": "passengers[1].ticketNumber",
+          "as": "ticketNumber2",
+          "usedInSteps": [
+            9,
+            12,
+            13
+          ]
+        },
+        {
+          "path": "passengers[1].passengerId",
+          "as": "passengerId2",
+          "usedInSteps": [
+            9,
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "step": 9,
+      "name": "Submit passport details",
+      "description": "Submit travel document data for each passenger on the booking. The Operations API validates the passport issue and expiry dates before persisting the document to the order via the Order microservice. This step may be called multiple times before final check-in submission.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/pax",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "passengers": [
+            {
+              "ticketNumber": "__CHAIN_ticketNumber__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA1234567",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2019-06-01",
+                "expiryDate": "2030-01-01"
+              }
+            },
+            {
+              "ticketNumber": "__CHAIN_ticketNumber2__",
+              "travelDocument": {
+                "type": "PASSPORT",
+                "number": "PA7654321",
+                "issuingCountry": "GBR",
+                "nationality": "GBR",
+                "issueDate": "2020-03-15",
+                "expiryDate": "2031-03-15"
+              }
+            }
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          },
+          {
+            "field": "passengers[0].ticketNumber",
+            "from": "ticketNumber",
+            "source": "Step 8 → passengers[0].ticketNumber"
+          },
+          {
+            "field": "passengers[1].ticketNumber",
+            "from": "ticketNumber2",
+            "source": "Step 8 → passengers[1].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 10,
+      "name": "Seat selection",
+      "description": "Submit seat selection for the booking during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/seats",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 11,
+      "name": "Baggage selection",
+      "description": "Submit baggage selection for the booking during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/bags",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 12,
+      "name": "Complete check-in",
+      "description": "Final check-in submission. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/checkin",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "departureAirport": "LHR"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 13,
+      "name": "Generate boarding cards",
+      "description": "Request boarding documents for the checked-in tickets. The Operations API proxies the request to the Delivery microservice, which retrieves each ticket from delivery.Ticket, filters to segments checked in for the supplied departure airport, and generates the BCBP string. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/oci/boarding-docs",
+        "baseUrlRef": "operations"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "departureAirport": "LHR",
+          "ticketNumbers": [
+            "__CHAIN_ticketNumber__",
+            "__CHAIN_ticketNumber2__"
+          ]
+        },
+        "dataChain": [
+          {
+            "field": "ticketNumbers[0]",
+            "from": "ticketNumber",
+            "source": "Step 8 → passengers[0].ticketNumber"
+          },
+          {
+            "field": "ticketNumbers[1]",
+            "from": "ticketNumber2",
+            "source": "Step 8 → passengers[1].ticketNumber"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "boardingCards",
+            "assertion": "count",
+            "expected": 2,
+            "description": "Exactly 2 boarding cards must be generated for the two passengers."
+          }
+        ]
+      }
+    }
+  ]
+}
