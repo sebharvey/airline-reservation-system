@@ -17,6 +17,7 @@
         { value: 'oci-1-pax-outbound',          label: 'OCI - 1 pax outbound check-in' },
         { value: 'oci-2-pax-inbound',           label: 'OCI - 2 pax inbound check-in' },
         { value: 'oci-2-pax-outbound',          label: 'OCI - 2 pax outbound check-in' },
+        { value: 'full-customer',               label: 'Full customer journey' },
         { value: 'payment',                     label: 'payment - authorise, settle, void & refund' },
         { value: 'terminal-customer',           label: 'terminal - customer search & management' },
         { value: 'user',                        label: 'user - account creation & authentication' },
