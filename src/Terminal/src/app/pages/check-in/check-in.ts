@@ -3,6 +3,7 @@ import {
   BoardingCard,
   CheckInService,
   LookupResponse,
+  OciNote,
   PaxSubmission,
   TimaticNote,
 } from '../../services/check-in.service';
@@ -96,6 +97,32 @@ export class CheckInComponent {
   docComplete = computed(() => {
     const p = this.selectedPax();
     return !!p && !!p.docNumber && !!p.issuingCountry && !!p.nationality && !!p.issueDate && !!p.expiryDate;
+  });
+
+  selectedPaxOciNotes = computed((): OciNote[] => {
+    const pax = this.selectedPax();
+    const b = this.booking();
+    if (!pax || !b) return [];
+
+    const orderData = b.orderDetail.orderData;
+    const allNotes = orderData?.notes;
+    if (!allNotes?.length) return [];
+
+    const paxIdInt = this.#parsePaxIdInt(pax.passengerId);
+
+    const segments = orderData!.dataLists?.flightSegments ?? [];
+    const segIdx = segments.findIndex(s => s.origin === this.departureAirport());
+    const segmentIdInt = segIdx >= 0 ? segIdx + 1 : null;
+
+    return allNotes
+      .filter(n => {
+        if (n.type !== 'OCI') return false;
+        if (paxIdInt !== null && n.paxId !== undefined && n.paxId !== paxIdInt) return false;
+        if (segmentIdInt !== null && n.segmentId !== undefined && n.segmentId !== segmentIdInt) return false;
+        return true;
+      })
+      .slice()
+      .sort((a, b) => a.dateTime.localeCompare(b.dateTime));
   });
 
   async findBooking(): Promise<void> {
@@ -307,6 +334,24 @@ export class CheckInComponent {
       expiryDate: pax.expiryDate || expiryDate,
     };
     this.paxForms.set(forms);
+  }
+
+  #parsePaxIdInt(passengerId: string): number | null {
+    const dash = passengerId.lastIndexOf('-');
+    if (dash < 0) return null;
+    const n = parseInt(passengerId.slice(dash + 1), 10);
+    return isNaN(n) ? null : n;
+  }
+
+  formatNoteTime(dateTime: string): string {
+    try {
+      return new Date(dateTime).toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      });
+    } catch {
+      return dateTime;
+    }
   }
 
   reset(): void {

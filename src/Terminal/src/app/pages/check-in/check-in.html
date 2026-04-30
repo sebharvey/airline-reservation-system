@@ -137,102 +137,126 @@
         }
       </div>
 
-      <!-- Right: document form for selected pax -->
+      <!-- Right: document form + OCI notes for selected pax -->
       <div class="pax-detail-panel">
         @if (selectedPax()) {
           <p class="section-label" style="margin-top: 0">
             Travel documents — {{ selectedPax()!.givenName }} {{ selectedPax()!.surname }}
           </p>
-          <div class="form-card">
-            <div class="doc-stack">
-              <div class="form-group">
-                <label class="field-label">Document type</label>
-                <select
-                  class="field-input"
-                  [value]="selectedPax()!.docType"
-                  (change)="updateDoc(selectedPaxIndex()!, 'docType', $any($event.target).value)"
+          <div class="pax-detail-inner">
+
+            <!-- Travel document form -->
+            <div class="form-card">
+              <div class="doc-stack">
+                <div class="form-group">
+                  <label class="field-label">Document type</label>
+                  <select
+                    class="field-input"
+                    [value]="selectedPax()!.docType"
+                    (change)="updateDoc(selectedPaxIndex()!, 'docType', $any($event.target).value)"
+                  >
+                    <option value="PASSPORT">Passport</option>
+                    <option value="NATIONAL_ID">National ID</option>
+                    <option value="VISA">Visa</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="field-label">Document number</label>
+                  <input
+                    class="field-input mono-input"
+                    type="text"
+                    placeholder="e.g. PA1234567"
+                    [value]="selectedPax()!.docNumber"
+                    (input)="updateDoc(selectedPaxIndex()!, 'docNumber', $any($event.target).value)"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="field-label">Issuing country <span class="label-hint">(ISO 3)</span></label>
+                  <input
+                    class="field-input mono-input"
+                    type="text"
+                    placeholder="e.g. GBR"
+                    maxlength="3"
+                    [value]="selectedPax()!.issuingCountry"
+                    (input)="updateDoc(selectedPaxIndex()!, 'issuingCountry', $any($event.target).value.toUpperCase())"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="field-label">Nationality <span class="label-hint">(ISO 3)</span></label>
+                  <input
+                    class="field-input mono-input"
+                    type="text"
+                    placeholder="e.g. GBR"
+                    maxlength="3"
+                    [value]="selectedPax()!.nationality"
+                    (input)="updateDoc(selectedPaxIndex()!, 'nationality', $any($event.target).value.toUpperCase())"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="field-label">Issue date</label>
+                  <input
+                    class="field-input"
+                    type="date"
+                    [value]="selectedPax()!.issueDate"
+                    (change)="updateDoc(selectedPaxIndex()!, 'issueDate', $any($event.target).value)"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="field-label">Expiry date</label>
+                  <input
+                    class="field-input"
+                    type="date"
+                    [value]="selectedPax()!.expiryDate"
+                    (change)="updateDoc(selectedPaxIndex()!, 'expiryDate', $any($event.target).value)"
+                  />
+                </div>
+              </div>
+
+              <div class="form-actions" style="margin-top: 20px;">
+                @if (paxStatuses()[selectedPaxIndex()!] !== 'checked-in') {
+                  <button
+                    class="secondary-btn"
+                    (click)="scanPassport(selectedPaxIndex()!)"
+                    [disabled]="checkingInIndex() !== null || scanning()"
+                  >
+                    Scan Passport
+                  </button>
+                }
+                <button
+                  class="primary-btn complete-btn"
+                  (click)="checkInPax(selectedPaxIndex()!)"
+                  [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in' || !docComplete()"
                 >
-                  <option value="PASSPORT">Passport</option>
-                  <option value="NATIONAL_ID">National ID</option>
-                  <option value="VISA">Visa</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="field-label">Document number</label>
-                <input
-                  class="field-input mono-input"
-                  type="text"
-                  placeholder="e.g. PA1234567"
-                  [value]="selectedPax()!.docNumber"
-                  (input)="updateDoc(selectedPaxIndex()!, 'docNumber', $any($event.target).value)"
-                />
-              </div>
-              <div class="form-group">
-                <label class="field-label">Issuing country <span class="label-hint">(ISO 3)</span></label>
-                <input
-                  class="field-input mono-input"
-                  type="text"
-                  placeholder="e.g. GBR"
-                  maxlength="3"
-                  [value]="selectedPax()!.issuingCountry"
-                  (input)="updateDoc(selectedPaxIndex()!, 'issuingCountry', $any($event.target).value.toUpperCase())"
-                />
-              </div>
-              <div class="form-group">
-                <label class="field-label">Nationality <span class="label-hint">(ISO 3)</span></label>
-                <input
-                  class="field-input mono-input"
-                  type="text"
-                  placeholder="e.g. GBR"
-                  maxlength="3"
-                  [value]="selectedPax()!.nationality"
-                  (input)="updateDoc(selectedPaxIndex()!, 'nationality', $any($event.target).value.toUpperCase())"
-                />
-              </div>
-              <div class="form-group">
-                <label class="field-label">Issue date</label>
-                <input
-                  class="field-input"
-                  type="date"
-                  [value]="selectedPax()!.issueDate"
-                  (change)="updateDoc(selectedPaxIndex()!, 'issueDate', $any($event.target).value)"
-                />
-              </div>
-              <div class="form-group">
-                <label class="field-label">Expiry date</label>
-                <input
-                  class="field-input"
-                  type="date"
-                  [value]="selectedPax()!.expiryDate"
-                  (change)="updateDoc(selectedPaxIndex()!, 'expiryDate', $any($event.target).value)"
-                />
+                  @if (checkingInIndex() === selectedPaxIndex()) {
+                    <span class="btn-spinner"></span> Checking in…
+                  } @else if (paxStatuses()[selectedPaxIndex()!] === 'checked-in') {
+                    ✓ Checked In
+                  } @else {
+                    ✓ Check In {{ selectedPax()!.givenName }} {{ selectedPax()!.surname }}
+                  }
+                </button>
               </div>
             </div>
 
-            <div class="form-actions" style="margin-top: 20px;">
-              @if (paxStatuses()[selectedPaxIndex()!] !== 'checked-in') {
-                <button
-                  class="secondary-btn"
-                  (click)="scanPassport(selectedPaxIndex()!)"
-                  [disabled]="checkingInIndex() !== null || scanning()"
-                >
-                  Scan Passport
-                </button>
+            <!-- OCI notes panel -->
+            <div class="oci-notes-panel">
+              <p class="oci-notes-heading">Previous check-in activity</p>
+              @if (selectedPaxOciNotes().length > 0) {
+                <div class="oci-notes-list">
+                  @for (note of selectedPaxOciNotes(); track $index) {
+                    <div class="oci-note-item">
+                      <span class="oci-note-time">{{ formatNoteTime(note.dateTime) }}</span>
+                      <span class="oci-note-msg">{{ note.message }}</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="oci-notes-empty">
+                  <p>No previous check-in activity for this passenger on this flight.</p>
+                </div>
               }
-              <button
-                class="primary-btn complete-btn"
-                (click)="checkInPax(selectedPaxIndex()!)"
-                [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in' || !docComplete()"
-              >
-                @if (checkingInIndex() === selectedPaxIndex()) {
-                  <span class="btn-spinner"></span> Checking in…
-                } @else if (paxStatuses()[selectedPaxIndex()!] === 'checked-in') {
-                  ✓ Checked In
-                } @else {
-                  ✓ Check In {{ selectedPax()!.givenName }} {{ selectedPax()!.surname }}
-                }
-              </button>
             </div>
+
           </div>
         } @else if (!allAttempted()) {
           <div class="pax-detail-empty">
