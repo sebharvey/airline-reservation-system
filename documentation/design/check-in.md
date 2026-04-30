@@ -84,7 +84,7 @@ sequenceDiagram
     DeliveryMS -->> OperationsApi: Watchlist entries
 
     alt Any PAX passport matches watchlist
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI note (type: OCI) with pax ID and watchlist entry notes
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI note (type: OCI) with paxId, segmentId and watchlist entry notes
         OperationsApi -->> Web: 422 — online check-in not available; visit airport desk
     end
 
@@ -223,24 +223,24 @@ sequenceDiagram
     DeliveryMS -->> OperationsApi: Watchlist entries
 
     alt Any PAX passport matches watchlist, no override
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI note (type: OCI) with pax ID and watchlist entry notes
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI note (type: OCI) with paxId, segmentId and watchlist entry notes
         OperationsApi -->> Terminal: 400 with timaticNotes (checkType: WATCHLIST) — agent must review
     else Any PAX passport matches watchlist, agent override
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI watchlist note (type: OCI) with pax ID and entry notes
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI watchlist override note (type: OCI) with reason
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI watchlist note (type: OCI) with paxId, segmentId and entry notes
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI watchlist override note (type: OCI) with paxId, segmentId and reason
     end
 
     OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Tickets with doc details; Timatic validation runs here
 
     alt Timatic pass
         DeliveryMS -->> OperationsApi: Checked-in ticket list + Timatic PASS notes
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI notes (type: OCI) with Timatic PASS results
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI notes (type: OCI) with paxId, segmentId and Timatic PASS results
     else Timatic fail, no override
         DeliveryMS -->> OperationsApi: 422 with timaticNotes
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI notes (type: OCI) with Timatic FAIL results
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI notes (type: OCI) with paxId, segmentId and Timatic FAIL results
         OperationsApi -->> Terminal: 400 with timaticNotes — agent must review
     else Timatic fail, agent override
-        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI override note (type: OCI) with reason
+        OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI override note (type: OCI) with paxId, segmentId and reason
         OperationsApi ->> DeliveryMS: POST /v1/oci/checkin (bypassTimatic: true)
         DeliveryMS -->> OperationsApi: Checked-in ticket list
     end
@@ -257,7 +257,21 @@ sequenceDiagram
 
 | Method | Path | Description | Request | Response |
 |--------|------|-------------|---------|----------|
-| `POST` | `/v1/admin/checkin/{bookingRef}` | Agent check-in for one or more passengers; persists travel docs, runs watchlist check then Timatic, updates coupon status to `C`, returns boarding cards with BCBP strings; a watchlist match writes an OCI note (type `OCI`) with the pax ID and watchlist entry notes and returns 400 with `timaticNotes` (checkType `WATCHLIST`) unless `overrideTimatic` is set; supports `overrideTimatic` with `overrideReason` to bypass both watchlist and Timatic failures; all check and override results are written as audit notes to the order; staff JWT required | `{`<br>`  "departureAirport": "LHR",`<br>`  "passengers": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "travelDocument": {`<br>`      "type": "PASSPORT",`<br>`      "number": "PA1234567",`<br>`      "issuingCountry": "GBR",`<br>`      "nationality": "GBR",`<br>`      "issueDate": "2019-06-01",`<br>`      "expiryDate": "2030-01-01"`<br>`    }`<br>`  }],`<br>`  "overrideTimatic": false,`<br>`  "overrideReason": null`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "timaticNotes": [{`<br>`    "checkType": "APIS",`<br>`    "ticketNumber": "932-1234567890",`<br>`    "status": "PASS",`<br>`    "detail": ""`<br>`  }],`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
+| `POST` | `/v1/admin/checkin/{bookingRef}` | Agent check-in for one or more passengers; persists travel docs, runs watchlist check then Timatic, updates coupon status to `C`, returns boarding cards with BCBP strings; a watchlist match writes an OCI note (type `OCI`) with `paxId`, `segmentId` and watchlist entry notes and returns 400 with `timaticNotes` (checkType `WATCHLIST`) unless `overrideTimatic` is set; supports `overrideTimatic` with `overrideReason` to bypass both watchlist and Timatic failures; all check and override results are written as audit notes to the order with `paxId` and `segmentId` set; staff JWT required | `{`<br>`  "departureAirport": "LHR",`<br>`  "passengers": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "travelDocument": {`<br>`      "type": "PASSPORT",`<br>`      "number": "PA1234567",`<br>`      "issuingCountry": "GBR",`<br>`      "nationality": "GBR",`<br>`      "issueDate": "2019-06-01",`<br>`      "expiryDate": "2030-01-01"`<br>`    }`<br>`  }],`<br>`  "overrideTimatic": false,`<br>`  "overrideReason": null`<br>`}` | `{`<br>`  "bookingReference": "AB1234",`<br>`  "timaticNotes": [{`<br>`    "checkType": "APIS",`<br>`    "ticketNumber": "932-1234567890",`<br>`    "status": "PASS",`<br>`    "detail": ""`<br>`  }],`<br>`  "boardingCards": [{`<br>`    "ticketNumber": "932-1234567890",`<br>`    "passengerId": "PAX-1",`<br>`    "flightNumber": "AX003",`<br>`    "departureDate": "2026-08-15",`<br>`    "seatNumber": "1A",`<br>`    "cabinCode": "J",`<br>`    "sequenceNumber": "0001",`<br>`    "origin": "LHR",`<br>`    "destination": "JFK",`<br>`    "bcbpString": "M1TAYLOR/ALEX..."`<br>`  }]`<br>`}` |
+
+### OCI note schema
+
+Every check-in audit note written to `PATCH /v1/orders/{bookingRef}/notes` has this shape:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dateTime` | `string` (ISO 8601 UTC) | Timestamp of the check or override event |
+| `type` | `string` | Always `"OCI"` |
+| `message` | `string` | Human-readable description of the check result or override |
+| `paxId` | `integer \| null` | Integer suffix of the passenger ID (e.g. `"PAX-3"` → `3`); null when the note is not pax-specific |
+| `segmentId` | `integer \| null` | Integer derived from the segment reference for the departure (e.g. `"SEG-2"` → `2`); null when the departure segment cannot be resolved |
+
+`paxId` and `segmentId` together uniquely identify which passenger on which leg generated the note. The Terminal check-in UI uses both fields to show only the relevant notes when an agent selects a departure airport and switches between passengers.
 
 ### Retail API (ancillaries only)
 
