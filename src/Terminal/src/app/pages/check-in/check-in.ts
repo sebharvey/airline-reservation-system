@@ -143,6 +143,9 @@ export class CheckInComponent {
       }
       this.booking.set(result);
       this.departureAirports.set(result.departureAirports);
+      if (result.departureAirports.length === 1) {
+        this.selectDeparture(result.departureAirports[0]);
+      }
     } catch {
       this.error.set('Booking not found. Please check the details and try again.');
     } finally {
