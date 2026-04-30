@@ -101,24 +101,11 @@ export class CheckInComponent {
   });
 
   selectedPaxOciNotes = computed((): OciNote[] => {
-    const pax = this.selectedPax();
     const b = this.booking();
-    if (!pax || !b) return [];
-
-    const orderData = b.orderDetail.orderData;
-    const allNotes = orderData?.notes;
+    const allNotes = b?.orderDetail.orderData?.notes;
     if (!allNotes?.length) return [];
-
-    const paxIdInt = this.#parsePaxIdInt(pax.passengerId);
-    const { segmentIds } = pax;
-
     return allNotes
-      .filter(n => {
-        if (n.type !== 'OCI') return false;
-        if (n.paxId !== undefined && n.paxId !== paxIdInt) return false;
-        if (n.segmentId !== undefined && !segmentIds.includes(n.segmentId)) return false;
-        return true;
-      })
+      .filter(n => n.type === 'OCI')
       .slice()
       .sort((a, b) => a.dateTime.localeCompare(b.dateTime));
   });
