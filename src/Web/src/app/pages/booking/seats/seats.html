@@ -7,108 +7,154 @@
     <p class="step-label">Step 2 of 4 &nbsp;&middot;&nbsp; Optional</p>
   </div>
 
-  <!-- Passenger Tabs -->
-  <div class="passenger-tabs" *ngIf="passengerLabels().length > 1">
-    <button
-      *ngFor="let pax of passengerLabels()"
-      class="pax-tab"
-      [class.active]="activePassengerIndex() === pax.index"
-      (click)="activePassengerIndex.set(pax.index)">
-      {{ pax.label }}
-    </button>
+  <!-- Progress bar -->
+  <div class="progress-section" *ngIf="totalSlots() > 0">
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" [style.width.%]="progressPercent()"></div>
+    </div>
+    <div class="progress-label">
+      <span *ngIf="completedCount() < totalSlots()">{{ completedCount() }} of {{ totalSlots() }} seats selected</span>
+      <span class="progress-done" *ngIf="completedCount() === totalSlots() && totalSlots() > 0">&#x2714; All seats selected</span>
+    </div>
   </div>
 
-  <!-- Flight Tabs (if multiple flights) -->
-  <div class="flight-tabs" *ngIf="flightLabels().length > 1">
-    <button
-      *ngFor="let fl of flightLabels()"
-      class="flight-tab"
-      [class.active]="activeFlightIndex() === fl.index"
-      (click)="activeFlightIndex.set(fl.index)">
-      {{ fl.label }}
-    </button>
-  </div>
-
-  <!-- Seatmap -->
-  <ng-container *ngIf="activeEntry() as entry">
-
-    <!-- Loading -->
-    <div class="loading-wrap" *ngIf="entry.loading">
-      <div class="spinner"></div>
-      <p>Loading seatmap&hellip;</p>
-    </div>
-
-    <!-- Error -->
-    <div class="error-card" *ngIf="entry.error">
-      <p>{{ entry.error }}</p>
-    </div>
-
-    <!-- Seatmap Grid -->
-    <div class="seatmap-wrap" *ngIf="!entry.loading && !entry.error && entry.seatmap as sm">
-      <div class="seatmap-flight-label">
-        {{ entry.flightOffer.flightNumber }} &nbsp;&middot;&nbsp;
-        {{ entry.flightOffer.origin }} &#8594; {{ entry.flightOffer.destination }}
-        &nbsp;&middot;&nbsp; {{ entry.flightOffer.cabinName }}
-      </div>
-
-      <!-- Current selection indicator -->
-      <div class="selection-indicator" *ngIf="activePassenger() as pax">
-        Selecting for: <strong>{{ pax.givenName }} {{ pax.surname }}</strong>
-        <span class="selection-seat" *ngIf="getSelectedSeat(pax.passengerId, entry.flightOffer.basketItemId) as sel">
-          &nbsp;&#x2714; Seat {{ sel.seatOffer.seatNumber }}
+  <!-- Slot stepper (scrollable chips) -->
+  <div class="slot-stepper" *ngIf="slots().length > 1">
+    <div class="slot-scroll">
+      <button
+        *ngFor="let slot of slots()"
+        class="slot-chip"
+        [class.slot-chip--current]="getSlotStatus(slot) === 'current'"
+        [class.slot-chip--done]="getSlotStatus(slot) === 'done'"
+        [class.slot-chip--pending]="getSlotStatus(slot) === 'pending'"
+        (click)="goToSlot(slot.slotIndex)">
+        <span class="slot-chip-icon">
+          <span *ngIf="getSlotStatus(slot) === 'done'">&#x2714;</span>
+          <span *ngIf="getSlotStatus(slot) === 'current'">&#x2022;</span>
+          <span *ngIf="getSlotStatus(slot) === 'pending'">&#x25cb;</span>
         </span>
+        <span class="slot-chip-text">
+          <span class="slot-chip-flight">{{ slot.shortFlightLabel }}</span>
+          <span class="slot-chip-pax">{{ slot.passengerName }}</span>
+        </span>
+        <span class="slot-chip-seat" *ngIf="getSlotSelection(slot) as sel">
+          {{ sel.seatOffer.seatNumber }}
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Current slot seatmap -->
+  <ng-container *ngIf="currentSlot() as slot">
+    <ng-container *ngIf="currentEntry() as entry">
+
+      <!-- Loading -->
+      <div class="loading-wrap" *ngIf="entry.loading">
+        <div class="spinner"></div>
+        <p>Loading seatmap&hellip;</p>
       </div>
 
-      <!-- Cabin section (filtered to selected cabin) -->
-      <ng-container *ngIf="activeCabin() as cabin">
-        <div class="cabin-section">
-          <div class="cabin-label">{{ cabin.cabinName }}</div>
+      <!-- Error -->
+      <div class="error-card" *ngIf="entry.error">
+        <p>{{ entry.error }}</p>
+      </div>
 
-          <!-- Column headers -->
-          <div class="seat-row seat-header-row">
-            <div class="row-num-cell"></div>
-            <ng-container *ngFor="let col of cabin.columns; let ci = index">
-              <div class="seat-col-header" [class.aisle-after]="hasAisle(cabin.layout, ci)">{{ col }}</div>
-            </ng-container>
+      <!-- Seatmap -->
+      <div class="seatmap-wrap" *ngIf="!entry.loading && !entry.error && entry.seatmap">
+
+        <!-- Who we're selecting for -->
+        <div class="slot-header" [class.slot-header--pulse]="justSelected()">
+          <div class="slot-header-flight">
+            <span class="slot-header-fn">{{ entry.flightOffer.flightNumber }}</span>
+            <span class="slot-header-route">{{ entry.flightOffer.origin }} &#8594; {{ entry.flightOffer.destination }}</span>
+            <span class="slot-header-cabin">{{ entry.flightOffer.cabinName }}</span>
           </div>
-
-          <!-- Seat rows -->
-          <div class="seat-row" *ngFor="let row of getSeatRows(cabin)">
-            <div class="row-num-cell">{{ row }}</div>
-            <ng-container *ngFor="let col of cabin.columns; let ci = index">
-              <ng-container *ngIf="getSeatForRowCol(cabin, row, col) as seat; else gapSeat">
-                <button
-                  [class]="getSeatClass(seat, entry.flightOffer.basketItemId)"
-                  [class.aisle-after]="hasAisle(cabin.layout, ci)"
-                  [disabled]="seat.availability !== 'available' || isSeatTakenByOther(seat, entry.flightOffer.basketItemId)"
-                  (click)="selectSeat(seat, entry)"
-                  [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · ' + seat.currency + ' ' + seat.price : '')">
-                  <span class="seat-num">{{ seat.seatNumber }}</span>
-                  <span class="seat-price-label">{{ getSeatPrice(seat, cabin.cabinCode) }}</span>
-                </button>
-              </ng-container>
-              <ng-template #gapSeat>
-                <div class="seat seat-gap" [class.aisle-after]="hasAisle(cabin.layout, ci)"></div>
-              </ng-template>
-            </ng-container>
+          <div class="slot-header-pax">
+            <span class="slot-header-pax-label">Selecting for</span>
+            <strong class="slot-header-pax-name">{{ slot.passengerName }}</strong>
+            <span class="slot-header-pax-seat" *ngIf="getSlotSelection(slot) as sel">
+              &nbsp;&#x2714;&nbsp;{{ sel.seatOffer.seatNumber }}
+            </span>
           </div>
         </div>
-      </ng-container>
 
-      <!-- Legend -->
-      <div class="legend">
-        <div class="legend-item"><div class="legend-swatch available"></div><span>Available</span></div>
-        <div class="legend-item"><div class="legend-swatch selected"></div><span>Your selection</span></div>
-        <div class="legend-item"><div class="legend-swatch other"></div><span>Other passenger</span></div>
-        <div class="legend-item"><div class="legend-swatch sold"></div><span>Unavailable</span></div>
+        <!-- Cabin grid -->
+        <ng-container *ngIf="activeCabin() as cabin">
+          <div class="cabin-section">
+            <div class="cabin-label">{{ cabin.cabinName }}</div>
+
+            <!-- Column headers -->
+            <div class="seat-row seat-header-row">
+              <div class="row-num-cell"></div>
+              <ng-container *ngFor="let col of cabin.columns; let ci = index">
+                <div class="seat-col-header" [class.aisle-after]="hasAisle(cabin.layout, ci)">{{ col }}</div>
+              </ng-container>
+            </div>
+
+            <!-- Seat rows -->
+            <div class="seat-row" *ngFor="let row of getSeatRows(cabin)">
+              <div class="row-num-cell">{{ row }}</div>
+              <ng-container *ngFor="let col of cabin.columns; let ci = index">
+                <ng-container *ngIf="getSeatForRowCol(cabin, row, col) as seat; else gapSeat">
+                  <button
+                    [class]="getSeatClass(seat, entry.flightOffer.basketItemId)"
+                    [class.aisle-after]="hasAisle(cabin.layout, ci)"
+                    [disabled]="seat.availability !== 'available' || isSeatTakenByOther(seat, entry.flightOffer.basketItemId)"
+                    (click)="selectSeat(seat, entry)"
+                    [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · +' + seat.currency + ' ' + seat.price : ' · Free')">
+                    <span class="seat-num">{{ seat.seatNumber }}</span>
+                    <span class="seat-price-label">{{ getSeatPrice(seat, cabin.cabinCode) }}</span>
+                  </button>
+                </ng-container>
+                <ng-template #gapSeat>
+                  <div class="seat seat-gap" [class.aisle-after]="hasAisle(cabin.layout, ci)"></div>
+                </ng-template>
+              </ng-container>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Legend -->
+        <div class="legend">
+          <div class="legend-item"><div class="legend-swatch available"></div><span>Available</span></div>
+          <div class="legend-item"><div class="legend-swatch selected"></div><span>Your pick</span></div>
+          <div class="legend-item"><div class="legend-swatch other"></div><span>Other passenger</span></div>
+          <div class="legend-item"><div class="legend-swatch sold"></div><span>Unavailable</span></div>
+        </div>
       </div>
-    </div>
+
+      <!-- Prev / Next slot navigation -->
+      <div class="slot-nav" *ngIf="slots().length > 1 && !entry.loading && !entry.error">
+        <button class="slot-nav-btn" [disabled]="isFirstSlot()" (click)="goPrev()">
+          &#8592; Previous
+        </button>
+        <span class="slot-nav-counter">{{ activeSlotIndex() + 1 }} / {{ totalSlots() }}</span>
+        <button class="slot-nav-btn slot-nav-btn--next" [disabled]="isLastSlot()" (click)="goNext()">
+          Next &#8594;
+        </button>
+      </div>
+
+    </ng-container>
   </ng-container>
 
-  <!-- Seat Total -->
-  <div class="cost-summary" *ngIf="totalSeatCost() > 0">
-    <span>Seat Selection Total</span>
-    <strong>{{ currency() }} {{ totalSeatCost() | number:'1.2-2' }}</strong>
+  <!-- Seat selections summary (shown when some are made) -->
+  <div class="selections-summary" *ngIf="completedCount() > 0">
+    <div class="selections-summary-title">Your seats</div>
+    <div class="selections-summary-list">
+      <div class="summary-row" *ngFor="let slot of slots()">
+        <ng-container *ngIf="getSlotSelection(slot) as sel">
+          <span class="summary-route">{{ slot.shortFlightLabel }}</span>
+          <span class="summary-pax">{{ slot.passengerName }}</span>
+          <span class="summary-seat">{{ sel.seatOffer.seatNumber }}</span>
+          <span class="summary-price" *ngIf="sel.seatOffer.price > 0">+{{ currency() }} {{ sel.seatOffer.price | number:'1.2-2' }}</span>
+          <span class="summary-price summary-price--free" *ngIf="sel.seatOffer.price === 0">Free</span>
+        </ng-container>
+      </div>
+    </div>
+    <div class="summary-total" *ngIf="totalSeatCost() > 0">
+      <span>Seat total</span>
+      <strong>{{ currency() }} {{ totalSeatCost() | number:'1.2-2' }}</strong>
+    </div>
   </div>
 
   <!-- Save error -->
@@ -116,9 +162,9 @@
 
   <!-- Actions -->
   <div class="actions">
-    <button class="btn-secondary" [disabled]="saving()" (click)="onSkip()">Skip Seat Selection</button>
+    <button class="btn-secondary" [disabled]="saving()" (click)="onSkip()">Skip seats</button>
     <button class="btn-primary" [disabled]="saving()" (click)="onContinue()">
-      {{ saving() ? 'Saving…' : 'Continue to Baggage ›' }}
+      {{ saving() ? 'Saving…' : (completedCount() > 0 ? 'Continue with seats ›' : 'Continue ›') }}
     </button>
   </div>
 
