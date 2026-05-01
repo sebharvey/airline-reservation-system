@@ -1496,7 +1496,7 @@
         }
 
         if (step.request.body !== null && step.request.body !== undefined) {
-            html += '<div class="json-block">' + syntaxHighlight(step.request.body, step.request.dataChain) + '</div>';
+            html += '<div class="json-block">' + renderBody(step.request.body, step.request.dataChain) + '</div>';
         } else {
             html += '<div class="no-body">No request body</div>';
         }
@@ -1542,7 +1542,7 @@
         }
 
         if (resolvedBody !== null && resolvedBody !== undefined) {
-            html += '<div class="json-block">' + syntaxHighlight(resolvedBody, step.request.dataChain) + '</div>';
+            html += '<div class="json-block">' + renderBody(resolvedBody, step.request.dataChain) + '</div>';
         } else {
             html += '<div class="no-body">No request body</div>';
         }
@@ -1626,6 +1626,36 @@
         const el = document.createElement('span');
         el.textContent = str;
         return el.innerHTML;
+    }
+
+    function isXmlString(val) {
+        return typeof val === 'string' && val.trimStart().startsWith('<');
+    }
+
+    function prettifyXml(xml) {
+        let indent = 0;
+        const lines = [];
+        xml.replace(/>\s*</g, '>\n<')
+            .split('\n')
+            .forEach(node => {
+                node = node.trim();
+                if (!node) return;
+                if (node.startsWith('</')) {
+                    indent = Math.max(0, indent - 1);
+                    lines.push('  '.repeat(indent) + node);
+                } else if (node.startsWith('<') && !node.startsWith('<?') && !node.startsWith('<!') && !node.endsWith('/>')) {
+                    lines.push('  '.repeat(indent) + node);
+                    indent++;
+                } else {
+                    lines.push('  '.repeat(indent) + node);
+                }
+            });
+        return lines.join('\n');
+    }
+
+    function renderBody(val, chainAnnotations, chainsTo) {
+        if (isXmlString(val)) return esc(prettifyXml(val));
+        return syntaxHighlight(val, chainAnnotations, chainsTo);
     }
 
     function statusLabel(code) {
