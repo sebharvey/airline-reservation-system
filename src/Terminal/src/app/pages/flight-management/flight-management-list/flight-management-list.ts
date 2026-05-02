@@ -3,6 +3,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { InventoryService, FlightInventoryGroup } from '../../../services/inventory.service';
+import { FlightPinService } from '../../../services/flight-pin.service';
 
 @Component({
   selector: 'app-flight-management-list',
@@ -14,6 +15,7 @@ import { InventoryService, FlightInventoryGroup } from '../../../services/invent
 export class FlightManagementListComponent implements OnInit {
   #inventoryService = inject(InventoryService);
   #router = inject(Router);
+  #pinService = inject(FlightPinService);
 
   selectedDate = signal(new Date().toISOString().slice(0, 10));
 
@@ -32,6 +34,15 @@ export class FlightManagementListComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   loaded = signal(false);
+
+  pinnedFlights = this.#pinService.pins;
+  pinnedIds = computed(() => new Set(this.#pinService.pins().map(p => p.inventoryId)));
+  hasPins = computed(() => this.#pinService.pins().length > 0);
+
+  regularFlights = computed(() => {
+    const pinned = this.pinnedIds();
+    return this.flights().filter(f => !pinned.has(f.inventoryId));
+  });
 
   stats = computed(() => {
     const all = this.flights();
@@ -83,6 +94,11 @@ export class FlightManagementListComponent implements OnInit {
         state: { flight },
       }
     );
+  }
+
+  togglePin(flight: FlightInventoryGroup, event: Event): void {
+    event.stopPropagation();
+    this.#pinService.toggle(flight);
   }
 
   statusClass(status: string): string {
