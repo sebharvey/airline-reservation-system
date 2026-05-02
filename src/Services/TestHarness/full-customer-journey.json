@@ -1,7 +1,7 @@
 {
   "journey": {
     "name": "Full customer journey",
-    "description": "End-to-end journey combining booking and online check-in via the Retail and Operations APIs for 2 passengers: outbound and return flight search, basket creation, passenger entry, payment confirmation, passport submission, seat and bag selection, and boarding card generation. Check-in is performed for both the outbound (LHR) and inbound (JFK) flights.",
+    "description": "End-to-end journey combining booking, manage booking, and online check-in via the Retail and Operations APIs for 2 passengers: outbound and return flight search, basket creation, passenger entry, payment confirmation, manage-booking validation and order retrieval, passport submission, seat and bag selection, and boarding card generation. Check-in is performed for both the outbound (LHR) and inbound (JFK) flights.",
     "domain": "Retail / Operations",
     "baseUrls": [
       {
@@ -173,13 +173,7 @@
             4,
             5,
             6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            12,
-            13
+            7
           ]
         }
       ]
@@ -438,21 +432,93 @@
           "as": "bookingReference",
           "usedInSteps": [
             8,
-            9,
             10,
             11,
             12,
+            13,
             14,
-            15,
             16,
             17,
-            18
+            18,
+            19,
+            20
           ]
         }
       ]
     },
     {
       "step": 8,
+      "name": "Validate manage booking",
+      "description": "The web app submits the booking reference, given name, and surname to open a manage-booking session. The Retail API validates the credentials against the Order MS (surname match) and checks the given name against the stored passenger list. On success it returns a short-lived JWT (60 minutes) scoped to the booking reference. The token is stored in the browser's sessionStorage and used to authenticate all subsequent manage-booking calls.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/orders/validate",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bookingReference": "__CHAIN_bookingReference__",
+          "givenName": "__RAND_GIVEN_NAME__",
+          "surname": "__RAND_SURNAME__"
+        },
+        "dataChain": [
+          {
+            "field": "bookingReference",
+            "from": "bookingReference",
+            "source": "Step 7 → response.bookingReference"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "keyFields": ["token", "expiresAt"],
+        "description": "A short-lived manage-booking JWT (60 min) scoped to the booking reference is returned."
+      },
+      "chainsTo": [
+        {
+          "field": "token",
+          "as": "managingBookingToken",
+          "usedInSteps": [
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "step": 9,
+      "name": "Retrieve manage booking",
+      "description": "The web app sends the manage-booking JWT as a Bearer token to retrieve the confirmed order. The Retail API validates the token, extracts the booking reference from the claim, fetches the full order from the Order MS, and fetches complete e-ticket records from the Delivery MS. Returns the full order for display on the manage-booking page. Returns 401 if the token is absent, expired, or invalid.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/orders/retrieve",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer __CHAIN_managingBookingToken__"
+        },
+        "body": {}
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "keyFields": ["bookingReference", "orderStatus", "passengers", "orderItems"],
+        "description": "Full order details including passengers, flight segments, and e-ticket records are returned for display on the manage-booking page."
+      }
+    },
+    {
+      "step": 10,
       "name": "Retrieve booking for check-in",
       "description": "Look up the booking by reference, lead passenger name, and departure airport to open the check-in session. Returns the list of passengers with ticket numbers and, if the passenger is logged in and holds a loyalty profile, pre-populated travel document data. checkInEligible confirms the booking is within the 24-hour check-in window.",
       "type": "positive",
@@ -490,40 +556,40 @@
           "path": "passengers[0].ticketNumber",
           "as": "ticketNumber",
           "usedInSteps": [
-            9,
-            12,
-            13
+            11,
+            14,
+            15
           ]
         },
         {
           "path": "passengers[0].passengerId",
           "as": "passengerId",
           "usedInSteps": [
-            9,
-            12
+            11,
+            14
           ]
         },
         {
           "path": "passengers[1].ticketNumber",
           "as": "ticketNumber2",
           "usedInSteps": [
-            9,
-            12,
-            13
+            11,
+            14,
+            15
           ]
         },
         {
           "path": "passengers[1].passengerId",
           "as": "passengerId2",
           "usedInSteps": [
-            9,
-            12
+            11,
+            14
           ]
         }
       ]
     },
     {
-      "step": 9,
+      "step": 11,
       "name": "Submit passport details",
       "description": "Submit travel document data for each passenger on the booking. The Operations API validates the passport issue and expiry dates before persisting the document to the order via the Order microservice. This step may be called multiple times before final check-in submission.",
       "type": "positive",
@@ -572,12 +638,12 @@
           {
             "field": "passengers[0].ticketNumber",
             "from": "ticketNumber",
-            "source": "Step 8 → passengers[0].ticketNumber"
+            "source": "Step 10 → passengers[0].ticketNumber"
           },
           {
             "field": "passengers[1].ticketNumber",
             "from": "ticketNumber2",
-            "source": "Step 8 → passengers[1].ticketNumber"
+            "source": "Step 10 → passengers[1].ticketNumber"
           }
         ]
       },
@@ -589,7 +655,7 @@
       }
     },
     {
-      "step": 10,
+      "step": 12,
       "name": "Seat selection",
       "description": "Submit seat selection for the booking during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
       "type": "positive",
@@ -622,7 +688,7 @@
       }
     },
     {
-      "step": 11,
+      "step": 13,
       "name": "Baggage selection",
       "description": "Submit baggage selection for the booking during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
       "type": "positive",
@@ -655,7 +721,7 @@
       }
     },
     {
-      "step": 12,
+      "step": 14,
       "name": "Complete check-in",
       "description": "Final check-in submission. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
       "type": "positive",
@@ -688,7 +754,7 @@
       }
     },
     {
-      "step": 13,
+      "step": 15,
       "name": "Generate boarding cards",
       "description": "Request boarding documents for the checked-in tickets. The Operations API proxies the request to the Delivery microservice, which retrieves each ticket from delivery.Ticket, filters to segments checked in for the supplied departure airport, and generates the BCBP string. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
       "type": "positive",
@@ -712,12 +778,12 @@
           {
             "field": "ticketNumbers[0]",
             "from": "ticketNumber",
-            "source": "Step 8 → passengers[0].ticketNumber"
+            "source": "Step 10 → passengers[0].ticketNumber"
           },
           {
             "field": "ticketNumbers[1]",
             "from": "ticketNumber2",
-            "source": "Step 8 → passengers[1].ticketNumber"
+            "source": "Step 10 → passengers[1].ticketNumber"
           }
         ]
       },
@@ -737,7 +803,7 @@
       }
     },
     {
-      "step": 14,
+      "step": 16,
       "name": "Retrieve booking for check-in (inbound)",
       "description": "Look up the booking by reference, lead passenger name, and departure airport JFK to open the inbound check-in session. Returns the list of passengers with ticket numbers for the inbound flight segment. checkInEligible confirms the booking is within the 24-hour check-in window for the return leg.",
       "type": "positive",
@@ -775,40 +841,40 @@
           "path": "passengers[0].ticketNumber",
           "as": "inboundTicketNumber",
           "usedInSteps": [
-            15,
-            18,
-            19
+            17,
+            20,
+            21
           ]
         },
         {
           "path": "passengers[0].passengerId",
           "as": "inboundPassengerId",
           "usedInSteps": [
-            15,
-            18
+            17,
+            20
           ]
         },
         {
           "path": "passengers[1].ticketNumber",
           "as": "inboundTicketNumber2",
           "usedInSteps": [
-            15,
-            18,
-            19
+            17,
+            20,
+            21
           ]
         },
         {
           "path": "passengers[1].passengerId",
           "as": "inboundPassengerId2",
           "usedInSteps": [
-            15,
-            18
+            17,
+            20
           ]
         }
       ]
     },
     {
-      "step": 15,
+      "step": 17,
       "name": "Submit passport details (inbound)",
       "description": "Submit travel document data for each passenger for the inbound flight. The Operations API validates the passport issue and expiry dates before persisting the document to the order via the Order microservice.",
       "type": "positive",
@@ -857,12 +923,12 @@
           {
             "field": "passengers[0].ticketNumber",
             "from": "inboundTicketNumber",
-            "source": "Step 14 → passengers[0].ticketNumber"
+            "source": "Step 16 → passengers[0].ticketNumber"
           },
           {
             "field": "passengers[1].ticketNumber",
             "from": "inboundTicketNumber2",
-            "source": "Step 14 → passengers[1].ticketNumber"
+            "source": "Step 16 → passengers[1].ticketNumber"
           }
         ]
       },
@@ -874,7 +940,7 @@
       }
     },
     {
-      "step": 16,
+      "step": 18,
       "name": "Seat selection (inbound)",
       "description": "Submit seat selection for the inbound flight during check-in. Seat assignment at check-in is free of charge. Note: this endpoint is not implemented at this time and returns a success response without processing seat changes.",
       "type": "positive",
@@ -907,7 +973,7 @@
       }
     },
     {
-      "step": 17,
+      "step": 19,
       "name": "Baggage selection (inbound)",
       "description": "Submit baggage selection for the inbound flight during check-in. Note: this endpoint is not implemented at this time and returns a success response without processing bag changes.",
       "type": "positive",
@@ -940,7 +1006,7 @@
       }
     },
     {
-      "step": 18,
+      "step": 20,
       "name": "Complete check-in (inbound)",
       "description": "Final check-in submission for the inbound flight. The Operations API retrieves the order to resolve all ticket numbers, then calls the Delivery microservice to update each inbound ticket coupon status to C (checked in). Returns an array of checked-in ticket numbers.",
       "type": "positive",
@@ -973,7 +1039,7 @@
       }
     },
     {
-      "step": 19,
+      "step": 21,
       "name": "Generate boarding cards (inbound)",
       "description": "Request boarding documents for the inbound checked-in tickets. The Operations API proxies the request to the Delivery microservice, which retrieves each ticket from delivery.Ticket, filters to segments checked in for departure airport JFK, and generates the BCBP string. Returns an array of boarding cards each containing the BCBP barcode string compliant with IATA Resolution 792.",
       "type": "positive",
@@ -997,12 +1063,12 @@
           {
             "field": "ticketNumbers[0]",
             "from": "inboundTicketNumber",
-            "source": "Step 14 → passengers[0].ticketNumber"
+            "source": "Step 16 → passengers[0].ticketNumber"
           },
           {
             "field": "ticketNumbers[1]",
             "from": "inboundTicketNumber2",
-            "source": "Step 14 → passengers[1].ticketNumber"
+            "source": "Step 16 → passengers[1].ticketNumber"
           }
         ]
       },
