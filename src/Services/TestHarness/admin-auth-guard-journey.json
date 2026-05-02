@@ -1,7 +1,7 @@
 {
   "journey": {
     "name": "Admin \u2014 auth guard 401 checks",
-    "description": "Verifies that every protected endpoint called by the Terminal app returns 401 Unauthorized when no Bearer token is supplied. Covers all four APIs used by the Terminal: Admin, Loyalty, Operations, and Retail. The public POST /api/v1/auth/login endpoint is intentionally excluded. No step chains to another \u2014 each step is a standalone 401 assertion.",
+    "description": "Verifies that every protected endpoint called by the Terminal app returns 401 Unauthorized when no Bearer token is supplied. Covers all four APIs used by the Terminal: Admin, Loyalty, Operations, and Retail. All endpoints use the /admin prefix so that auth guards fire before any business logic. The public POST /api/v1/auth/login endpoint is intentionally excluded. No step chains to another \u2014 each step is a standalone 401 assertion.",
     "domain": "Admin",
     "baseUrls": [
       {
@@ -685,12 +685,12 @@
     },
     {
       "step": 25,
-      "name": "GET /schedule-groups \u2014 no token",
-      "description": "List schedule groups via the Operations API without an Authorization header.",
+      "name": "GET /admin/schedule-groups \u2014 no token",
+      "description": "List schedule groups via the Operations API admin endpoint without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/schedule-groups",
+        "endpoint": "/api/v1/admin/schedule-groups",
         "baseUrlRef": "operations"
       },
       "request": {
@@ -708,12 +708,12 @@
     },
     {
       "step": 26,
-      "name": "POST /schedule-groups \u2014 no token",
-      "description": "Create a schedule group via the Operations API without an Authorization header.",
+      "name": "POST /admin/schedule-groups \u2014 no token",
+      "description": "Create a schedule group via the Operations API admin endpoint without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
-        "endpoint": "/api/v1/schedule-groups",
+        "endpoint": "/api/v1/admin/schedule-groups",
         "baseUrlRef": "operations"
       },
       "request": {
@@ -734,12 +734,12 @@
     },
     {
       "step": 27,
-      "name": "PUT /schedule-groups/{scheduleGroupId} \u2014 no token",
-      "description": "Update a schedule group via the Operations API without an Authorization header.",
+      "name": "PUT /admin/schedule-groups/{scheduleGroupId} \u2014 no token",
+      "description": "Update a schedule group via the Operations API admin endpoint without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "PUT",
-        "endpoint": "/api/v1/schedule-groups/{scheduleGroupId}",
+        "endpoint": "/api/v1/admin/schedule-groups/{scheduleGroupId}",
         "baseUrlRef": "operations",
         "pathParams": {
           "scheduleGroupId": "00000000-0000-0000-0000-000000000001"
@@ -763,12 +763,12 @@
     },
     {
       "step": 28,
-      "name": "DELETE /schedule-groups/{scheduleGroupId} \u2014 no token",
-      "description": "Delete a schedule group via the Operations API without an Authorization header.",
+      "name": "DELETE /admin/schedule-groups/{scheduleGroupId} \u2014 no token",
+      "description": "Delete a schedule group via the Operations API admin endpoint without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "DELETE",
-        "endpoint": "/api/v1/schedule-groups/{scheduleGroupId}",
+        "endpoint": "/api/v1/admin/schedule-groups/{scheduleGroupId}",
         "baseUrlRef": "operations",
         "pathParams": {
           "scheduleGroupId": "00000000-0000-0000-0000-000000000001"
@@ -789,12 +789,12 @@
     },
     {
       "step": 29,
-      "name": "GET /schedules \u2014 no token",
-      "description": "List schedules via the Operations API without an Authorization header.",
+      "name": "GET /admin/schedules \u2014 no token",
+      "description": "List schedules via the Operations API admin endpoint without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/schedules",
+        "endpoint": "/api/v1/admin/schedules",
         "baseUrlRef": "operations"
       },
       "request": {
@@ -812,12 +812,12 @@
     },
     {
       "step": 30,
-      "name": "POST /schedules/import-inventory \u2014 no token",
-      "description": "Trigger a schedule-to-inventory import via the Operations API without an Authorization header.",
+      "name": "POST /admin/schedules/import-inventory \u2014 no token",
+      "description": "Trigger a schedule-to-inventory import via the Operations API admin endpoint without an Authorization header. A minimal valid body is provided so a 400 cannot mask a missing 401.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
-        "endpoint": "/api/v1/schedules/import-inventory",
+        "endpoint": "/api/v1/admin/schedules/import-inventory",
         "baseUrlRef": "operations"
       },
       "request": {
@@ -825,7 +825,14 @@
           "Content-Type": "application/json"
         },
         "body": {
-          "scheduleGroupId": "00000000-0000-0000-0000-000000000001"
+          "aircraftConfigs": [
+            {
+              "aircraftTypeCode": "A321",
+              "cabins": [
+                { "cabinCode": "Y", "totalSeats": 150 }
+              ]
+            }
+          ]
         }
       },
       "response": {
@@ -938,12 +945,12 @@
     },
     {
       "step": 35,
-      "name": "PATCH /orders/{bookingReference}/passengers \u2014 no token",
-      "description": "Update passenger details on an order via the Retail API without an Authorization header. A valid body is provided so a 400 cannot mask a missing 401.",
+      "name": "PATCH /admin/orders/{bookingReference}/passengers \u2014 no token",
+      "description": "Update passenger details on an order via the Retail API admin endpoint without an Authorization header. A valid body is provided so a 400 cannot mask a missing 401.",
       "type": "negative",
       "apiCall": {
         "method": "PATCH",
-        "endpoint": "/api/v1/orders/{bookingReference}/passengers",
+        "endpoint": "/api/v1/admin/orders/{bookingReference}/passengers",
         "baseUrlRef": "retail",
         "pathParams": {
           "bookingReference": "ABCDEF"
@@ -967,12 +974,12 @@
     },
     {
       "step": 36,
-      "name": "GET /ssr/options \u2014 no token",
-      "description": "Fetch available SSR options via the Retail API without an Authorization header.",
+      "name": "GET /admin/ssr/options \u2014 no token",
+      "description": "Fetch available SSR options via the Retail API admin endpoint without an Authorization header.",
       "type": "negative",
       "apiCall": {
         "method": "GET",
-        "endpoint": "/api/v1/ssr/options",
+        "endpoint": "/api/v1/admin/ssr/options",
         "baseUrlRef": "retail"
       },
       "request": {
@@ -990,12 +997,12 @@
     },
     {
       "step": 37,
-      "name": "PATCH /orders/{bookingReference}/ssrs \u2014 no token",
-      "description": "Update SSRs on an order via the Retail API without an Authorization header. A valid body is provided so a 400 cannot mask a missing 401.",
+      "name": "PATCH /admin/orders/{bookingReference}/ssrs \u2014 no token",
+      "description": "Update SSRs on an order via the Retail API admin endpoint without an Authorization header. A valid body is provided so a 400 cannot mask a missing 401.",
       "type": "negative",
       "apiCall": {
         "method": "PATCH",
-        "endpoint": "/api/v1/orders/{bookingReference}/ssrs",
+        "endpoint": "/api/v1/admin/orders/{bookingReference}/ssrs",
         "baseUrlRef": "retail",
         "pathParams": {
           "bookingReference": "ABCDEF"
