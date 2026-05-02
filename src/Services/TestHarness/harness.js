@@ -240,6 +240,10 @@
                 }
             });
         }
+        for (const k of Object.keys(fetchOpts.headers)) {
+            if (typeof fetchOpts.headers[k] === 'string')
+                fetchOpts.headers[k] = resolveChainStrings(fetchOpts.headers[k], chain);
+        }
         if (requestBody !== null && requestBody !== undefined) {
             requestBody = resolveChainStrings(requestBody, chain);
             const ct = fetchOpts.headers['Content-Type'] || fetchOpts.headers['content-type'] || '';
@@ -1316,6 +1320,12 @@
                     fetchOpts.headers['Authorization'] = 'Bearer ' + liveChain['accessToken'];
                 }
             });
+        }
+
+        // Resolve __CHAIN_*__ string placeholders in header values
+        for (const k of Object.keys(fetchOpts.headers)) {
+            if (typeof fetchOpts.headers[k] === 'string')
+                fetchOpts.headers[k] = resolveChainStrings(fetchOpts.headers[k]);
         }
 
         // Resolve any remaining __CHAIN_*__ string placeholders in the body
