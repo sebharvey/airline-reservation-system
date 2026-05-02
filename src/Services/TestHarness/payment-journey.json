@@ -74,6 +74,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "productType": "Fare",
           "cardDetails": {
             "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
@@ -178,6 +179,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "productType": "Fare",
           "cardDetails": {
             "cardNumber": "5425233430109903",
             "expiryDate": "01/29",
@@ -283,6 +285,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "productType": "Fare",
           "cardDetails": {
             "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
@@ -431,6 +434,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "productType": "Fare",
           "cardDetails": {
             "cardNumber": "4111111111111111",
             "expiryDate": "12/28",
@@ -585,6 +589,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "productType": "Fare",
           "amount": 400.0,
           "cardDetails": {
             "cardNumber": "4111111111111111",
@@ -649,6 +654,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "productType": "Seat",
           "amount": 100.0,
           "cardDetails": {
             "cardNumber": "4111111111111111",
@@ -748,7 +754,7 @@
     {
       "step": 24,
       "name": "Authorise with invalid Luhn card number (400)",
-      "description": "Attempt to authorise using a card number that fails the Luhn check. Expects 400 Bad Request \u2014 Luhn validation runs before the payment lookup.",
+      "description": "Attempt to authorise using a card number that fails the Luhn check. Expects 400 Bad Request \u2014 Luhn validation runs inside the handler after productType validation.",
       "type": "negative",
       "apiCall": {
         "method": "POST",
@@ -760,6 +766,7 @@
           "Content-Type": "application/json"
         },
         "body": {
+          "productType": "Fare",
           "cardDetails": {
             "cardNumber": "4111111111111234",
             "expiryDate": "12/28",
