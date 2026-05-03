@@ -775,6 +775,29 @@
 }
 .modal-btn-save:hover:not(:disabled) { filter: brightness(1.1); }
 
+.modal-btn-warn {
+  background: rgba(210, 153, 34, 0.12);
+  border: 1.5px solid rgba(210, 153, 34, 0.4);
+  color: #d29922;
+}
+.modal-btn-warn:hover:not(:disabled) { background: rgba(210, 153, 34, 0.22); }
+
+.modal-card-warn { width: 420px; }
+
+.modal-title-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #d29922;
+}
+
+.modal-warning-text {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+  color: var(--text);
+}
+
 /* ── Disruption / IROPS panel ───────────────────────────────────────────── */
 .disruption-panel {
   flex: 1;
