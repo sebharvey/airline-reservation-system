@@ -14,18 +14,20 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 
 /// <summary>
 /// HTTP-triggered functions for seatmap retrieval.
-/// Orchestrates calls to the Seat microservice to return a merged seatmap with layout and pricing.
+/// Orchestrates calls to the Seat and Delivery microservices to return a merged seatmap with layout, pricing, and live seat occupancy from the manifest.
 /// </summary>
 public sealed class SeatmapFunction
 {
     private readonly SeatServiceClient _seatServiceClient;
     private readonly OfferServiceClient _offerServiceClient;
+    private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly ILogger<SeatmapFunction> _logger;
 
-    public SeatmapFunction(SeatServiceClient seatServiceClient, OfferServiceClient offerServiceClient, ILogger<SeatmapFunction> logger)
+    public SeatmapFunction(SeatServiceClient seatServiceClient, OfferServiceClient offerServiceClient, DeliveryServiceClient deliveryServiceClient, ILogger<SeatmapFunction> logger)
     {
         _seatServiceClient = seatServiceClient;
         _offerServiceClient = offerServiceClient;
+        _deliveryServiceClient = deliveryServiceClient;
         _logger = logger;
     }
 
@@ -55,17 +57,15 @@ public sealed class SeatmapFunction
         if (string.IsNullOrWhiteSpace(aircraftType))
             return await req.BadRequestAsync("'aircraftType' query parameter is required.");
 
-        // Fetch layout, seat offers, inventory holds, and validate inventoryId in parallel
+        // Fetch layout, seat offers, and validate inventoryId in parallel
         var layoutTask = _seatServiceClient.GetSeatmapAsync(aircraftType, cancellationToken);
         var offersTask = _seatServiceClient.GetSeatOffersAsync(flightId, aircraftType, cancellationToken);
-        var holdsTask = _offerServiceClient.GetInventoryHoldsAsync(flightId, cancellationToken);
         var inventoryTask = _offerServiceClient.GetFlightByInventoryIdAsync(flightId, cancellationToken);
 
-        await Task.WhenAll(layoutTask, offersTask, holdsTask, inventoryTask);
+        await Task.WhenAll(layoutTask, offersTask, inventoryTask);
 
         var layout = await layoutTask;
         var offersResult = await offersTask;
-        var holds = await holdsTask;
         var inventory = await inventoryTask;
 
         if (inventory is null)
@@ -80,14 +80,18 @@ public sealed class SeatmapFunction
             return await req.NotFoundAsync($"No seatmap found for aircraft type '{aircraftType}'.");
         }
 
+        // Fetch manifest using inventory data — manifest is the source of truth for seat occupancy
+        var manifest = await _deliveryServiceClient.GetManifestByFlightAsync(
+            inventory.FlightNumber, inventory.DepartureDate, cancellationToken);
+
         // Build a lookup from seatNumber → offer for O(1) merge
         var offersByNumber = (offersResult?.SeatOffers ?? [])
             .ToDictionary(o => o.SeatNumber, o => o, StringComparer.OrdinalIgnoreCase);
 
-        // Build a set of seat numbers that are already held/booked to prevent double-booking
-        var heldSeatNumbers = holds
-            .Where(h => !string.IsNullOrEmpty(h.SeatNumber))
-            .Select(h => h.SeatNumber!)
+        // Build a set of occupied seat numbers from the manifest to prevent double-booking
+        var heldSeatNumbers = (manifest?.Entries ?? [])
+            .Where(e => !string.IsNullOrEmpty(e.SeatNumber))
+            .Select(e => e.SeatNumber!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var cabins = BuildCabins(layout.Cabins, offersByNumber, heldSeatNumbers, inventory.FlightNumber, inventory.DepartureDate, cabinCode);
