@@ -21,7 +21,7 @@ public sealed class SeatServiceClient : ISeatServiceClient
 
     public SeatServiceClient(IHttpClientFactory httpClientFactory)
     {
-        _httpClient = httpClientFactory.CreateClient("SeatMs");
+        _httpClient = httpClientFactory.CreateClient("AncillaryMs");
     }
 
     /// <summary>
