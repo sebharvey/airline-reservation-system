@@ -457,9 +457,9 @@
           <p class="empty-tab">No notes on record for this order.</p>
         } @else {
           <div class="notes-list">
-            @for (note of notes(); track note.noteId ?? (note.dateTime + note.type)) {
+            @for (note of notes(); track note.noteId ? note.noteId : note.dateTime + note.type) {
 
-              @if (editingNoteId() === note.noteId && note.noteId) {
+              @if (note.noteId && editingNoteId() === note.noteId) {
                 <!-- Inline edit form -->
                 <div class="note-item note-item-editing">
                   <div class="note-edit-form">
@@ -485,7 +485,7 @@
                   </div>
                 </div>
 
-              } @else if (confirmDeleteNoteId() === note.noteId && note.noteId) {
+              } @else if (note.noteId && confirmDeleteNoteId() === note.noteId) {
                 <!-- Delete confirmation -->
                 <div class="note-item note-item-danger">
                   <div class="note-body">
@@ -518,7 +518,7 @@
                   </div>
                   @if (note.noteId) {
                     <div class="note-actions">
-                      <button class="edit-btn" [disabled]="noteSaving()" (click)="startEditNote(note)" title="Edit note">
+                      <button class="note-edit-btn" [disabled]="noteSaving()" (click)="startEditNote(note)" title="Edit note">
                         <lucide-icon name="pencil" [size]="13" />
                       </button>
                       <button class="note-delete-btn" [disabled]="noteSaving()" (click)="requestDeleteNote(note.noteId)" title="Remove note">

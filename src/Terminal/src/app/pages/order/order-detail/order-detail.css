@@ -833,6 +833,7 @@
   flex-shrink: 0;
 }
 
+.note-edit-btn,
 .note-delete-btn {
   background: none;
   border: 1.5px solid var(--border);
@@ -845,6 +846,8 @@
   align-items: center;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
+.note-edit-btn:hover { background: rgba(102, 126, 234, 0.06); border-color: var(--grad-start); color: var(--grad-start); }
+.note-edit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .note-delete-btn:hover { background: rgba(248, 81, 73, 0.06); border-color: #f85149; color: #f85149; }
 .note-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
