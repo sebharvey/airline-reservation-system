@@ -219,7 +219,8 @@ The operational source of truth for who is on a given flight. One row per passen
 | CabinCode | CHAR(1) | No | | | `F` · `J` · `W` · `Y` |
 | BookingReference | CHAR(6) | No | | | e.g. `AB1234` |
 | ETicketNumber | VARCHAR(20) | No | | | e.g. `932-1234567890`; denormalised from `delivery.Ticket` |
-| PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
+| PassengerId | INT | No | | | Numeric PAX identifier derived from the order reference (e.g. `PAX-1` → `1`) |
+| SegmentId | INT | No | `0` | | Numeric segment identifier derived from the order reference (e.g. `SEG-1` → `1`) |
 | GivenName | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | Surname | VARCHAR(100) | No | | | Denormalised for manifest readability |
 | SsrCodes | NVARCHAR(500) | Yes | | | JSON array of IATA SSR codes, e.g. `["VGML","WCHR"]`; written at booking confirmation and updated on SSR change |

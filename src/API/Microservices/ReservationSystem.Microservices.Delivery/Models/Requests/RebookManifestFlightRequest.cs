@@ -7,6 +7,9 @@ public sealed class RebookManifestFlightRequest
     [JsonPropertyName("toInventoryId")]
     public Guid ToInventoryId { get; init; }
 
+    [JsonPropertyName("toSegmentId")]
+    public int ToSegmentId { get; init; }
+
     [JsonPropertyName("toFlightNumber")]
     public string ToFlightNumber { get; init; } = string.Empty;
 

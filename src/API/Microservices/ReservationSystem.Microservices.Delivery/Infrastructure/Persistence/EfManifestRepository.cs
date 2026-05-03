@@ -53,6 +53,7 @@ public sealed class EfManifestRepository : IManifestRepository
         string fromFlightNumber,
         DateOnly fromDepartureDate,
         Guid toInventoryId,
+        int toSegmentId,
         string toFlightNumber,
         string toOrigin,
         string toDestination,
@@ -60,7 +61,7 @@ public sealed class EfManifestRepository : IManifestRepository
         TimeOnly toDepartureTime,
         TimeOnly toArrivalTime,
         string toCabinCode,
-        IReadOnlyDictionary<string, ManifestPassengerRebook> passengerRebooks,
+        IReadOnlyDictionary<int, ManifestPassengerRebook> passengerRebooks,
         CancellationToken cancellationToken = default)
     {
         var entries = await _context.Manifests
@@ -87,7 +88,7 @@ public sealed class EfManifestRepository : IManifestRepository
                 toInventoryId, rebook.TicketId,
                 toFlightNumber, toOrigin, toDestination,
                 toDepartureDate, toDepartureTime, toArrivalTime,
-                toCabinCode, rebook.ETicketNumber);
+                toCabinCode, rebook.ETicketNumber, toSegmentId);
             updated++;
         }
 

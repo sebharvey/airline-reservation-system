@@ -266,6 +266,7 @@ public sealed class ManifestFunction
             FromFlightNumber:  flightNumber,
             FromDepartureDate: fromDepartureDate,
             ToInventoryId:     request.ToInventoryId,
+            ToSegmentId:       request.ToSegmentId,
             ToFlightNumber:    request.ToFlightNumber,
             ToOrigin:          request.ToOrigin,
             ToDestination:     request.ToDestination,

@@ -17,7 +17,7 @@ public sealed class ManifestEntryDto
     public string BookingReference { get; init; } = string.Empty;
 
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PassengerId { get; init; }
 
     [JsonPropertyName("givenName")]
     public string GivenName { get; init; } = string.Empty;

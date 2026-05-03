@@ -19,7 +19,8 @@ public sealed class Manifest
     public string CabinCode { get; private set; } = string.Empty;
     public string BookingReference { get; private set; } = string.Empty;
     public string ETicketNumber { get; private set; } = string.Empty;
-    public string PassengerId { get; private set; } = string.Empty;
+    public int PassengerId { get; private set; }
+    public int SegmentId { get; private set; }
     public string GivenName { get; private set; } = string.Empty;
     public string Surname { get; private set; } = string.Empty;
     public string? SsrCodes { get; private set; }
@@ -69,7 +70,8 @@ public sealed class Manifest
         TimeOnly newDepartureTime,
         TimeOnly newArrivalTime,
         string newCabinCode,
-        string newETicketNumber)
+        string newETicketNumber,
+        int newSegmentId)
     {
         InventoryId   = newInventoryId;
         TicketId      = newTicketId;
@@ -81,6 +83,7 @@ public sealed class Manifest
         ArrivalTime   = newArrivalTime;
         CabinCode     = newCabinCode;
         ETicketNumber = newETicketNumber;
+        SegmentId     = newSegmentId;
         SeatNumber    = null;
         UpdatedAt     = DateTime.UtcNow;
         Version++;
@@ -99,7 +102,8 @@ public sealed class Manifest
         string cabinCode,
         string bookingReference,
         string eTicketNumber,
-        string passengerId,
+        int passengerId,
+        int segmentId,
         string givenName,
         string surname,
         TimeOnly departureTime,
@@ -127,6 +131,7 @@ public sealed class Manifest
             BookingReference = bookingReference,
             ETicketNumber    = eTicketNumber,
             PassengerId      = passengerId,
+            SegmentId        = segmentId,
             GivenName        = givenName,
             Surname          = surname,
             SsrCodes         = ssrCodes,

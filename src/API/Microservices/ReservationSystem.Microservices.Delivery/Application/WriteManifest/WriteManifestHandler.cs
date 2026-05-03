@@ -82,7 +82,8 @@ public sealed class WriteManifestHandler
                 cabinCode:       entry.CabinCode,
                 bookingReference: request.BookingReference,
                 eTicketNumber:   entry.ETicketNumber,
-                passengerId:     entry.PassengerId,
+                passengerId:     ParsePassengerId(entry.PassengerId),
+                segmentId:       request.SegmentId,
                 givenName:       entry.GivenName,
                 surname:         entry.Surname,
                 departureTime:   departureTime,
@@ -102,5 +103,14 @@ public sealed class WriteManifestHandler
             request.BookingReference, request.FlightNumber, written, skipped);
 
         return new WriteManifestResponse { Written = written, Skipped = skipped };
+    }
+
+    // Converts "PAX-1" → 1; falls back to 0 for unrecognised formats
+    private static int ParsePassengerId(string passengerId)
+    {
+        var raw = passengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase)
+            ? passengerId[4..]
+            : passengerId;
+        return int.TryParse(raw, out var n) ? n : 0;
     }
 }
