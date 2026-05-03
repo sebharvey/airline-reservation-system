@@ -34,6 +34,7 @@ public interface IManifestRepository
         string fromFlightNumber,
         DateOnly fromDepartureDate,
         Guid toInventoryId,
+        int toSegmentId,
         string toFlightNumber,
         string toOrigin,
         string toDestination,
@@ -41,6 +42,6 @@ public interface IManifestRepository
         TimeOnly toDepartureTime,
         TimeOnly toArrivalTime,
         string toCabinCode,
-        IReadOnlyDictionary<string, ManifestPassengerRebook> passengerRebooks,
+        IReadOnlyDictionary<int, ManifestPassengerRebook> passengerRebooks,
         CancellationToken cancellationToken = default);
 }

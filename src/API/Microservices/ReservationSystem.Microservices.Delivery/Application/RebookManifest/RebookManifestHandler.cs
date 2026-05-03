@@ -8,6 +8,7 @@ public sealed record RebookManifestCommand(
     string FromFlightNumber,
     DateOnly FromDepartureDate,
     Guid ToInventoryId,
+    int ToSegmentId,
     string ToFlightNumber,
     string ToOrigin,
     string ToDestination,
@@ -37,7 +38,7 @@ public sealed class RebookManifestHandler
     {
         var tickets = await _ticketRepository.GetByBookingReferenceAsync(command.BookingReference, ct);
 
-        var passengerRebooks = new Dictionary<string, ManifestPassengerRebook>(StringComparer.OrdinalIgnoreCase);
+        var passengerRebooks = new Dictionary<int, ManifestPassengerRebook>();
 
         foreach (var (passengerId, eTicketNumber) in command.Passengers)
         {
@@ -53,7 +54,7 @@ public sealed class RebookManifestHandler
                 continue;
             }
 
-            passengerRebooks[passengerId] = new ManifestPassengerRebook(ticket.TicketId, eTicketNumber);
+            passengerRebooks[ParsePassengerId(passengerId)] = new ManifestPassengerRebook(ticket.TicketId, eTicketNumber);
         }
 
         if (passengerRebooks.Count == 0)
@@ -67,6 +68,7 @@ public sealed class RebookManifestHandler
             command.FromFlightNumber,
             command.FromDepartureDate,
             command.ToInventoryId,
+            command.ToSegmentId,
             command.ToFlightNumber,
             command.ToOrigin,
             command.ToDestination,
@@ -76,5 +78,14 @@ public sealed class RebookManifestHandler
             command.ToCabinCode,
             passengerRebooks,
             ct);
+    }
+
+    // Converts "PAX-1" → 1; falls back to 0 for unrecognised formats
+    private static int ParsePassengerId(string passengerId)
+    {
+        var raw = passengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase)
+            ? passengerId[4..]
+            : passengerId;
+        return int.TryParse(raw, out var n) ? n : 0;
     }
 }

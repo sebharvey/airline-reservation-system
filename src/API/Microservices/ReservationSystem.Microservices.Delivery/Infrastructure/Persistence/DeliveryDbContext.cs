@@ -92,7 +92,8 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(m => m.CabinCode).HasColumnType("char(1)").HasMaxLength(1).IsRequired();
             entity.Property(m => m.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
             entity.Property(m => m.ETicketNumber).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
-            entity.Property(m => m.PassengerId).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(m => m.PassengerId).HasColumnType("int").IsRequired();
+            entity.Property(m => m.SegmentId).HasColumnType("int").IsRequired();
             entity.Property(m => m.GivenName).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
             entity.Property(m => m.Surname).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
             entity.Property(m => m.SsrCodes).HasColumnType("nvarchar(500)").HasMaxLength(500).IsRequired(false);
