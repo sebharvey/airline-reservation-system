@@ -19,6 +19,11 @@ interface SsrEditForm {
   segmentRef: string;
 }
 
+interface NoteForm {
+  type: string;
+  message: string;
+}
+
 interface DocDetailState {
   doc: PassengerTravelDocument;
   index: number;
@@ -56,6 +61,15 @@ export class OrderDetailComponent implements OnInit {
   showAddSsr = signal(false);
   addSsrForm = signal<SsrEditForm>({ ssrCode: '', passengerRef: '', segmentRef: '' });
   addSsrAllSegments = signal(false);
+
+  // Notes tab state
+  showAddNote = signal(false);
+  addNoteForm = signal<NoteForm>({ type: 'Agent Note', message: '' });
+  editingNoteId = signal<string | null>(null);
+  editNoteForm = signal<NoteForm>({ type: '', message: '' });
+  noteSaving = signal(false);
+  noteError = signal('');
+  confirmDeleteNoteId = signal<string | null>(null);
 
   // Edit-in-place state for existing SSR rows
   editingSsrKey = signal<string | null>(null);
@@ -818,6 +832,96 @@ export class OrderDetailComponent implements OnInit {
     const given = (pax.givenName ?? '').toUpperCase().trim();
     if (!surname && !given) return '';
     return surname && given ? `${surname}/${given}` : surname || given;
+  }
+
+  openAddNote(): void {
+    this.showAddNote.set(true);
+    this.addNoteForm.set({ type: 'Agent Note', message: '' });
+    this.noteError.set('');
+  }
+
+  cancelAddNote(): void {
+    this.showAddNote.set(false);
+    this.noteError.set('');
+  }
+
+  updateAddNoteField(field: keyof NoteForm, value: string): void {
+    this.addNoteForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  async saveAddNote(): Promise<void> {
+    const form = this.addNoteForm();
+    if (!form.type.trim() || !form.message.trim()) return;
+    this.noteSaving.set(true);
+    this.noteError.set('');
+    try {
+      await this.#orderService.addOrderNote(this.bookingRef, form.type.trim(), form.message.trim());
+      this.showAddNote.set(false);
+      await this.loadOrder();
+    } catch {
+      this.noteError.set('Failed to add note. Please try again.');
+    } finally {
+      this.noteSaving.set(false);
+    }
+  }
+
+  startEditNote(note: OrderNote): void {
+    if (!note.noteId) return;
+    this.editingNoteId.set(note.noteId);
+    this.editNoteForm.set({ type: note.type, message: note.message });
+    this.noteError.set('');
+  }
+
+  cancelEditNote(): void {
+    this.editingNoteId.set(null);
+    this.noteError.set('');
+  }
+
+  updateEditNoteField(field: keyof NoteForm, value: string): void {
+    this.editNoteForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  async saveEditNote(): Promise<void> {
+    const noteId = this.editingNoteId();
+    if (!noteId) return;
+    const form = this.editNoteForm();
+    if (!form.type.trim() || !form.message.trim()) return;
+    this.noteSaving.set(true);
+    this.noteError.set('');
+    try {
+      await this.#orderService.updateOrderNote(this.bookingRef, noteId, form.type.trim(), form.message.trim());
+      this.editingNoteId.set(null);
+      await this.loadOrder();
+    } catch {
+      this.noteError.set('Failed to save note. Please try again.');
+    } finally {
+      this.noteSaving.set(false);
+    }
+  }
+
+  requestDeleteNote(noteId: string): void {
+    this.confirmDeleteNoteId.set(noteId);
+    this.noteError.set('');
+  }
+
+  cancelDeleteNote(): void {
+    this.confirmDeleteNoteId.set(null);
+  }
+
+  async confirmDeleteNote(): Promise<void> {
+    const noteId = this.confirmDeleteNoteId();
+    if (!noteId) return;
+    this.noteSaving.set(true);
+    this.noteError.set('');
+    try {
+      await this.#orderService.deleteOrderNote(this.bookingRef, noteId);
+      this.confirmDeleteNoteId.set(null);
+      await this.loadOrder();
+    } catch {
+      this.noteError.set('Failed to delete note. Please try again.');
+    } finally {
+      this.noteSaving.set(false);
+    }
   }
 
   getSegmentLabel(segmentRef: string): string {

@@ -743,6 +743,29 @@
 }
 
 /* Notes */
+.note-tab-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.add-note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--grad-start);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.add-note-btn:hover { opacity: 0.88; }
+.add-note-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .notes-list {
   display: flex;
   flex-direction: column;
@@ -759,6 +782,16 @@
   border-radius: 8px;
 }
 
+.note-item-editing {
+  border-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.03);
+}
+
+.note-item-danger {
+  border-color: #f85149;
+  background: rgba(248, 81, 73, 0.03);
+}
+
 .note-type-badge {
   flex-shrink: 0;
   font-size: 0.7rem;
@@ -773,6 +806,7 @@
 }
 
 .note-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -783,6 +817,65 @@
   font-size: 0.85rem;
   color: var(--text);
   word-break: break-word;
+}
+
+.note-confirm-msg {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f85149;
+}
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.note-delete-btn {
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.note-delete-btn:hover { background: rgba(248, 81, 73, 0.06); border-color: #f85149; color: #f85149; }
+.note-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.note-edit-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.note-edit-grid {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 12px;
+}
+
+.note-textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.note-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.note-add-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 /* Edit button */

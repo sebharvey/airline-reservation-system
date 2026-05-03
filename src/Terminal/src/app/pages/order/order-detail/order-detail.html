@@ -440,29 +440,138 @@
     <!-- ── NOTES TAB ── -->
     @if (activeTab() === 'notes') {
       <div class="tab-content fade-in">
+
+        <div class="note-tab-header">
+          <button class="add-note-btn" [disabled]="noteSaving()" (click)="openAddNote()">
+            <lucide-icon name="plus" [size]="13" /> Add note
+          </button>
+        </div>
+
+        @if (noteError()) {
+          <div class="alert alert-error" role="alert">
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ noteError() }}
+          </div>
+        }
+
         @if (notes().length === 0) {
           <p class="empty-tab">No notes on record for this order.</p>
         } @else {
           <div class="notes-list">
-            @for (note of notes(); track note.dateTime + note.type) {
-              <div class="note-item">
-                <div class="note-type-badge">{{ note.type }}</div>
-                <div class="note-body">
-                  <span class="note-message">{{ note.message }}</span>
-                  @if (note.paxId && paxNameByPaxId().get(note.paxId)) {
-                    <span class="note-pax muted">
-                      {{ paxNameByPaxId().get(note.paxId) }}
-                      @if (note.segmentId && departureBySegmentId().get(note.segmentId)) {
-                        · {{ departureBySegmentId().get(note.segmentId) }}
-                      }
-                    </span>
-                  }
-                  <span class="event-time muted">{{ formatDateTime(note.dateTime) }}</span>
+            @for (note of notes(); track note.noteId ?? (note.dateTime + note.type)) {
+
+              @if (editingNoteId() === note.noteId && note.noteId) {
+                <!-- Inline edit form -->
+                <div class="note-item note-item-editing">
+                  <div class="note-edit-form">
+                    <div class="note-edit-grid">
+                      <div class="edit-field">
+                        <label class="field-label">Type</label>
+                        <input class="edit-input" type="text" [value]="editNoteForm().type"
+                          (input)="updateEditNoteField('type', $any($event.target).value)" />
+                      </div>
+                      <div class="edit-field note-edit-message">
+                        <label class="field-label">Message</label>
+                        <textarea class="edit-input note-textarea" rows="3" [value]="editNoteForm().message"
+                          (input)="updateEditNoteField('message', $any($event.target).value)"></textarea>
+                      </div>
+                    </div>
+                    <div class="note-edit-actions">
+                      <button class="save-btn" [disabled]="noteSaving() || !editNoteForm().type.trim() || !editNoteForm().message.trim()"
+                        (click)="saveEditNote()">
+                        {{ noteSaving() ? 'Saving…' : 'Save' }}
+                      </button>
+                      <button class="cancel-btn" [disabled]="noteSaving()" (click)="cancelEditNote()">Cancel</button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+
+              } @else if (confirmDeleteNoteId() === note.noteId && note.noteId) {
+                <!-- Delete confirmation -->
+                <div class="note-item note-item-danger">
+                  <div class="note-body">
+                    <span class="note-confirm-msg">Remove this note?</span>
+                    <span class="note-message muted">{{ note.message }}</span>
+                  </div>
+                  <div class="note-actions">
+                    <button class="remove-ssr-btn" [disabled]="noteSaving()" (click)="confirmDeleteNote()">
+                      {{ noteSaving() ? 'Removing…' : 'Remove' }}
+                    </button>
+                    <button class="cancel-btn" [disabled]="noteSaving()" (click)="cancelDeleteNote()">Cancel</button>
+                  </div>
+                </div>
+
+              } @else {
+                <!-- Read-only view -->
+                <div class="note-item">
+                  <div class="note-type-badge">{{ note.type }}</div>
+                  <div class="note-body">
+                    <span class="note-message">{{ note.message }}</span>
+                    @if (note.paxId && paxNameByPaxId().get(note.paxId)) {
+                      <span class="note-pax muted">
+                        {{ paxNameByPaxId().get(note.paxId) }}
+                        @if (note.segmentId && departureBySegmentId().get(note.segmentId)) {
+                          · {{ departureBySegmentId().get(note.segmentId) }}
+                        }
+                      </span>
+                    }
+                    <span class="event-time muted">{{ formatDateTime(note.dateTime) }}</span>
+                  </div>
+                  @if (note.noteId) {
+                    <div class="note-actions">
+                      <button class="edit-btn" [disabled]="noteSaving()" (click)="startEditNote(note)" title="Edit note">
+                        <lucide-icon name="pencil" [size]="13" />
+                      </button>
+                      <button class="note-delete-btn" [disabled]="noteSaving()" (click)="requestDeleteNote(note.noteId)" title="Remove note">
+                        <lucide-icon name="trash-2" [size]="13" />
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
             }
           </div>
         }
+      </div>
+    }
+
+    <!-- ── ADD NOTE MODAL ── -->
+    @if (showAddNote()) {
+      <div class="modal-backdrop" (click)="!noteSaving() && cancelAddNote()"></div>
+      <div class="modal-panel" role="dialog" aria-modal="true">
+        <div class="modal-header">
+          <div class="modal-title-row">
+            <span class="modal-title">Add note</span>
+          </div>
+          <button class="modal-close-btn" [disabled]="noteSaving()" (click)="cancelAddNote()">✕</button>
+        </div>
+        <div class="modal-body">
+          @if (noteError()) {
+            <div class="alert alert-error"><lucide-icon name="triangle-alert" [size]="14" /> {{ noteError() }}</div>
+          }
+          <div class="note-add-form-grid">
+            <div class="edit-field">
+              <label class="field-label">Type</label>
+              <input class="edit-input" type="text" [value]="addNoteForm().type"
+                (input)="updateAddNoteField('type', $any($event.target).value)"
+                placeholder="e.g. Agent Note" />
+            </div>
+            <div class="edit-field">
+              <label class="field-label">Message</label>
+              <textarea class="edit-input note-textarea" rows="4" [value]="addNoteForm().message"
+                (input)="updateAddNoteField('message', $any($event.target).value)"
+                placeholder="Enter note text…"></textarea>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="save-btn"
+              [disabled]="noteSaving() || !addNoteForm().type.trim() || !addNoteForm().message.trim()"
+              (click)="saveAddNote()">
+              {{ noteSaving() ? 'Adding…' : 'Add note' }}
+            </button>
+            <button class="cancel-btn" [disabled]="noteSaving()" (click)="cancelAddNote()">Cancel</button>
+          </div>
+        </div>
       </div>
     }
 

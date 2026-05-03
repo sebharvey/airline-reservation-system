@@ -230,6 +230,131 @@ public sealed class AdminOrderManagementFunction
     }
 
     // -------------------------------------------------------------------------
+    // POST /v1/admin/orders/{bookingRef}/notes
+    // -------------------------------------------------------------------------
+
+    [Function("AdminAddOrderNote")]
+    [OpenApiOperation(operationId: "AdminAddOrderNote", tags: new[] { "Admin Orders" }, Summary = "Append an agent note to an order (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The 6-character booking reference (PNR)")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ type, message }")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> AddOrderNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/orders/{bookingRef}/notes")] HttpRequestData req,
+        string bookingRef,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for AdminAddOrderNote");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        if (string.IsNullOrWhiteSpace(body))
+            return await req.BadRequestAsync("Request body is required.");
+
+        // Wrap the single note in the array envelope expected by the Order MS
+        System.Text.Json.JsonElement parsed;
+        try { parsed = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(body); }
+        catch { return await req.BadRequestAsync("Invalid JSON."); }
+
+        var type    = parsed.TryGetProperty("type",    out var typeEl)    ? typeEl.GetString()    : null;
+        var message = parsed.TryGetProperty("message", out var messageEl) ? messageEl.GetString() : null;
+
+        if (string.IsNullOrWhiteSpace(type))
+            return await req.BadRequestAsync("'type' is required.");
+        if (string.IsNullOrWhiteSpace(message))
+            return await req.BadRequestAsync("'message' is required.");
+
+        var noteEnvelope = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            notes = new[]
+            {
+                new { dateTime = DateTime.UtcNow.ToString("O"), type, message }
+            }
+        });
+
+        try
+        {
+            await _orderServiceClient.AddOrderNoteAsync(bookingRef.ToUpperInvariant(), noteEnvelope, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.BadRequestAsync(ex.Message);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /v1/admin/orders/{bookingRef}/notes/{noteId}
+    // -------------------------------------------------------------------------
+
+    [Function("AdminUpdateOrderNote")]
+    [OpenApiOperation(operationId: "AdminUpdateOrderNote", tags: new[] { "Admin Orders" }, Summary = "Update the type and message of an existing note on an order (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The 6-character booking reference (PNR)")]
+    [OpenApiParameter(name: "noteId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The note ID (UUID)")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ type, message }")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateOrderNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/admin/orders/{bookingRef}/notes/{noteId}")] HttpRequestData req,
+        string bookingRef,
+        string noteId,
+        CancellationToken cancellationToken)
+    {
+        string body;
+        try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read request body for AdminUpdateOrderNote");
+            return await req.BadRequestAsync("Failed to read request body.");
+        }
+
+        if (string.IsNullOrWhiteSpace(body))
+            return await req.BadRequestAsync("Request body is required.");
+
+        try
+        {
+            await _orderServiceClient.UpdateOrderNoteAsync(bookingRef.ToUpperInvariant(), noteId, body, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (KeyNotFoundException) { return req.CreateResponse(HttpStatusCode.NotFound); }
+        catch (InvalidOperationException ex) { return await req.BadRequestAsync(ex.Message); }
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /v1/admin/orders/{bookingRef}/notes/{noteId}
+    // -------------------------------------------------------------------------
+
+    [Function("AdminDeleteOrderNote")]
+    [OpenApiOperation(operationId: "AdminDeleteOrderNote", tags: new[] { "Admin Orders" }, Summary = "Remove a note from an order (staff)")]
+    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The 6-character booking reference (PNR)")]
+    [OpenApiParameter(name: "noteId", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The note ID (UUID)")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = "Unauthorized — staff JWT required")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> DeleteOrderNote(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/admin/orders/{bookingRef}/notes/{noteId}")] HttpRequestData req,
+        string bookingRef,
+        string noteId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _orderServiceClient.DeleteOrderNoteAsync(bookingRef.ToUpperInvariant(), noteId, cancellationToken);
+            return req.CreateResponse(HttpStatusCode.NoContent);
+        }
+        catch (KeyNotFoundException) { return req.CreateResponse(HttpStatusCode.NotFound); }
+        catch (InvalidOperationException ex) { return await req.BadRequestAsync(ex.Message); }
+    }
+
+    // -------------------------------------------------------------------------
     // GET /v1/admin/orders/{bookingRef}/debug
     // TODO: Remove — temporary debug endpoint
     // -------------------------------------------------------------------------

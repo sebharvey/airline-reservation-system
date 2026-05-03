@@ -327,6 +327,42 @@ public sealed class OrderServiceClient
         }
     }
 
+    public async Task AddOrderNoteAsync(string bookingReference, string noteJson, CancellationToken ct)
+    {
+        using var content = new StringContent(noteJson, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync($"/api/v1/orders/{bookingReference}/notes", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to add note to order: {error}");
+        }
+    }
+
+    public async Task UpdateOrderNoteAsync(string bookingReference, string noteId, string noteJson, CancellationToken ct)
+    {
+        using var content = new StringContent(noteJson, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PutAsync($"/api/v1/orders/{bookingReference}/notes/{Uri.EscapeDataString(noteId)}", content, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"Note '{noteId}' not found on order {bookingReference}.");
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order note: {error}");
+        }
+    }
+
+    public async Task DeleteOrderNoteAsync(string bookingReference, string noteId, CancellationToken ct)
+    {
+        using var response = await _httpClient.DeleteAsync($"/api/v1/orders/{bookingReference}/notes/{Uri.EscapeDataString(noteId)}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"Note '{noteId}' not found on order {bookingReference}.");
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to delete order note: {error}");
+        }
+    }
+
     // TODO: Remove — temporary debug method
     public async Task<string?> GetOrderDebugRawAsync(string bookingReference, CancellationToken ct)
     {
