@@ -112,7 +112,6 @@ public sealed class InventoryManagementFunction
             Status           = h.Status,
             HoldType         = h.HoldType,
             StandbyPriority  = h.StandbyPriority,
-            PaxCount         = h.PaxCount,
             CreatedAt        = h.CreatedAt
         });
 
