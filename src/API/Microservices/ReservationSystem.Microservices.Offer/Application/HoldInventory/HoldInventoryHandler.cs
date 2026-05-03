@@ -18,7 +18,7 @@ public sealed class HoldInventoryHandler
     public async Task<FlightInventory> HandleAsync(HoldInventoryCommand command, CancellationToken ct = default)
     {
         var isStandby = string.Equals(command.HoldType, "Standby", StringComparison.OrdinalIgnoreCase);
-        var requestedCount = command.Passengers.Count;
+        var requestedCount = command.PaxCount;
 
         var existingCount = await _repository.GetHoldCountAsync(command.InventoryId, command.OrderId, command.CabinCode, ct);
         if (existingCount == requestedCount)
@@ -43,8 +43,7 @@ public sealed class HoldInventoryHandler
             await _repository.UpdateInventoryAsync(inventory, ct);
         }
 
-        foreach (var pax in command.Passengers)
-            await _repository.CreateHoldAsync(command.InventoryId, command.OrderId, command.CabinCode, pax.SeatNumber, pax.PassengerId, command.HoldType, command.StandbyPriority, ct);
+        await _repository.CreateHoldAsync(command.InventoryId, command.OrderId, command.CabinCode, command.PaxCount, command.HoldType, command.StandbyPriority, ct);
 
         _logger.LogInformation("Held {PaxCount} seats on inventory {InventoryId} for order {OrderId} (holdType: {HoldType})",
             requestedCount, command.InventoryId, command.OrderId, command.HoldType);

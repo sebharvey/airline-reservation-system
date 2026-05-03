@@ -58,9 +58,8 @@ export interface InventoryHold {
   holdId: string;
   orderId: string;
   bookingReference: string | null;
-  passengerName: string | null;
   cabinCode: string;
-  seatNumber: string | null;
+  paxCount: number;
   status: string;
   holdType: string;
   standbyPriority: number | null;
@@ -182,10 +181,8 @@ export interface InventoryOrderRow {
   orderId: string;
   bookingReference: string;
   currency: string;
-  passengerName: string | null;
-  passengerType: string | null;
   cabinCode: string;
-  seatNumber: string | null;
+  paxCount: number;
   fareFamily: string | null;
   fareBasisCode: string | null;
   baseFareAmount: number | null;

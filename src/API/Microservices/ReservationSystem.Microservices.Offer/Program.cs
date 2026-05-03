@@ -31,7 +31,6 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightInventoryByDate
 using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
 using ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
-using ReservationSystem.Microservices.Offer.Application.UpdateHoldSeat;
 using ReservationSystem.Microservices.Offer.Application.RollingInventoryImport;
 using ReservationSystem.Microservices.Offer.Application.GetFareFamilies;
 using ReservationSystem.Microservices.Offer.Application.GetFareFamily;
@@ -124,7 +123,6 @@ var host = new HostBuilder()
         services.AddScoped<GetFlightInventoryByDateHandler>();
         services.AddScoped<GetFlightByInventoryIdHandler>();
         services.AddScoped<GetInventoryHoldsHandler>();
-        services.AddScoped<UpdateHoldSeatHandler>();
         services.AddScoped<GetFareFamiliesHandler>();
         services.AddScoped<GetFareFamilyHandler>();
         services.AddScoped<CreateFareFamilyHandler>();

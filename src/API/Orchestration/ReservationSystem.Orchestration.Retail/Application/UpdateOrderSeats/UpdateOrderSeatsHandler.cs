@@ -130,11 +130,8 @@ public sealed class UpdateOrderSeatsHandler
         {
             foreach (var grp in validatedSeats.GroupBy(s => (s.InventoryId, s.CabinCode)))
             {
-                var passengers = grp
-                    .Select(s => ((string?)s.SeatNumber, ExtractPaxId(s.PassengerId)))
-                    .ToList();
                 await _offerServiceClient.HoldInventoryAsync(
-                    grp.Key.InventoryId, grp.Key.CabinCode, passengers, order.OrderId, cancellationToken: ct);
+                    grp.Key.InventoryId, grp.Key.CabinCode, grp.Count(), order.OrderId, cancellationToken: ct);
             }
 
             var sellItems = validatedSeats
@@ -198,13 +195,6 @@ public sealed class UpdateOrderSeatsHandler
             TotalSeatAmount = totalSeatAmount,
             PaymentId = paymentId
         };
-    }
-
-    private static int? ExtractPaxId(string? id)
-    {
-        if (string.IsNullOrEmpty(id)) return null;
-        var dash = id.LastIndexOf('-');
-        return dash >= 0 && int.TryParse(id[(dash + 1)..], out var n) ? n : int.TryParse(id, out n) ? n : null;
     }
 
     private sealed class ValidatedSeatItem

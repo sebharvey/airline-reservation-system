@@ -836,8 +836,8 @@ public sealed class ConfirmBasketHandler
         if (basketDataJson == null) return;
         try
         {
-            var (inventoryItems, passengerIds, seatsByInventory) = ParseBasketDataForInventorySell(basketDataJson);
-            if (inventoryItems.Count == 0 || passengerIds.Count == 0) return;
+            var (inventoryItems, passengerCount) = ParseBasketDataForInventorySell(basketDataJson);
+            if (inventoryItems.Count == 0 || passengerCount == 0) return;
 
             // Standby bookings use a priority of 50 (staff/leisure standby band).
             // For Revenue bookings, use default hold type with no priority.
@@ -848,13 +848,7 @@ public sealed class ConfirmBasketHandler
             await Task.WhenAll(inventoryItems.Select(item =>
             {
                 var (inventoryId, cabinCode) = item;
-                List<(string? SeatNumber, int? PassengerId)> passengers;
-                if (seatsByInventory.TryGetValue(inventoryId.ToString(), out var seats) && seats.Count > 0)
-                    passengers = seats;
-                else
-                    passengers = passengerIds.Select(id => ((string?)null, id)).ToList();
-
-                return _offerServiceClient.HoldInventoryAsync(inventoryId, cabinCode, passengers, orderId, holdType, standbyPriority, cancellationToken);
+                return _offerServiceClient.HoldInventoryAsync(inventoryId, cabinCode, passengerCount, orderId, holdType, standbyPriority, cancellationToken);
             }));
 
             // Standby bookings do not decrement inventory — they queue on the standby list only.
@@ -1376,13 +1370,11 @@ public sealed class ConfirmBasketHandler
 
     private static (
         List<(Guid InventoryId, string CabinCode)> items,
-        List<int?> passengerIds,
-        Dictionary<string, List<(string? SeatNumber, int? PassengerId)>> seatsByInventory)
+        int passengerCount)
         ParseBasketDataForInventorySell(string basketDataJson)
     {
         var items = new List<(Guid, string)>();
-        var passengerIds = new List<int?>();
-        var seatsByInventory = new Dictionary<string, List<(string? SeatNumber, int? PassengerId)>>(StringComparer.OrdinalIgnoreCase);
+        var passengerCount = 0;
 
         try
         {
@@ -1392,29 +1384,7 @@ public sealed class ConfirmBasketHandler
             if (root.TryGetProperty("passengers", out var passengersEl) &&
                 passengersEl.ValueKind == JsonValueKind.Array)
             {
-                foreach (var p in passengersEl.EnumerateArray())
-                {
-                    var paxId = p.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null;
-                    if (!string.IsNullOrEmpty(paxId))
-                        passengerIds.Add(ExtractPaxId(paxId));
-                }
-            }
-
-            // seats[].segmentId is the inventoryId — build per-flight seat lists with passenger IDs.
-            if (root.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var seat in seatsEl.EnumerateArray())
-                {
-                    var segId   = seat.TryGetProperty("segmentId",   out var sid) ? sid.GetString() : null;
-                    var seatNum = DecodeSeatNumber(seat.TryGetProperty("seatOfferId", out var soi) ? soi.GetString() : null);
-                    var paxId   = seat.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null;
-                    if (!string.IsNullOrEmpty(segId))
-                    {
-                        if (!seatsByInventory.ContainsKey(segId))
-                            seatsByInventory[segId] = [];
-                        seatsByInventory[segId].Add((string.IsNullOrEmpty(seatNum) ? null : seatNum, ExtractPaxId(paxId)));
-                    }
-                }
+                passengerCount = passengersEl.GetArrayLength();
             }
 
             if (root.TryGetProperty("flightOffers", out var offersEl) &&
@@ -1434,19 +1404,7 @@ public sealed class ConfirmBasketHandler
         }
         catch { /* Return whatever was parsed */ }
 
-        return (items, passengerIds, seatsByInventory);
-    }
-
-    /// <summary>
-    /// Decodes a base64 seat offer ID and returns the seat number.
-    /// Format: base64("{flightNumber}-{departureDate}-{cabinCode}-{seatNumber}")
-    /// e.g. base64("AX001-2026-04-12-Y-35A") → "35A"
-    /// </summary>
-    private static int? ExtractPaxId(string? id)
-    {
-        if (string.IsNullOrEmpty(id)) return null;
-        var dash = id.LastIndexOf('-');
-        return dash >= 0 && int.TryParse(id[(dash + 1)..], out var n) ? n : int.TryParse(id, out n) ? n : null;
+        return (items, passengerCount);
     }
 
     private static string? DecodeSeatNumber(string? seatOfferId)

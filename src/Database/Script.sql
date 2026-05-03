@@ -234,36 +234,76 @@ END
 GO
 
 -- offer.InventoryHold ---------------------------------------------------------
--- One row per passenger per hold. SeatNumber is optional (NULL = seat not yet selected).
+-- One row per order per cabin. PaxCount is the number of passengers on that order/cabin.
+-- Seat assignments and passenger identity live exclusively in delivery.Manifest.
 -- Status transitions: 'Held' (during booking flow) → 'Confirmed' (on sell/order confirmation).
--- Rows are created by HoldInventoryHandler and confirmed by SellInventoryHandler.
 IF OBJECT_ID('[offer].[InventoryHold]', 'U') IS NULL
 CREATE TABLE [offer].[InventoryHold] (
     HoldId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_InventoryHold_Id      DEFAULT NEWID(),
     InventoryId UNIQUEIDENTIFIER NOT NULL,
     OrderId     UNIQUEIDENTIFIER NOT NULL,
     CabinCode   CHAR(1)          NOT NULL,
-    SeatNumber  VARCHAR(6)       NULL,
-    PassengerId INT              NULL,
+    PaxCount    INT              NOT NULL CONSTRAINT DF_InventoryHold_PaxCount DEFAULT 1,
     Status      VARCHAR(20)      NOT NULL CONSTRAINT DF_InventoryHold_Status  DEFAULT 'Held',
     CreatedAt   DATETIME2        NOT NULL CONSTRAINT DF_InventoryHold_Created DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_InventoryHold             PRIMARY KEY (HoldId),
     CONSTRAINT FK_InventoryHold_Inventory   FOREIGN KEY (InventoryId) REFERENCES [offer].[FlightInventory](InventoryId),
     CONSTRAINT CHK_InventoryHold_Status     CHECK (Status IN ('Held', 'Confirmed')),
-    CONSTRAINT CHK_InventoryHold_Cabin      CHECK (CabinCode IN ('F', 'J', 'W', 'Y'))
+    CONSTRAINT CHK_InventoryHold_Cabin      CHECK (CabinCode IN ('F', 'J', 'W', 'Y')),
+    CONSTRAINT CHK_InventoryHold_PaxCount   CHECK (PaxCount >= 1)
 );
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[InventoryHold]') AND name = 'PassengerId')
-    ALTER TABLE [offer].[InventoryHold] ADD PassengerId INT NULL;
+-- Migration: drop old per-passenger seat unique index if it exists
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_InventoryHold_Seat' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    DROP INDEX UX_InventoryHold_Seat ON [offer].[InventoryHold];
+GO
+
+-- Migration: remove SeatNumber column (seat assignments now live in delivery.Manifest)
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[InventoryHold]') AND name = 'SeatNumber')
+    ALTER TABLE [offer].[InventoryHold] DROP COLUMN SeatNumber;
+GO
+
+-- Migration: remove PassengerId column (passenger identity now lives in delivery.Manifest)
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[InventoryHold]') AND name = 'PassengerId')
+    ALTER TABLE [offer].[InventoryHold] DROP COLUMN PassengerId;
+GO
+
+-- Add PaxCount column to existing databases
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[InventoryHold]') AND name = 'PaxCount')
+    ALTER TABLE [offer].[InventoryHold] ADD PaxCount INT NOT NULL CONSTRAINT DF_InventoryHold_PaxCount DEFAULT 1;
+GO
+
+-- Migration: consolidate any existing per-passenger rows into one row per order/cabin,
+-- setting PaxCount = number of rows that existed for that group, then deleting duplicates.
+WITH Ranked AS (
+    SELECT HoldId,
+           COUNT(*) OVER (PARTITION BY InventoryId, OrderId, CabinCode) AS cnt,
+           ROW_NUMBER() OVER (PARTITION BY InventoryId, OrderId, CabinCode ORDER BY CreatedAt ASC) AS rn
+    FROM [offer].[InventoryHold]
+)
+UPDATE h SET h.PaxCount = r.cnt
+FROM [offer].[InventoryHold] h
+JOIN Ranked r ON h.HoldId = r.HoldId
+WHERE r.rn = 1;
+GO
+
+DELETE FROM [offer].[InventoryHold]
+WHERE HoldId IN (
+    SELECT HoldId FROM (
+        SELECT HoldId,
+               ROW_NUMBER() OVER (PARTITION BY InventoryId, OrderId, CabinCode ORDER BY CreatedAt ASC) AS rn
+        FROM [offer].[InventoryHold]
+    ) x WHERE x.rn > 1
+);
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_Order' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
     CREATE INDEX IX_InventoryHold_Order ON [offer].[InventoryHold] (OrderId);
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_InventoryHold_Seat' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
-    CREATE UNIQUE INDEX UX_InventoryHold_Seat ON [offer].[InventoryHold] (InventoryId, SeatNumber) WHERE SeatNumber IS NOT NULL;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_InventoryHold_OrderCabin' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
+    CREATE UNIQUE INDEX UX_InventoryHold_OrderCabin ON [offer].[InventoryHold] (InventoryId, OrderId, CabinCode);
 GO
 
 -- HoldType: 'Revenue' (default, affects inventory counters) | 'Standby' (listed only, never touches counters)
@@ -294,7 +334,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_InventoryHo
             );
 GO
 
--- Filtered index supporting the future standby-clearing workflow:
+-- Filtered index supporting the standby-clearing workflow:
 -- ORDER BY StandbyPriority DESC (highest priority first), then CreatedAt ASC (first-come first-served).
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_StandbyQueue' AND object_id = OBJECT_ID('[offer].[InventoryHold]'))
     CREATE INDEX IX_InventoryHold_StandbyQueue

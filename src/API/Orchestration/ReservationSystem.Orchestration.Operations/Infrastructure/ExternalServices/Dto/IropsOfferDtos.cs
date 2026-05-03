@@ -142,17 +142,11 @@ public sealed class HoldInventoryRequest
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
 
-    [JsonPropertyName("passengers")]
-    public IReadOnlyList<HoldInventoryPassengerDto> Passengers { get; init; } = [];
+    [JsonPropertyName("paxCount")]
+    public int PaxCount { get; init; }
 
     [JsonPropertyName("orderId")]
     public Guid OrderId { get; init; }
-}
-
-public sealed class HoldInventoryPassengerDto
-{
-    [JsonPropertyName("passengerId")]
-    public int? PassengerId { get; init; }
 }
 
 public sealed class ReleaseInventoryRequest
@@ -181,11 +175,11 @@ public sealed class InventoryHoldDto
     [JsonPropertyName("bookingReference")]
     public string? BookingReference { get; init; }
 
-    [JsonPropertyName("passengerName")]
-    public string? PassengerName { get; init; }
-
     [JsonPropertyName("cabinCode")]
     public string CabinCode { get; init; } = string.Empty;
+
+    [JsonPropertyName("paxCount")]
+    public int PaxCount { get; init; }
 
     [JsonPropertyName("status")]
     public string Status { get; init; } = string.Empty;

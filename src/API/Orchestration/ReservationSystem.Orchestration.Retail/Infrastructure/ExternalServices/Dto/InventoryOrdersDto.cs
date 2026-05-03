@@ -36,10 +36,8 @@ public sealed class InventoryOrderRowDto
     public string OrderId { get; init; } = string.Empty;
     public string BookingReference { get; init; } = string.Empty;
     public string Currency { get; init; } = string.Empty;
-    public string? PassengerName { get; init; }
-    public string? PassengerType { get; init; }
     public string CabinCode { get; init; } = string.Empty;
-    public string? SeatNumber { get; init; }
+    public int PaxCount { get; init; }
     public string? FareFamily { get; init; }
     public string? FareBasisCode { get; init; }
     public decimal? BaseFareAmount { get; init; }

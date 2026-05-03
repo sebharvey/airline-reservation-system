@@ -107,23 +107,23 @@
           {{ seatsUnavailableCount() }} need{{ seatsUnavailableCount() !== 1 ? '' : 's' }} manual reassignment
         </span>
       }
-      @if (holds().length - seatsWithAssignment() > 0) {
+      @if (passengers().length - seatsWithAssignment() > 0) {
         <span class="summary-muted">
-          {{ holds().length - seatsWithAssignment() }} no seat assigned
+          {{ passengers().length - seatsWithAssignment() }} no seat assigned
         </span>
       }
     </div>
   }
 
-  <!-- Hold load error -->
-  @if (holdsError()) {
+  <!-- Manifest load error -->
+  @if (passengersError()) {
     <div class="error-banner" role="alert">
-      <lucide-icon name="triangle-alert" [size]="14" /> {{ holdsError() }}
+      <lucide-icon name="triangle-alert" [size]="14" /> {{ passengersError() }}
     </div>
   }
 
   <!-- Loading -->
-  @if (holdsLoading()) {
+  @if (passengersLoading()) {
     <div class="swap-loading">
       <span class="btn-spinner"></span>
       <p>Loading passengers…</p>
@@ -131,7 +131,7 @@
   }
 
   <!-- Passenger table -->
-  @if (!holdsLoading() && !holdsError() && holds().length > 0) {
+  @if (!passengersLoading() && !passengersError() && passengers().length > 0) {
     <div class="swap-table-card">
       <table class="swap-table">
         <thead>
@@ -145,25 +145,25 @@
           </tr>
         </thead>
         <tbody>
-          @for (hold of holds(); track hold.holdId; let i = $index) {
-            <tr [class.row-unavailable]="seatStatus(hold) === 'unavailable'">
+          @for (passenger of passengers(); track passenger.eTicketNumber; let i = $index) {
+            <tr [class.row-unavailable]="seatStatus(passenger) === 'unavailable'">
               <td class="col-num muted">{{ i + 1 }}</td>
               <td class="mono booking-ref">
-                @if (hold.bookingReference) {
+                @if (passenger.bookingReference) {
                   <span class="pnr-copy-wrap">
-                    <a [routerLink]="['/order', hold.bookingReference]" class="booking-ref-link">{{ hold.bookingReference }}</a>
+                    <a [routerLink]="['/order', passenger.bookingReference]" class="booking-ref-link">{{ passenger.bookingReference }}</a>
                   </span>
                 } @else {
                   —
                 }
               </td>
-              <td>{{ hold.passengerName ?? '—' }}</td>
+              <td>{{ passenger.givenName }} {{ passenger.surname }}</td>
               <td>
-                <span class="cabin-badge cabin-ok">{{ hold.cabinCode }}</span>
+                <span class="cabin-badge cabin-ok">{{ passenger.cabinCode }}</span>
               </td>
-              <td class="mono">{{ hold.seatNumber ?? '—' }}</td>
+              <td class="mono">{{ passenger.seatNumber ?? '—' }}</td>
               <td>
-                @switch (seatStatus(hold)) {
+                @switch (seatStatus(passenger)) {
                   @case ('no-seat') { <span class="status-muted">No seat</span> }
                   @case ('unchecked') { <span class="status-muted">—</span> }
                   @case ('ok') { <span class="badge badge-ok">Reassigned</span> }
@@ -176,14 +176,14 @@
       </table>
     </div>
     <p class="results-count">
-      {{ holds().length }} passenger{{ holds().length !== 1 ? 's' : '' }}
+      {{ passengers().length }} passenger{{ passengers().length !== 1 ? 's' : '' }}
       @if (!seatCheckDone()) {
         · Select a new aircraft type above and confirm to validate seat assignments
       }
     </p>
   }
 
-  @if (!holdsLoading() && !holdsError() && holds().length === 0) {
+  @if (!passengersLoading() && !passengersError() && passengers().length === 0) {
     <div class="swap-empty">
       <lucide-icon name="users" [size]="32" />
       <p>No confirmed passengers found on this flight.</p>

@@ -2,7 +2,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { InventoryService, FlightInventoryGroup, CabinInventory, InventoryHold, CabinSeatmap, SeatmapSeat, FlightSeatmap, DisruptionCancelResponse } from '../../services/inventory.service';
+import { InventoryService, FlightInventoryGroup, CabinInventory, DisruptionCancelResponse } from '../../services/inventory.service';
 
 type DisruptionStep = 'action' | 'confirm';
 
@@ -98,111 +98,6 @@ export class InventoryComponent implements OnInit {
     return 'badge-inactive';
   }
 
-  // ── Holds modal ──────────────────────────────────────────────────────────────
-  holdsModalFlight = signal<FlightInventoryGroup | null>(null);
-  holds = signal<InventoryHold[]>([]);
-  holdsLoading = signal(false);
-  holdsError = signal('');
-  holdsTab = signal<'confirmed' | 'standby' | 'seatmap'>('confirmed');
-  copiedHoldRef = signal<string | null>(null);
-
-  holdsFilterRef = signal('');
-  holdsFilterName = signal('');
-  holdsFilterCabin = signal('');
-  holdsFilterSeat = signal('');
-
-  holdsFiltersActive = computed(() =>
-    !!this.holdsFilterRef() || !!this.holdsFilterName() || !!this.holdsFilterCabin() || !!this.holdsFilterSeat()
-  );
-
-  clearHoldsFilters(): void {
-    this.holdsFilterRef.set('');
-    this.holdsFilterName.set('');
-    this.holdsFilterCabin.set('');
-    this.holdsFilterSeat.set('');
-  }
-
-  copyBookingReference(ref: string, event: Event): void {
-    event.stopPropagation();
-    navigator.clipboard.writeText(ref).then(() => {
-      this.copiedHoldRef.set(ref);
-      setTimeout(() => this.copiedHoldRef.set(null), 2000);
-    });
-  }
-
-  confirmedHolds = computed(() => {
-    const ref = this.holdsFilterRef().toLowerCase();
-    const name = this.holdsFilterName().toLowerCase();
-    const cabin = this.holdsFilterCabin();
-    const seat = this.holdsFilterSeat().toLowerCase();
-    return this.holds()
-      .filter(h => h.holdType === 'Revenue')
-      .filter(h => !ref || (h.bookingReference?.toLowerCase().includes(ref) ?? false))
-      .filter(h => !name || (h.passengerName?.toLowerCase().includes(name) ?? false))
-      .filter(h => !cabin || h.cabinCode === cabin)
-      .filter(h => !seat || (h.seatNumber?.toLowerCase().includes(seat) ?? false));
-  });
-
-  standbyHolds = computed(() => {
-    const ref = this.holdsFilterRef().toLowerCase();
-    const name = this.holdsFilterName().toLowerCase();
-    const cabin = this.holdsFilterCabin();
-    const seat = this.holdsFilterSeat().toLowerCase();
-    return this.holds()
-      .filter(h => h.holdType === 'Standby')
-      .filter(h => !ref || (h.bookingReference?.toLowerCase().includes(ref) ?? false))
-      .filter(h => !name || (h.passengerName?.toLowerCase().includes(name) ?? false))
-      .filter(h => !cabin || h.cabinCode === cabin)
-      .filter(h => !seat || (h.seatNumber?.toLowerCase().includes(seat) ?? false))
-      .sort((a, b) => (b.standbyPriority ?? 0) - (a.standbyPriority ?? 0));
-  });
-
-  seatmap = signal<FlightSeatmap | null>(null);
-  seatmapLoading = signal(false);
-  seatmapError = signal('');
-
-  async openHoldsModal(flight: FlightInventoryGroup): Promise<void> {
-    this.holdsModalFlight.set(flight);
-    this.holds.set([]);
-    this.holdsError.set('');
-    this.holdsLoading.set(true);
-    this.holdsTab.set('confirmed');
-    this.seatmap.set(null);
-    this.seatmapError.set('');
-    this.clearHoldsFilters();
-    try {
-      const result = await this.#inventoryService.getInventoryHolds(flight.inventoryId);
-      this.holds.set(result);
-    } catch {
-      this.holdsError.set('Failed to load holds. Please try again.');
-    } finally {
-      this.holdsLoading.set(false);
-    }
-  }
-
-  async switchToSeatmap(): Promise<void> {
-    this.holdsTab.set('seatmap');
-    if (this.seatmap() || this.seatmapLoading()) return;
-    const flight = this.holdsModalFlight();
-    if (!flight) return;
-    this.seatmapLoading.set(true);
-    this.seatmapError.set('');
-    try {
-      const result = await this.#inventoryService.getFlightSeatmap(
-        flight.inventoryId, flight.flightNumber, flight.aircraftType
-      );
-      this.seatmap.set(result);
-    } catch {
-      this.seatmapError.set('Failed to load seat map. Please try again.');
-    } finally {
-      this.seatmapLoading.set(false);
-    }
-  }
-
-  closeHoldsModal(): void {
-    this.holdsModalFlight.set(null);
-  }
-
   // ── Disruption modal ─────────────────────────────────────────────────────────
   disruptionModalFlight = signal<FlightInventoryGroup | null>(null);
   disruptionStep = signal<DisruptionStep>('action');
@@ -265,39 +160,4 @@ export class InventoryComponent implements OnInit {
     });
   }
 
-  // ── Holds modal helpers ──────────────────────────────────────────────────────
-  holdStatusClass(status: string): string {
-    return status === 'Confirmed' ? 'badge-active' : 'badge-held';
-  }
-
-  formatHoldDate(iso: string): string {
-    return iso.slice(0, 16).replace('T', ' ');
-  }
-
-  getSeatRows(cabin: CabinSeatmap): number[] {
-    const rows: number[] = [];
-    for (let r = cabin.startRow; r <= cabin.endRow; r++) rows.push(r);
-    return rows;
-  }
-
-  getSeatForRowCol(cabin: CabinSeatmap, row: number, col: string): SeatmapSeat | null {
-    return cabin.seats.find(s => s.rowNumber === row && s.column === col) ?? null;
-  }
-
-  seatClass(seat: SeatmapSeat | null): string {
-    if (!seat) return 'sm-seat sm-seat-gap';
-    if (seat.availability === 'sold') return 'sm-seat sm-seat-sold';
-    if (seat.availability === 'held') return 'sm-seat sm-seat-held';
-    return 'sm-seat sm-seat-available';
-  }
-
-  hasAisle(layout: string, colIndex: number): boolean {
-    const groups = layout.split('-').map(Number);
-    let count = 0;
-    for (let g = 0; g < groups.length - 1; g++) {
-      count += groups[g];
-      if (colIndex === count - 1) return true;
-    }
-    return false;
-  }
 }

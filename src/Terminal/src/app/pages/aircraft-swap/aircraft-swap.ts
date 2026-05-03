@@ -1,7 +1,7 @@
 import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { InventoryService, FlightInventoryGroup, InventoryHold, FlightSeatmap, AircraftType } from '../../services/inventory.service';
+import { InventoryService, FlightInventoryGroup, ManifestEntry, FlightSeatmap, AircraftType } from '../../services/inventory.service';
 
 type SeatStatus = 'no-seat' | 'unchecked' | 'ok' | 'unavailable';
 
@@ -20,9 +20,9 @@ export class AircraftSwapComponent implements OnInit {
   flight = signal<FlightInventoryGroup | null>(null);
   flightLoading = signal(false);
 
-  holds = signal<InventoryHold[]>([]);
-  holdsLoading = signal(false);
-  holdsError = signal('');
+  passengers = signal<ManifestEntry[]>([]);
+  passengersLoading = signal(false);
+  passengersError = signal('');
 
   aircraftTypes = signal<AircraftType[]>([]);
   aircraftTypesLoading = signal(false);
@@ -47,25 +47,25 @@ export class AircraftSwapComponent implements OnInit {
   });
 
   seatsWithAssignment = computed(() =>
-    this.holds().filter(h => !!h.seatNumber).length
+    this.passengers().filter(p => !!p.seatNumber).length
   );
 
   seatsOkCount = computed(() => {
     if (!this.seatCheckDone()) return 0;
     const nums = this.newAircraftSeatNumbers();
-    return this.holds().filter(h => h.seatNumber && nums.has(h.seatNumber)).length;
+    return this.passengers().filter(p => p.seatNumber && nums.has(p.seatNumber)).length;
   });
 
   seatsUnavailableCount = computed(() => {
     if (!this.seatCheckDone()) return 0;
     const nums = this.newAircraftSeatNumbers();
-    return this.holds().filter(h => h.seatNumber && !nums.has(h.seatNumber)).length;
+    return this.passengers().filter(p => p.seatNumber && !nums.has(p.seatNumber)).length;
   });
 
-  seatStatus(hold: InventoryHold): SeatStatus {
-    if (!hold.seatNumber) return 'no-seat';
+  seatStatus(passenger: ManifestEntry): SeatStatus {
+    if (!passenger.seatNumber) return 'no-seat';
     if (!this.seatCheckDone()) return 'unchecked';
-    return this.newAircraftSeatNumbers().has(hold.seatNumber) ? 'ok' : 'unavailable';
+    return this.newAircraftSeatNumbers().has(passenger.seatNumber) ? 'ok' : 'unavailable';
   }
 
   async ngOnInit(): Promise<void> {
@@ -74,7 +74,6 @@ export class AircraftSwapComponent implements OnInit {
     this.flightNumber.set(fn);
     this.departureDate.set(dd);
 
-    // Use router state passed from inventory page if available
     const state = history.state as { flight?: FlightInventoryGroup };
     if (state?.flight?.flightNumber === fn && state.flight.departureDate === dd) {
       this.flight.set(state.flight);
@@ -83,7 +82,7 @@ export class AircraftSwapComponent implements OnInit {
       await this.loadFlightInfo();
     }
 
-    await Promise.all([this.loadHolds(), this.loadAircraftTypes()]);
+    await Promise.all([this.loadPassengers(), this.loadAircraftTypes()]);
   }
 
   async loadFlightInfo(): Promise<void> {
@@ -98,21 +97,21 @@ export class AircraftSwapComponent implements OnInit {
     }
   }
 
-  async loadHolds(): Promise<void> {
+  async loadPassengers(): Promise<void> {
     const f = this.flight();
     if (!f) {
-      this.holdsError.set('Flight information could not be loaded.');
+      this.passengersError.set('Flight information could not be loaded.');
       return;
     }
-    this.holdsLoading.set(true);
-    this.holdsError.set('');
+    this.passengersLoading.set(true);
+    this.passengersError.set('');
     try {
-      const result = await this.#inventoryService.getInventoryHolds(f.inventoryId);
-      this.holds.set(result.filter(h => h.holdType === 'Revenue'));
+      const manifest = await this.#inventoryService.getFlightManifest(f.flightNumber, f.departureDate);
+      this.passengers.set(manifest?.entries ?? []);
     } catch {
-      this.holdsError.set('Failed to load passenger holds. Please try again.');
+      this.passengersError.set('Failed to load passenger manifest. Please try again.');
     } finally {
-      this.holdsLoading.set(false);
+      this.passengersLoading.set(false);
     }
   }
 
