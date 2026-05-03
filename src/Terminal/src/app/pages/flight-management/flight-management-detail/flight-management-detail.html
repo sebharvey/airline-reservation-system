@@ -566,6 +566,44 @@
     </div>
   }
 
+  <!-- Cabin mismatch confirmation modal -->
+  @if (cabinMismatchModalOpen()) {
+    <div class="modal-backdrop" (click)="cancelCabinMismatch()">
+      <div class="modal-card modal-card-warn" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title modal-title-warn">
+            <lucide-icon name="triangle-alert" [size]="16" />
+            Cabin Mismatch
+          </span>
+          <button class="modal-close-btn" (click)="cancelCabinMismatch()">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-warning-text">
+            <strong>{{ selectedEntry()!.givenName | uppercase }} {{ selectedEntry()!.surname | uppercase }}</strong>
+            is booked in
+            <span class="cabin-code-badge cabin-{{ selectedEntry()!.cabinCode.toLowerCase() }}">{{ selectedEntry()!.cabinCode }}</span>
+            <strong>{{ cabinLabel(selectedEntry()!.cabinCode) }}</strong>,
+            but seat <strong class="mono">{{ pendingSeat()!.seatNumber }}</strong> is in
+            <span class="cabin-code-badge cabin-{{ pendingSeat()!.cabinCode.toLowerCase() }}">{{ pendingSeat()!.cabinCode }}</span>
+            <strong>{{ cabinLabel(pendingSeat()!.cabinCode) }}</strong>.
+          </p>
+          <p class="modal-warning-text muted">
+            This passenger will be seated in a different cabin from what they purchased on their order. Do you want to proceed?
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" (click)="cancelCabinMismatch()">Cancel</button>
+          <button class="modal-btn modal-btn-warn" (click)="confirmCabinMismatch()">
+            <lucide-icon name="triangle-alert" [size]="14" />
+            Proceed Anyway
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- Gate modal -->
   @if (gateModalOpen()) {
     <div class="modal-backdrop" (click)="closeGateModal()">

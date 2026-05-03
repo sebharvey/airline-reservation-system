@@ -82,6 +82,7 @@ export class FlightManagementDetailComponent implements OnInit {
   pendingSeat = signal<SeatmapSeat | null>(null);
   seatOpLoading = signal(false);
   seatOpError = signal('');
+  cabinMismatchModalOpen = signal(false);
 
   // Computed helpers
   inSeatSelectMode = computed(() => this.selectedEntry() !== null);
@@ -356,6 +357,28 @@ export class FlightManagementDetailComponent implements OnInit {
   }
 
   async confirmSeat(): Promise<void> {
+    const entry = this.selectedEntry();
+    const seat  = this.pendingSeat();
+    if (!entry || !seat || this.seatOpLoading()) return;
+
+    if (seat.cabinCode !== entry.cabinCode) {
+      this.cabinMismatchModalOpen.set(true);
+      return;
+    }
+
+    await this.#doAssignSeat();
+  }
+
+  confirmCabinMismatch(): void {
+    this.cabinMismatchModalOpen.set(false);
+    void this.#doAssignSeat();
+  }
+
+  cancelCabinMismatch(): void {
+    this.cabinMismatchModalOpen.set(false);
+  }
+
+  async #doAssignSeat(): Promise<void> {
     const entry = this.selectedEntry();
     const seat  = this.pendingSeat();
     if (!entry || !seat || this.seatOpLoading()) return;
