@@ -91,8 +91,10 @@
           @if (pinnedFlights().length > 0) {
             <tr class="group-header-row">
               <td colspan="9">
-                <lucide-icon name="pin" [size]="12" />
-                Pinned flights
+                <div class="group-header-inner">
+                  <lucide-icon name="pin" [size]="12" />
+                  Pinned flights
+                </div>
               </td>
             </tr>
             @for (flight of pinnedFlights(); track flight.inventoryId) {
@@ -138,8 +140,10 @@
             @if (flights().length > 0) {
               <tr class="group-header-row">
                 <td colspan="9">
-                  <lucide-icon name="calendar" [size]="12" />
-                  {{ selectedDateDisplay() }}
+                  <div class="group-header-inner">
+                    <lucide-icon name="calendar" [size]="12" />
+                    {{ selectedDateDisplay() }}
+                  </div>
                 </td>
               </tr>
             }

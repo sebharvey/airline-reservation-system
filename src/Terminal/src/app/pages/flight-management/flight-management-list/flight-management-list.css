@@ -282,37 +282,34 @@
   width: 28px;
   height: 28px;
   background: transparent;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.55;
   transition: opacity 0.12s, color 0.12s, background 0.12s, border-color 0.12s;
   flex-shrink: 0;
 }
 
 .pin-btn:hover {
+  opacity: 1;
   color: var(--grad-start, #6366f1);
   background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.35);
 }
 
 .pin-btn-active {
   opacity: 1;
   color: var(--grad-start, #6366f1);
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.4);
 }
 
 .pin-btn-active:hover {
   color: #f85149;
   background: rgba(248, 81, 73, 0.08);
-  border-color: rgba(248, 81, 73, 0.25);
+  border-color: rgba(248, 81, 73, 0.35);
 }
-
-/* Show pin button when row is hovered */
-.fd-table tbody tr:hover .pin-btn,
-.flight-card:hover .pin-btn { opacity: 1; }
 
 /* ── Pinned row highlight ──────────────────────────────────────────────── */
 .pinned-row td { background: rgba(99, 102, 241, 0.03); }
@@ -320,19 +317,23 @@
 
 /* ── Group header rows ─────────────────────────────────────────────────── */
 .group-header-row td {
+  padding: 0;
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  pointer-events: none;
+  user-select: none;
+}
+
+.group-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 14px 6px;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-muted);
-  background: var(--bg-light);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  pointer-events: none;
-  user-select: none;
 }
 
 /* ── Clickable rows ────────────────────────────────────────────────────── */
