@@ -56,5 +56,6 @@ public sealed class FlightInventoryHoldDto
     public string Status { get; init; } = string.Empty;
     public string HoldType { get; init; } = "Revenue";
     public short? StandbyPriority { get; init; }
+    public int PaxCount { get; init; }
     public string CreatedAt { get; init; } = string.Empty;
 }
