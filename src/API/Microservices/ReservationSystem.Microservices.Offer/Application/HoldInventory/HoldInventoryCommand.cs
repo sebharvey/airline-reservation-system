@@ -1,11 +1,9 @@
 namespace ReservationSystem.Microservices.Offer.Application.HoldInventory;
 
-public sealed record PaxHold(string? SeatNumber, int? PassengerId);
-
 public sealed record HoldInventoryCommand(
     Guid InventoryId,
     string CabinCode,
-    IReadOnlyList<PaxHold> Passengers,
+    int PaxCount,
     Guid OrderId,
     string HoldType = "Revenue",
     short? StandbyPriority = null);

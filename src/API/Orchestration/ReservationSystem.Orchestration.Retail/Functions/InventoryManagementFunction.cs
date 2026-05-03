@@ -8,7 +8,6 @@ using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using System.Net;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
@@ -103,23 +102,13 @@ public sealed class InventoryManagementFunction
         var orderIds = holds.Select(h => h.OrderId).Distinct().ToList();
         var bookingRefs = await _orderServiceClient.GetBookingReferencesAsync(orderIds, cancellationToken);
 
-        // Fetch full orders in parallel so we can resolve passenger names per hold.
-        var orderTasks = bookingRefs
-            .Where(kv => kv.Value != null)
-            .Select(async kv => (kv.Key, await _orderServiceClient.GetOrderByRefAsync(kv.Value!, cancellationToken)));
-        var orders = (await Task.WhenAll(orderTasks))
-            .Where(r => r.Item2 != null)
-            .ToDictionary(r => r.Key, r => r.Item2!);
-
         var enriched = holds.Select(h => new FlightInventoryHoldDto
         {
             HoldId           = h.HoldId,
             OrderId          = h.OrderId,
-            PassengerId      = h.PassengerId,
             BookingReference = bookingRefs.GetValueOrDefault(h.OrderId),
-            PassengerName    = ResolvePassengerName(orders.GetValueOrDefault(h.OrderId), inventoryId.ToString(), h.SeatNumber, h.PassengerId),
             CabinCode        = h.CabinCode,
-            SeatNumber       = h.SeatNumber,
+            PaxCount         = h.PaxCount,
             Status           = h.Status,
             HoldType         = h.HoldType,
             StandbyPriority  = h.StandbyPriority,
@@ -223,40 +212,9 @@ public sealed class InventoryManagementFunction
                 ? JsonNode.Parse(order.OrderData.Value.GetRawText())?.AsObject()
                 : null;
 
-            // Build passengerId (int) → name/type maps from dataLists.passengers.
-            var passengerNames = new Dictionary<int, string>();
-            var passengerTypes = new Dictionary<int, string>();
-            if (orderData?["dataLists"]?["passengers"] is JsonArray paxArray)
-            {
-                foreach (var p in paxArray)
-                {
-                    if (p is not JsonObject pObj) continue;
-                    var idStr   = pObj["passengerId"]?.GetValue<string>();
-                    var given   = pObj["givenName"]?.GetValue<string>() ?? string.Empty;
-                    var surname = pObj["surname"]?.GetValue<string>() ?? string.Empty;
-                    var type    = pObj["type"]?.GetValue<string>() ?? pObj["ptcCode"]?.GetValue<string>();
-                    var id      = ExtractPaxId(idStr);
-                    if (id.HasValue)
-                    {
-                        passengerNames[id.Value] = $"{given} {surname}".Trim();
-                        if (type is not null) passengerTypes[id.Value] = type;
-                    }
-                }
-            }
-
-            // Resolve passenger name — prefer hold's stored name if already enriched.
-            var passengerName = hold.PassengerName;
-            if (string.IsNullOrEmpty(passengerName) && hold.PassengerId.HasValue)
-                passengerNames.TryGetValue(hold.PassengerId.Value, out passengerName);
-
-            var passengerType = hold.PassengerId.HasValue
-                ? passengerTypes.GetValueOrDefault(hold.PassengerId.Value)
-                : null;
-
             // Find the flight order item for this inventory segment.
             decimal? baseFare = null, tax = null, totalFare = null;
             string? fareFamily = null, fareBasisCode = null;
-            int passengerCount = 1;
 
             if (orderData?["orderItems"] is JsonArray orderItems)
             {
@@ -268,7 +226,6 @@ public sealed class InventoryManagementFunction
 
                     var pc = oi["passengerCount"]?.GetValue<int>() ?? 1;
                     if (pc < 1) pc = 1;
-                    passengerCount = pc;
 
                     var allFare  = oi["baseFareAmount"]?.GetValue<decimal>();
                     var allTax   = oi["taxAmount"]?.GetValue<decimal>();
@@ -280,40 +237,27 @@ public sealed class InventoryManagementFunction
                         ? (baseFare ?? 0m) + (tax ?? 0m)
                         : allTotal.HasValue ? Math.Round(allTotal.Value / pc, 2, MidpointRounding.AwayFromZero) : null;
 
-                    fareFamily   = oi["fareFamily"]?.GetValue<string>();
+                    fareFamily    = oi["fareFamily"]?.GetValue<string>();
                     fareBasisCode = oi["fareBasisCode"]?.GetValue<string>();
                     break;
                 }
             }
 
-            // Build ancillaries for this passenger on this segment.
+            // Build ancillaries for this order on this segment (all passengers combined).
             var ancillaries = new List<InventoryOrderAncillaryDto>();
             if (orderData?["orderItems"] is JsonArray allOrderItems)
             {
                 foreach (var item in allOrderItems)
                 {
                     if (item is not JsonObject oi) continue;
-                    var pt     = oi["productType"]?.GetValue<string>();
-                    var segId  = oi["segmentId"]?.GetValue<string>();
-                    var paxId  = ExtractPaxId(oi["passengerId"]?.GetValue<string>());
+                    var pt    = oi["productType"]?.GetValue<string>();
+                    var segId = oi["segmentId"]?.GetValue<string>();
 
                     if (!string.Equals(segId, inventoryId, StringComparison.OrdinalIgnoreCase)) continue;
-                    if (hold.PassengerId.HasValue && paxId.HasValue && paxId.Value != hold.PassengerId.Value) continue;
 
-                    if (string.Equals(pt, "SEAT", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(pt, "BAG", StringComparison.OrdinalIgnoreCase))
                     {
-                        var seatNum = oi["seatNumber"]?.GetValue<string>() ?? string.Empty;
-                        var price   = oi["price"]?.GetValue<decimal>() ?? 0m;
-                        ancillaries.Add(new InventoryOrderAncillaryDto
-                        {
-                            ProductType = "Seat",
-                            Description = $"Seat {seatNum}",
-                            Amount      = price,
-                        });
-                    }
-                    else if (string.Equals(pt, "BAG", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var bags = oi["additionalBags"]?.GetValue<int>() ?? 1;
+                        var bags  = oi["additionalBags"]?.GetValue<int>() ?? 1;
                         var price = oi["price"]?.GetValue<decimal>() ?? 0m;
                         ancillaries.Add(new InventoryOrderAncillaryDto
                         {
@@ -338,85 +282,20 @@ public sealed class InventoryManagementFunction
 
             rows.Add(new InventoryOrderRowDto
             {
-                OrderId        = hold.OrderId.ToString(),
+                OrderId         = hold.OrderId.ToString(),
                 BookingReference = bookingRef,
-                Currency       = order?.CurrencyCode ?? "GBP",
-                PassengerName  = passengerName,
-                PassengerType  = passengerType,
-                CabinCode      = hold.CabinCode,
-                SeatNumber     = hold.SeatNumber,
-                FareFamily     = fareFamily,
-                FareBasisCode  = fareBasisCode,
-                BaseFareAmount = baseFare,
-                TaxAmount      = tax,
+                Currency        = order?.CurrencyCode ?? "GBP",
+                CabinCode       = hold.CabinCode,
+                PaxCount        = hold.PaxCount,
+                FareFamily      = fareFamily,
+                FareBasisCode   = fareBasisCode,
+                BaseFareAmount  = baseFare,
+                TaxAmount       = tax,
                 TotalFareAmount = totalFare,
-                Ancillaries    = ancillaries,
+                Ancillaries     = ancillaries,
             });
         }
 
         return rows;
-    }
-
-    /// <summary>
-    /// Resolves the passenger name for a single hold row.
-    /// Uses passengerId stored on the hold when available.
-    /// Falls back to seat-assignment lookup for holds without a stored passengerId.
-    /// </summary>
-    private static string? ResolvePassengerName(OrderMsOrderResult? order, string inventoryId, string? seatNumber, int? passengerId)
-    {
-        if (order?.OrderData is not { } data) return null;
-        try
-        {
-            // Build passengerId (int) → full name map from dataLists.passengers.
-            var paxById = new Dictionary<int, string>();
-            if (data.TryGetProperty("dataLists", out var dataLists) &&
-                dataLists.TryGetProperty("passengers", out var passEl) &&
-                passEl.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var p in passEl.EnumerateArray())
-                {
-                    var idStr   = p.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null;
-                    var given   = p.TryGetProperty("givenName",   out var g)   ? g.GetString()   : null;
-                    var surname = p.TryGetProperty("surname",     out var s)   ? s.GetString()   : null;
-                    var id      = ExtractPaxId(idStr);
-                    if (id.HasValue)
-                        paxById[id.Value] = $"{given} {surname}".Trim();
-                }
-            }
-
-            // Direct lookup via the passengerId stored on the hold (preferred path).
-            if (passengerId.HasValue && paxById.TryGetValue(passengerId.Value, out var directName))
-                return directName;
-
-            // Seat-assignment lookup for holds created before PassengerId was stored.
-            if (!string.IsNullOrEmpty(seatNumber) &&
-                data.TryGetProperty("orderItems", out var orderItemsEl) && orderItemsEl.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var orderItem in orderItemsEl.EnumerateArray())
-                {
-                    var pt    = orderItem.TryGetProperty("productType", out var ptEl) ? ptEl.GetString() : null;
-                    if (!string.Equals(pt, "SEAT", StringComparison.OrdinalIgnoreCase)) continue;
-                    var segId = orderItem.TryGetProperty("segmentId",   out var sid)  ? sid.GetString()  : null;
-                    var sn    = orderItem.TryGetProperty("seatNumber",  out var s)    ? s.GetString()    : null;
-                    var paxId = ExtractPaxId(orderItem.TryGetProperty("passengerId", out var pid) ? pid.GetString() : null);
-                    if (string.Equals(segId, inventoryId, StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(sn, seatNumber, StringComparison.OrdinalIgnoreCase) &&
-                        paxId.HasValue && paxById.TryGetValue(paxId.Value, out var name))
-                    {
-                        return name;
-                    }
-                }
-            }
-
-            return null;
-        }
-        catch { return null; }
-    }
-
-    private static int? ExtractPaxId(string? id)
-    {
-        if (string.IsNullOrEmpty(id)) return null;
-        var dash = id.LastIndexOf('-');
-        return dash >= 0 && int.TryParse(id[(dash + 1)..], out var n) ? n : int.TryParse(id, out n) ? n : null;
     }
 }

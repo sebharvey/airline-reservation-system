@@ -280,7 +280,7 @@ public sealed class OfferServiceClient
     public async Task HoldInventoryAsync(
         Guid inventoryId,
         string cabinCode,
-        IReadOnlyList<int> passengerIds,
+        int paxCount,
         Guid orderId,
         CancellationToken cancellationToken = default)
     {
@@ -288,7 +288,7 @@ public sealed class OfferServiceClient
         {
             InventoryId = inventoryId,
             CabinCode = cabinCode,
-            Passengers = passengerIds.Select(id => new HoldInventoryPassengerDto { PassengerId = id }).ToList(),
+            PaxCount = paxCount,
             OrderId = orderId
         };
 
@@ -296,7 +296,7 @@ public sealed class OfferServiceClient
 
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(
-                $"Failed to hold {passengerIds.Count} seat(s) in cabin {cabinCode} on inventory {inventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
+                $"Failed to hold {paxCount} seat(s) in cabin {cabinCode} on inventory {inventoryId}: {await response.ReadErrorMessageAsync(cancellationToken)}");
     }
 
     public async Task SellInventoryAsync(
@@ -353,23 +353,6 @@ public sealed class OfferServiceClient
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<IReadOnlyList<InventoryHoldDto>>(JsonOptions, cancellationToken) ?? [];
-    }
-
-    public async Task UpdateHoldSeatAsync(
-        Guid inventoryId,
-        Guid orderId,
-        int passengerId,
-        string seatNumber,
-        CancellationToken cancellationToken = default)
-    {
-        var body = new { inventoryId, orderId, passengerId, seatNumber };
-        var response = await _httpClient.PatchAsJsonAsync("/api/v1/inventory/holds/seat", body, JsonOptions, cancellationToken);
-
-        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
-        {
-            var error = await response.ReadErrorMessageAsync(cancellationToken);
-            throw new InvalidOperationException($"Failed to update hold seat for passenger {passengerId} on inventory {inventoryId}: {error}");
-        }
     }
 
     public async Task ReleaseInventoryAsync(

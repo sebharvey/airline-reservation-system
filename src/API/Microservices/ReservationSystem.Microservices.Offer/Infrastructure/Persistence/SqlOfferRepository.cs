@@ -644,11 +644,13 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<int> GetHoldCountAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT COUNT(1)
-            FROM   [offer].[InventoryHold]
-            WHERE  InventoryId = @InventoryId
-              AND  OrderId = @OrderId
-              AND  CabinCode = @CabinCode;
+            SELECT ISNULL(
+                (SELECT TOP 1 PaxCount
+                 FROM   [offer].[InventoryHold]
+                 WHERE  InventoryId = @InventoryId
+                   AND  OrderId     = @OrderId
+                   AND  CabinCode   = @CabinCode),
+                0);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -658,12 +660,20 @@ public sealed class SqlOfferRepository : IOfferRepository
                 commandTimeout: _options.CommandTimeoutSeconds));
     }
 
-    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, int? passengerId, int paxCount, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default)
+    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, int paxCount, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default)
     {
         const string sql = """
-            INSERT INTO [offer].[InventoryHold]
-                   (HoldId, InventoryId, OrderId, CabinCode, SeatNumber, PassengerId, PaxCount, Status, HoldType, StandbyPriority)
-            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @SeatNumber, @PassengerId, @PaxCount, 'Held', @HoldType, @StandbyPriority);
+            IF EXISTS (
+                SELECT 1 FROM [offer].[InventoryHold]
+                WHERE  InventoryId = @InventoryId AND OrderId = @OrderId AND CabinCode = @CabinCode
+            )
+                UPDATE [offer].[InventoryHold]
+                SET    PaxCount = @PaxCount, Status = 'Held'
+                WHERE  InventoryId = @InventoryId AND OrderId = @OrderId AND CabinCode = @CabinCode;
+            ELSE
+                INSERT INTO [offer].[InventoryHold]
+                       (HoldId, InventoryId, OrderId, CabinCode, PaxCount, Status, HoldType, StandbyPriority)
+                VALUES (NEWID(), @InventoryId, @OrderId, @CabinCode, @PaxCount, 'Held', @HoldType, @StandbyPriority);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -671,18 +681,15 @@ public sealed class SqlOfferRepository : IOfferRepository
         await connection.ExecuteAsync(
             new CommandDefinition(sql, new
             {
-                HoldId = Guid.NewGuid(),
                 InventoryId = inventoryId,
                 OrderId = orderId,
                 CabinCode = cabinCode,
-                SeatNumber = seatNumber,
-                PassengerId = passengerId,
                 PaxCount = paxCount,
                 HoldType = holdType,
                 StandbyPriority = standbyPriority
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
-        _logger.LogDebug("Inserted InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}, SeatNumber {SeatNumber}, HoldType {HoldType}", inventoryId, orderId, cabinCode, seatNumber, holdType);
+        _logger.LogDebug("Upserted InventoryHold for InventoryId {InventoryId}, OrderId {OrderId}, CabinCode {CabinCode}, PaxCount {PaxCount}, HoldType {HoldType}", inventoryId, orderId, cabinCode, paxCount, holdType);
     }
 
     public async Task ConfirmHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, CancellationToken ct = default)
@@ -725,7 +732,7 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT HoldId, OrderId, PassengerId, CabinCode, SeatNumber, Status, HoldType, StandbyPriority, PaxCount, CreatedAt
+            SELECT HoldId, OrderId, CabinCode, PaxCount, Status, HoldType, StandbyPriority, CreatedAt
             FROM   [offer].[InventoryHold]
             WHERE  InventoryId = @InventoryId
             ORDER BY
@@ -742,38 +749,13 @@ public sealed class SqlOfferRepository : IOfferRepository
         return rows.Select(r => new InventoryHoldRecord(
             HoldId:          (Guid)r.HoldId,
             OrderId:         (Guid)r.OrderId,
-            PassengerId:     (int?)r.PassengerId,
             CabinCode:       (string)r.CabinCode,
-            SeatNumber:      (string?)r.SeatNumber,
+            PaxCount:        (int)r.PaxCount,
             Status:          (string)r.Status,
             HoldType:        (string)r.HoldType,
             StandbyPriority: (short?)r.StandbyPriority,
-            PaxCount:        (int)r.PaxCount,
             CreatedAt:       new DateTimeOffset((DateTime)r.CreatedAt, TimeSpan.Zero)))
             .ToList().AsReadOnly();
-    }
-
-    public async Task<bool> UpdateHoldSeatAsync(Guid inventoryId, Guid orderId, int passengerId, string seatNumber, CancellationToken ct = default)
-    {
-        const string sql = """
-            UPDATE [offer].[InventoryHold]
-            SET    SeatNumber = @SeatNumber
-            WHERE  InventoryId  = @InventoryId
-              AND  OrderId      = @OrderId
-              AND  PassengerId  = @PassengerId;
-            """;
-
-        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
-
-        var affected = await connection.ExecuteAsync(
-            new CommandDefinition(sql, new { InventoryId = inventoryId, OrderId = orderId, PassengerId = passengerId, SeatNumber = seatNumber },
-                commandTimeout: _options.CommandTimeoutSeconds));
-
-        _logger.LogDebug(
-            "UpdateHoldSeatAsync: {Rows} row(s) updated for InventoryId {InventoryId}, OrderId {OrderId}, PassengerId {PassengerId}",
-            affected, inventoryId, orderId, passengerId);
-
-        return affected > 0;
     }
 
     // -------------------------------------------------------------------------
