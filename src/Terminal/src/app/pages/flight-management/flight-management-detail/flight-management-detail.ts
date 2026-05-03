@@ -2,7 +2,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UpperCasePipe } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   InventoryService,
   FlightInventoryGroup,
@@ -45,7 +45,7 @@ interface EntryGroup {
 @Component({
   selector: 'app-flight-management-detail',
   standalone: true,
-  imports: [LucideAngularModule, RouterLink, FormsModule, UpperCasePipe],
+  imports: [LucideAngularModule, FormsModule, UpperCasePipe],
   templateUrl: './flight-management-detail.html',
   styleUrl: './flight-management-detail.css',
 })
@@ -523,6 +523,11 @@ export class FlightManagementDetailComponent implements OnInit {
       this.copiedRef.set(text);
       setTimeout(() => this.copiedRef.set(null), 2000);
     });
+  }
+
+  navigateToOrder(bookingReference: string, event?: Event): void {
+    event?.stopPropagation();
+    void this.#router.navigate(['/order', bookingReference]);
   }
 
   closeRebookModal(): void {
