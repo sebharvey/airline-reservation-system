@@ -128,7 +128,7 @@ sequenceDiagram
     Note over LoyaltyAPI,IdentityMS: Verify recipient email matches<br/>registered identity email
     IdentityMS-->>LoyaltyAPI: IdentityAccount (email)
 
-    Note over LoyaltyAPI: Validate email match; throw if mismatch
+    Note over LoyaltyAPI: Validate email match - throw if mismatch
 
     LoyaltyAPI->>CustomerMS: POST /api/v1/customers/points/transfer
     Note over LoyaltyAPI,CustomerMS: {senderLoyaltyNumber,<br/>recipientLoyaltyNumber, points}

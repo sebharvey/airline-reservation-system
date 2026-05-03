@@ -123,7 +123,7 @@ sequenceDiagram
         RetailAPI->>OrderMS: POST /v1/orders (basketId, bookingType=Reward, redemptionReference)
     end
     OrderMS-->>RetailAPI: 201 Created — draft order (orderId, orderStatus=Draft)
-    Note over OrderMS: Basket remains active; no booking reference assigned yet
+    Note over OrderMS: Basket remains active - no booking reference assigned yet
 
     alt Revenue booking — authorise fare payment
         RetailAPI->>PaymentMS: POST /v1/payment/initialise (type=Fare, amount=totalFareAmount, currency)

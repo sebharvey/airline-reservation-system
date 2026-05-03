@@ -38,7 +38,7 @@ sequenceDiagram
     Note over OpsAPI: Sort by IROPS priority:<br/>cabin (F→J→W→Y), loyalty tier, booking date
 
     OpsAPI->>OfferMS: GET /api/v1/flights/availability
-    Note over OpsAPI,OfferMS: origin, destination, departureDate,<br/>lookaheadDays=7;<br/>lightweight read — no fares, no stored offers
+    Note over OpsAPI,OfferMS: origin, destination, departureDate,<br/>lookaheadDays=7,<br/>lightweight read — no fares, no stored offers
     OfferMS-->>OpsAPI: AvailabilityResponse (flights × cabins × seats)
 
     loop For each affected order (IROPS priority order)
@@ -58,9 +58,9 @@ sequenceDiagram
             Note over OpsAPI,DeliveryMS: reason=IropsRebooking, new segments
             DeliveryMS-->>OpsAPI: NewTickets issued
 
-            Note over OpsAPI: Mark replacement seats as sold;<br/>reduce available count in pool
+            Note over OpsAPI: Mark replacement seats as sold,<br/>reduce available count in pool
         else No replacement available
-            Note over OpsAPI: Record outcome as NoFlightAvailable;<br/>manual handling required
+            Note over OpsAPI: Record outcome as NoFlightAvailable,<br/>manual handling required
         end
     end
 
