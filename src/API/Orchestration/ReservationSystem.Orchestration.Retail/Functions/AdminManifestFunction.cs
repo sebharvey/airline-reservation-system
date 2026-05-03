@@ -195,6 +195,21 @@ public sealed class AdminManifestFunction
             }
         }
 
+        // 3. Update seat on inventory hold so the seatmap reflects the new assignment (best-effort)
+        if (Guid.TryParse(body.OrderId, out var assignOrderId) &&
+            int.TryParse(body.PassengerId, out var assignPassengerId))
+        {
+            try
+            {
+                await _offerServiceClient.UpdateHoldSeatAsync(
+                    assignInventoryId, assignOrderId, assignPassengerId, body.SeatNumber!, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Assign seat: inventory hold seat update failed for inventory {InventoryId} — manifest was updated", body.InventoryId);
+            }
+        }
+
         _logger.LogInformation("Seat {SeatNumber} assigned for e-ticket {ETicketNumber} on booking {BookingRef}",
             body.SeatNumber, body.ETicketNumber, body.BookingReference);
         return req.CreateResponse(HttpStatusCode.NoContent);

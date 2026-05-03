@@ -18,7 +18,12 @@ public interface IManifestRepository
 
     Task<bool> CheckInByETicketAndOriginAsync(string eTicketNumber, string origin, DateTime checkedInAt, CancellationToken cancellationToken = default);
 
-    Task<bool> UpdateSeatByETicketAsync(string eTicketNumber, Guid inventoryId, string? newSeatNumber, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Updates the seat on the manifest entry matching <paramref name="eTicketNumber"/> and
+    /// <paramref name="inventoryId"/>. Returns the updated entry (with Origin populated) or
+    /// <c>null</c> if no matching entry was found.
+    /// </summary>
+    Task<Manifest?> UpdateSeatByETicketAsync(string eTicketNumber, Guid inventoryId, string? newSeatNumber, CancellationToken cancellationToken = default);
 
     Task<bool> UpdateSeatByETicketAndOriginAsync(string eTicketNumber, string origin, string? newSeatNumber, CancellationToken cancellationToken = default);
 

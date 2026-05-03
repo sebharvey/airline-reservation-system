@@ -224,6 +224,56 @@ public sealed class Ticket
     }
 
     /// <summary>
+    /// Overrides the seat on every coupon departing from <paramref name="departureAirport"/>,
+    /// replacing any existing value. Used for staff seat assignment post-booking.
+    /// Returns <c>true</c> if at least one coupon was updated.
+    /// </summary>
+    public bool OverrideSeatForOrigin(string departureAirport, string? seatNumber, string actor)
+    {
+        var root = JsonNode.Parse(TicketData)?.AsObject();
+        if (root is null) return false;
+
+        var coupons = root["coupons"]?.AsArray();
+        if (coupons is null) return false;
+
+        var history = root["changeHistory"]?.AsArray() ?? new JsonArray();
+        root["changeHistory"] = history;
+
+        var updated = false;
+        foreach (var node in coupons)
+        {
+            if (node is not JsonObject coupon) continue;
+
+            var origin = coupon["origin"]?.GetValue<string>() ?? "";
+            if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase)) continue;
+
+            coupon["seat"] = seatNumber;
+            updated = true;
+
+            var flightNumber = coupon["marketing"]?["flightNumber"]?.GetValue<string>() ?? "";
+            var destination = coupon["destination"]?.GetValue<string>() ?? "";
+            var detail = seatNumber is null
+                ? $"Seat cleared by staff for {flightNumber} {origin}-{destination}"
+                : $"Seat {seatNumber} assigned by staff for {flightNumber} {origin}-{destination}";
+            history.Add(new JsonObject
+            {
+                ["eventType"] = "SeatAssigned",
+                ["occurredAt"] = DateTime.UtcNow.ToString("o"),
+                ["actor"] = actor,
+                ["detail"] = detail
+            });
+        }
+
+        if (updated)
+        {
+            TicketData = root.ToJsonString();
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        return updated;
+    }
+
+    /// <summary>
     /// Assigns <paramref name="seatNumber"/> to every coupon departing from
     /// <paramref name="departureAirport"/> that does not already have a seat recorded.
     /// Returns <c>true</c> if at least one coupon was updated.
