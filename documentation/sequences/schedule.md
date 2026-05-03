@@ -16,7 +16,7 @@ sequenceDiagram
     Note over Terminal,OpsAPI: Body: SSIM Chapter 7 plain-text file
     Note over OpsAPI: Parse SSIM file into structured schedule records<br/>(flightNumber, origin, destination,<br/>departureTime, daysOfWeek, validFrom/To, aircraftType)
     OpsAPI->>ScheduleMS: POST /api/v1/schedules/import
-    Note over OpsAPI,ScheduleMS: Structured schedule payload;<br/>scheduleGroupId scopes the import
+    Note over OpsAPI,ScheduleMS: Structured schedule payload,<br/>scheduleGroupId scopes the import
     ScheduleMS-->>OpsAPI: ImportResult (imported, deleted counts)
     OpsAPI-->>Terminal: ImportSsimResponse
     Note over OpsAPI,Terminal: {imported, deleted,<br/>scheduleGroupId, perScheduleSummary[]}
@@ -68,10 +68,10 @@ sequenceDiagram
     Note over OpsAPI,FareRuleMS: Fetch all active fare rules grouped by cabin
     FareRuleMS-->>OpsAPI: FareRules []
 
-    Note over OpsAPI: For each schedule: enumerate operating dates<br/>(ValidFrom → min(ValidTo, today+1mo));<br/>skip dates before today;<br/>skip schedules with no aircraft config
+    Note over OpsAPI: For each schedule: enumerate operating dates<br/>(ValidFrom → min(ValidTo, today+1mo)),<br/>skip dates before today,<br/>skip schedules with no aircraft config
 
     OpsAPI->>OfferMS: POST /api/v1/flights/batch
-    Note over OpsAPI,OfferMS: flights[]: {flightNumber, departureDate,<br/>departureTime, arrivalTime, origin,<br/>destination, aircraftType, cabins[]};<br/>existing records skipped automatically
+    Note over OpsAPI,OfferMS: flights[]: {flightNumber, departureDate,<br/>departureTime, arrivalTime, origin,<br/>destination, aircraftType, cabins[]} -<br/>existing records skipped automatically
     OfferMS-->>OpsAPI: BatchCreateResult {created, skipped, inventories[]}
 
     loop For each newly created inventory × cabin × fare rule

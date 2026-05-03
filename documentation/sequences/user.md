@@ -15,7 +15,7 @@ sequenceDiagram
     Terminal->>AdminAPI: POST /v1/auth/login
     Note over Terminal,AdminAPI: {username, password}
     AdminAPI->>UserMS: POST /api/v1/auth/login
-    Note over AdminAPI,UserMS: Validate credentials;<br/>check account not locked/inactive;<br/>issue signed JWT
+    Note over AdminAPI,UserMS: Validate credentials,<br/>check account not locked/inactive,<br/>issue signed JWT
     UserMS-->>AdminAPI: {accessToken, userId, expiresAt}
     AdminAPI-->>Terminal: LoginResponse
     Note over AdminAPI,Terminal: {accessToken, userId,<br/>expiresAt, tokenType=Bearer}
@@ -120,7 +120,7 @@ sequenceDiagram
 
     Terminal->>AdminAPI: POST /v1/admin/users/{userId}/unlock
     AdminAPI->>UserMS: POST /api/v1/users/{userId}/unlock
-    Note over AdminAPI,UserMS: Clears lockout; resets failed<br/>login attempt counter
+    Note over AdminAPI,UserMS: Clears lockout, resets failed<br/>login attempt counter
     UserMS-->>AdminAPI: 204 No Content (or 404)
     AdminAPI-->>Terminal: 204 No Content
 ```
