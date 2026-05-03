@@ -489,13 +489,6 @@ export class OrderDetailComponent implements OnInit {
     return { ADT: 'Adult', CHD: 'Child', INF: 'Infant', YTH: 'Youth' }[type] ?? type;
   }
 
-  getSeatForPaxSegment(passengerId: string, segmentId: string): string {
-    const item = this.ancillaryItems().find(
-      i => i.itemType === 'Seat' && i.passengerId === passengerId && i.segmentId === segmentId
-    );
-    return item?.seatNumber ?? '—';
-  }
-
   formatAmount(amount: number | null | undefined, currency?: string | null): string {
     if (amount == null) return '—';
     return `${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0${currency || this.order()?.currency || 'GBP'}`;

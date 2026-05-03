@@ -872,12 +872,6 @@
                 </span>
               </div>
             }
-            @for (seg of segments(); track seg.segmentId) {
-              <div class="field-row">
-                <span class="field-label">Seat ({{ seg.flightNumber }})</span>
-                <span class="field-value mono">{{ getSeatForPaxSegment(pax.passengerId, seg.segmentId) }}</span>
-              </div>
-            }
           </div>
           @if (pax.docs.length > 0) {
             <div class="doc-list-section">
