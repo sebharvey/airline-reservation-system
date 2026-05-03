@@ -548,9 +548,7 @@
                             <div class="sm-slot-header-left">
                               <span class="sm-slot-fn">{{ entry.flight.flightNumber }}</span>
                               <span class="sm-slot-route">{{ entry.flight.origin }} &#8594; {{ entry.flight.destination }}</span>
-                              @if (entry.flight.cabinName) {
-                                <span class="sm-slot-cabin">{{ entry.flight.cabinName }}</span>
-                              }
+                              <span class="sm-slot-cabin">{{ cabinLabel(entry.flight.cabinCode) }}</span>
                             </div>
                             <div class="sm-slot-header-right">
                               <span class="sm-slot-for-label">Selecting for</span>
