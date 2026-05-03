@@ -14,10 +14,10 @@ sequenceDiagram
     participant OrderMS as Order MS
     participant AccountingMS as Accounting MS
 
-    Note over RetailAPI,OrderMS: Order has been confirmed; payment settled
+    Note over RetailAPI,OrderMS: Order has been confirmed, payment settled
 
     RetailAPI->>OrderMS: POST /api/v1/orders/{orderId}/confirm
-    Note over RetailAPI,OrderMS: Assigns booking reference;<br/>publishes OrderConfirmed event
+    Note over RetailAPI,OrderMS: Assigns booking reference,<br/>publishes OrderConfirmed event
     OrderMS-->>RetailAPI: ConfirmedOrder (bookingReference)
 
     OrderMS-)AccountingMS: OrderConfirmed event
@@ -39,11 +39,11 @@ sequenceDiagram
     participant AccountingMS as Accounting MS
 
     RetailAPI->>OrderMS: POST /api/v1/orders/{bookingRef}/cancel
-    Note over RetailAPI,OrderMS: refundableAmount, cancellationFeeAmount,<br/>reason=VoluntaryCancellation;<br/>publishes OrderCancelled event
+    Note over RetailAPI,OrderMS: refundableAmount, cancellationFeeAmount,<br/>reason=VoluntaryCancellation,<br/>publishes OrderCancelled event
     OrderMS-->>RetailAPI: Cancelled
 
     OrderMS-)AccountingMS: OrderCancelled event
     Note over OrderMS,AccountingMS: {bookingReference, orderId,<br/>refundableAmount, cancellationFeeAmount,<br/>currencyCode, cancelledAt}
 
-    Note over AccountingMS: Record refund obligation;<br/>update revenue ledger entries
+    Note over AccountingMS: Record refund obligation,<br/>update revenue ledger entries
 ```

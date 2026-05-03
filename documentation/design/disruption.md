@@ -247,7 +247,7 @@ sequenceDiagram
     DeliveryMS-->>OpsAPI: 200 OK
 
     OpsAPI-->>Staff: { outcome: "Rebooked", replacementFlightNumber, replacementDepartureDate }
-    Note over Staff: Show result modal; update row status in list
+    Note over Staff: Show result modal, update row status in list
 
     Note over Staff,OpsAPI: (original bulk endpoint — retained for programmatic use)
     Staff->>OpsAPI: POST /v1/admin/disruption/cancel (flightNumber, departureDate, reason?)

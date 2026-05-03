@@ -21,7 +21,7 @@ sequenceDiagram
     Note over RetailAPI,PaymentMS: {type=Fare, amount=fareAmount,<br/>cardNumber, expiryDate, cvv,<br/>cardholderName}
     PaymentMS-->>RetailAPI: Authorised
 
-    Note over RetailAPI: Order confirmed; booking reference assigned
+    Note over RetailAPI: Order confirmed, booking reference assigned
 
     RetailAPI->>PaymentMS: PATCH /api/v1/payment/{paymentId}/booking-reference
     Note over RetailAPI,PaymentMS: {bookingReference}

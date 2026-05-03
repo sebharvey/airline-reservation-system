@@ -165,7 +165,7 @@ sequenceDiagram
         RetailAPI->>OfferMS: POST /api/v1/offers/{offerId}/reprice
         OfferMS-->>RetailAPI: Repriced offer (validated=true)
     end
-    Note over RetailAPI: Prices locked at search time (stored offer);<br/>reprice validates, does not override basket amounts
+    Note over RetailAPI: Prices locked at search time (stored offer) -<br/>reprice validates, does not override basket amounts
 
     RetailAPI->>OrderMS: POST /api/v1/orders
     Note over RetailAPI,OrderMS: basketId, channelCode, bookingType=Revenue
@@ -264,7 +264,7 @@ sequenceDiagram
     Note over RetailAPI,OrderMS: basketId, bookingType=Reward
     OrderMS-->>RetailAPI: DraftOrder (orderId)
 
-    Note over RetailAPI: No card payment — points redemption;<br/>no PaymentMS calls for fare
+    Note over RetailAPI: No card payment — points redemption,<br/>no PaymentMS calls for fare
 
     RetailAPI->>OrderMS: POST /api/v1/orders/{orderId}/confirm
     OrderMS-->>RetailAPI: ConfirmedOrder (bookingReference)

@@ -135,6 +135,12 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 - Declarative, present-tense, direct style.
 - New documentation files must be listed in the Documentation Map above.
 
+### Mermaid diagrams
+
+- **Never use semicolons (`;`) inside text labels.** GitHub's Mermaid renderer treats `;` as a statement terminator inside `Note` text, message labels, and any other string value — this silently breaks the diagram. Use a comma or a dash instead.
+  - Bad: `Note over A,B: Step 1; step 2`
+  - Good: `Note over A,B: Step 1, step 2`
+
 ---
 
 ## Related slash commands

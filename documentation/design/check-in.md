@@ -85,7 +85,7 @@ sequenceDiagram
 
     alt Any PAX passport matches watchlist
         OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI note (type: OCI) with paxId, segmentId and watchlist entry notes
-        OperationsApi -->> Web: 422 — online check-in not available; visit airport desk
+        OperationsApi -->> Web: 422 — online check-in not available, visit airport desk
     end
 
     OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Departure airport code and array of ticket numbers successfully <br/> checked in with an object of the PAX details
@@ -230,7 +230,7 @@ sequenceDiagram
         OperationsApi ->> OrderMS: PATCH /v1/orders/{bookingRef}/notes <br /> Write OCI watchlist override note (type: OCI) with paxId, segmentId and reason
     end
 
-    OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Tickets with doc details; Timatic validation runs here
+    OperationsApi ->> DeliveryMS: POST /v1/oci/checkin <br /> Tickets with doc details - Timatic validation runs here
 
     alt Timatic pass
         DeliveryMS -->> OperationsApi: Checked-in ticket list + Timatic PASS notes

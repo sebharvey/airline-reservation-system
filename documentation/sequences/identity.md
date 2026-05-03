@@ -16,7 +16,7 @@ sequenceDiagram
     Web->>LoyaltyAPI: POST /v1/auth/login
     Note over Web,LoyaltyAPI: {email, password}
     LoyaltyAPI->>IdentityMS: POST /api/v1/auth/login
-    Note over LoyaltyAPI,IdentityMS: Validates email + password;<br/>issues JWT + refresh token
+    Note over LoyaltyAPI,IdentityMS: Validates email + password,<br/>issues JWT + refresh token
     IdentityMS-->>LoyaltyAPI: {accessToken, refreshToken,<br/>expiresAt, userAccountId}
 
     LoyaltyAPI->>CustomerMS: GET /api/v1/customers/by-identity/{userAccountId}
@@ -106,7 +106,7 @@ sequenceDiagram
     Web->>LoyaltyAPI: POST /v1/auth/email/confirm
     Note over Web,LoyaltyAPI: {token, newEmail}
     LoyaltyAPI->>IdentityMS: POST /api/v1/auth/email/confirm
-    Note over LoyaltyAPI,IdentityMS: Validate token; update email in Identity MS
+    Note over LoyaltyAPI,IdentityMS: Validate token, update email in Identity MS
     IdentityMS-->>LoyaltyAPI: {identityId, newEmail}
     LoyaltyAPI->>CustomerMS: PATCH /api/v1/customers/{loyaltyNumber}/email
     Note over LoyaltyAPI,CustomerMS: Sync new email to Customer MS

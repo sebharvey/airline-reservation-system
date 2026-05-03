@@ -15,7 +15,7 @@ sequenceDiagram
     Web->>RetailAPI: POST /v1/search/slice
     Note over Web,RetailAPI: origin, destination, departureDate,<br/>passengers (ADT/CHD/INF), cabinCode
     RetailAPI->>OfferMS: POST /api/v1/search
-    Note over RetailAPI,OfferMS: Translates request; queries inventory<br/>and returns priced offers
+    Note over RetailAPI,OfferMS: Translates request, queries inventory<br/>and returns priced offers
     OfferMS-->>RetailAPI: FlightSearchResponse (offers with fares, availability)
     RetailAPI-->>Web: SliceSearchResponse
     Note over RetailAPI,Web: itineraries[], each with offerId,<br/>price, taxes, cabins, availability
@@ -44,7 +44,7 @@ sequenceDiagram
         OfferMS-->>RetailAPI: Leg 2 offers
     end
 
-    Note over RetailAPI: Apply 60-minute MCT validation;<br/>discard incompatible pairings
+    Note over RetailAPI: Apply 60-minute MCT validation -<br/>discard incompatible pairings
     RetailAPI-->>Web: ConnectingSearchResponse
     Note over RetailAPI,Web: itineraryPairs[], each with<br/>leg1OfferId, leg2OfferId, combinedPrice
 ```
