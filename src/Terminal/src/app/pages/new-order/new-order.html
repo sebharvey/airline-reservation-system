@@ -397,9 +397,9 @@
                             <label class="form-label">Gender</label>
                             <select class="form-input"
                               (change)="updatePassengerField(i, 'gender', $any($event.target).value)">
-                              <option value="Unspecified" [selected]="pax.gender === 'Unspecified'">Not specified</option>
-                              <option value="Male" [selected]="pax.gender === 'Male'">Male</option>
-                              <option value="Female" [selected]="pax.gender === 'Female'">Female</option>
+                              <option value="U" [selected]="pax.gender === 'U'">Not specified</option>
+                              <option value="M" [selected]="pax.gender === 'M'">Male</option>
+                              <option value="F" [selected]="pax.gender === 'F'">Female</option>
                             </select>
                           </div>
                         </div>

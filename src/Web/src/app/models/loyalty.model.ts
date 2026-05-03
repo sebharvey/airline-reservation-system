@@ -1,6 +1,6 @@
 export type LoyaltyTier = 'Blue' | 'Silver' | 'Gold' | 'Platinum';
 export type TransactionType = 'Accrual' | 'Redemption' | 'Adjustment' | 'Expiry';
-export type Gender = 'Male' | 'Female' | 'NonBinary' | 'Other' | 'PreferNotToSay';
+export type Gender = 'M' | 'F' | 'U';
 
 export interface LoyaltyPreferences {
   marketingEnabled: boolean;

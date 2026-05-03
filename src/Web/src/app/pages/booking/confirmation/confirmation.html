@@ -117,7 +117,7 @@
         </div>
         <div class="detail-row" *ngIf="pax.gender">
           <dt>Gender</dt>
-          <dd>{{ pax.gender }}</dd>
+          <dd>{{ pax.gender === 'M' ? 'Male' : pax.gender === 'F' ? 'Female' : 'Other' }}</dd>
         </div>
         <ng-container *ngIf="pax.contacts">
           <div class="detail-row" *ngIf="pax.contacts.email">

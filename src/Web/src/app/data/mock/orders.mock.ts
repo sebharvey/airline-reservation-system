@@ -20,7 +20,7 @@ export const MOCK_ORDER_AB1234: Order = {
       givenName: 'Alex',
       surname: 'Taylor',
       dob:'1985-03-12',
-      gender: 'Male',
+      gender: 'M',
       loyaltyNumber: 'AX9876543',
       contacts: { email: 'alex.taylor@example.com', phone: '+447700900100' },
       docs: [{
@@ -38,7 +38,7 @@ export const MOCK_ORDER_AB1234: Order = {
       givenName: 'Jordan',
       surname: 'Taylor',
       dob:'1987-07-22',
-      gender: 'Female',
+      gender: 'F',
       loyaltyNumber: null,
       contacts: null,
       docs: [{
@@ -178,7 +178,7 @@ export const MOCK_ORDER_CD5678: Order = {
       givenName: 'Sam',
       surname: 'Morgan',
       dob:'1990-11-08',
-      gender: 'Male',
+      gender: 'M',
       loyaltyNumber: 'AX1122334',
       contacts: { email: 'sam.morgan@example.com', phone: '+447711223344' },
       docs: [{
@@ -282,7 +282,7 @@ export const MOCK_ORDER_EF9012: Order = {
       givenName: 'Jamie',
       surname: 'Patel',
       dob:'1995-04-20',
-      gender: 'Other',
+      gender: 'U',
       loyaltyNumber: null,
       contacts: { email: 'jamie.patel@example.com', phone: '+447788990011' },
       docs: []
