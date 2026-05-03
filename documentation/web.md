@@ -326,6 +326,58 @@ Follow this workflow when implementing a new feature in the web app:
 
 ---
 
+## Pre-completion checklist
+
+Run through this checklist before every commit on an Angular change. All steps are mandatory — do not commit until every item passes.
+
+### Build verification
+
+Run a production build before committing. This catches TypeScript type errors, missing imports, template binding errors, and broken lazy-loaded routes that are invisible in `ng serve`.
+
+```bash
+# Terminal app
+cd src/Terminal && ng build
+
+# Web app
+cd src/Web && ng build
+```
+
+A clean build produces no errors and exits with code 0. If the build fails, fix all reported errors before committing — do not suppress them with `// @ts-ignore` or `any` casts.
+
+### Lucide icons (Terminal app)
+
+Every Lucide icon referenced in any template must be registered in `src/Terminal/src/app/app.config.ts`. Two steps are required — both must be present:
+
+1. Import the icon symbol from `lucide-angular` in the import list at the top of the file.
+2. Add the same symbol to the `LucideIconProvider` object inside the `providers` array.
+
+Omitting either step causes the icon to render as an empty box with no console error, making the omission invisible until the page is viewed in a browser. Before referencing any icon name in a template, search `app.config.ts` for it. If absent, add it.
+
+```typescript
+// app.config.ts — both import and registration are required
+import { Pencil, Trash2 } from 'lucide-angular';   // ← 1. import
+
+useValue: new LucideIconProvider({
+  Pencil, Trash2,                                   // ← 2. register
+})
+```
+
+### Angular `@for` track expressions
+
+The `track` expression inside Angular `@for` must be a simple, guaranteed-truthy expression. The nullish coalescing operator (`??`) is unreliable in this position and can silently prevent the list from rendering entirely.
+
+Use a ternary expression when a fallback value is needed:
+
+```html
+<!-- ✗ Unreliable — can silently break list rendering -->
+@for (item of items; track item.id ?? item.name) { ... }
+
+<!-- ✓ Correct -->
+@for (item of items; track item.id ? item.id : item.name) { ... }
+```
+
+---
+
 ## Development Commands
 
 ```bash
