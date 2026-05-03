@@ -219,10 +219,10 @@ public sealed class AdminManifestFunction
     private static int? ExtractPaxId(string? id)
     {
         if (string.IsNullOrEmpty(id)) return null;
-        var dash = id.LastIndexOf('-');
-        return dash >= 0 && int.TryParse(id[(dash + 1)..], out var n) ? n
-             : int.TryParse(id, out n) ? n
-             : null;
+        if (id.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(id["PAX-".Length..], out var n))
+            return n;
+        return int.TryParse(id, out n) ? n : null;
     }
 }
 
