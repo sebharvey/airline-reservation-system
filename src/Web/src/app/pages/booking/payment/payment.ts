@@ -45,7 +45,7 @@ function mapConfirmResponseToOrder(result: ConfirmBasketResponse): Order {
       givenName:     p.givenName,
       surname:       p.surname,
       dob:           p.dob ?? '',
-      gender:        (p.gender ?? '') as 'Male' | 'Female' | 'Other' | '',
+      gender:        (p.gender ?? '') as 'M' | 'F' | 'U' | '',
       loyaltyNumber: p.loyaltyNumber ?? null,
       contacts:      p.contacts ? { email: p.contacts.email ?? '', phone: p.contacts.phone ?? '' } : null,
       docs:          p.docs.map(d => ({

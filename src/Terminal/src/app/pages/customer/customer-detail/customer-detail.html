@@ -143,7 +143,7 @@
                 </div>
                 <div class="field-display">
                   <span class="field-label">Gender</span>
-                  <span class="field-value">{{ c.gender ?? '—' }}</span>
+                  <span class="field-value">{{ c.gender === 'M' ? 'Male' : c.gender === 'F' ? 'Female' : c.gender === 'U' ? 'Other' : '—' }}</span>
                 </div>
                 <div class="field-display">
                   <span class="field-label">Nationality</span>
@@ -404,10 +404,9 @@
                   (change)="setField(editGender.set.bind(editGender), $event)"
                   [disabled]="saving()">
                   <option value="">—</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                  <option value="Undisclosed">Prefer not to say</option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="U">Other / Prefer not to say</option>
                 </select>
               </div>
               <div class="field">

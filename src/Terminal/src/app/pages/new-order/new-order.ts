@@ -827,8 +827,8 @@ export class NewOrderComponent {
     const infantFemaleNames = ['Isla', 'Luna', 'Rosie', 'Ivy', 'Wren', 'Cora'];
 
     const randomAdult = (usedGiven: Set<string>) => {
-      const gender: 'Male' | 'Female' = Math.random() < 0.5 ? 'Male' : 'Female';
-      const pool = gender === 'Male' ? maleNames : femaleNames;
+      const gender: 'M' | 'F' = Math.random() < 0.5 ? 'M' : 'F';
+      const pool = gender === 'M' ? maleNames : femaleNames;
       const available = pool.filter(n => !usedGiven.has(n));
       const givenName = pick(available.length ? available : pool);
       usedGiven.add(givenName);
@@ -850,12 +850,12 @@ export class NewOrderComponent {
       } else if (pax.type === 'CHD') {
         const isMale = Math.random() < 0.5;
         const givenName = pick(isMale ? childMaleNames : childFemaleNames);
-        return { ...pax, givenName, surname: leadSurname, dob: randomDob(2, 11), gender: isMale ? 'Male' : 'Female' };
+        return { ...pax, givenName, surname: leadSurname, dob: randomDob(2, 11), gender: isMale ? 'M' : 'F' };
       } else {
         const isMale = Math.random() < 0.5;
         const givenName = pick(isMale ? infantMaleNames : infantFemaleNames);
         const infantDob = new Date(Date.now() - randInt(30, 700) * 86400000).toISOString().slice(0, 10);
-        return { ...pax, givenName, surname: leadSurname, dob: infantDob, gender: isMale ? 'Male' : 'Female' };
+        return { ...pax, givenName, surname: leadSurname, dob: infantDob, gender: isMale ? 'M' : 'F' };
       }
     }));
   }
@@ -916,7 +916,7 @@ export class NewOrderComponent {
         givenName: '',
         surname: '',
         dob: '',
-        gender: 'Unspecified',
+        gender: 'U',
         email: '',
         phone: '',
         loyaltyNumber: '',

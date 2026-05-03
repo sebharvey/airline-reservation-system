@@ -16,7 +16,7 @@ interface PassengerForm {
   givenName: string;
   surname: string;
   dob: string;
-  gender: 'Male' | 'Female' | 'Other' | '';
+  gender: 'M' | 'F' | 'U' | '';
   loyaltyNumber: string;
   email: string;
   phone: string;
@@ -47,10 +47,10 @@ export class PassengersComponent implements OnInit {
   saveError = signal('');
   prefilled = signal(false);
 
-readonly genderOptions: Array<{ value: 'Male' | 'Female' | 'Other'; label: string }> = [
-    { value: 'Male', label: 'Male' },
-    { value: 'Female', label: 'Female' },
-    { value: 'Other', label: 'Other' }
+readonly genderOptions: Array<{ value: 'M' | 'F' | 'U'; label: string }> = [
+    { value: 'M', label: 'Male' },
+    { value: 'F', label: 'Female' },
+    { value: 'U', label: 'Other' }
   ];
 
   readonly todayStr = new Date().toISOString().split('T')[0];
@@ -135,7 +135,7 @@ readonly genderOptions: Array<{ value: 'Male' | 'Female' | 'Other'; label: strin
     leadPax.givenName = customer.givenName;
     leadPax.surname = customer.surname;
     leadPax.dob = customer.dateOfBirth;
-    leadPax.gender = (customer.gender as 'Male' | 'Female' | 'Other') || '';
+    leadPax.gender = (customer.gender as 'M' | 'F' | 'U') || '';
     leadPax.email = customer.email;
     leadPax.phone = customer.phone;
     leadPax.loyaltyNumber = customer.loyaltyNumber;
@@ -158,7 +158,7 @@ isFirstAdult(index: number): boolean {
       'Harrison', 'Mitchell', 'Clarke', 'Watson', 'Hughes', 'Fletcher', 'Patel', 'Ahmed', 'Murphy', 'Okafor',
       'Garcia', 'Chen', 'Kumar', 'Dubois', 'Hoffmann', 'Tanaka', 'Adeyemi', 'Petrov', 'O\'Sullivan', 'Andersen',
     ];
-    const genders: Array<'Male' | 'Female' | 'Other'> = ['Male', 'Female', 'Other'];
+    const genders: Array<'M' | 'F' | 'U'> = ['M', 'F', 'U'];
 
     const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
     const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;

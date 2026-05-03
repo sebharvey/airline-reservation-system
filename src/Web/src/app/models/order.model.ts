@@ -24,7 +24,7 @@ export interface Passenger {
   givenName: string;
   surname: string;
   dob: string;
-  gender: 'Male' | 'Female' | 'Other' | '';
+  gender: 'M' | 'F' | 'U' | '';
   loyaltyNumber: string | null;
   contacts: PassengerContacts | null;
   docs: TravelDocument[];
