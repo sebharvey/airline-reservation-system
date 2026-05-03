@@ -1079,6 +1079,7 @@ public sealed class OfferFunction
             status          = h.Status,
             holdType        = h.HoldType,
             standbyPriority = h.StandbyPriority,
+            paxCount        = h.PaxCount,
             createdAt       = h.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
         }));
     }
