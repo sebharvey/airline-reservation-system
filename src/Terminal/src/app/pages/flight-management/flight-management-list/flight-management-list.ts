@@ -3,6 +3,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { InventoryService, FlightInventoryGroup } from '../../../services/inventory.service';
+import { PinService } from '../../../services/pin.service';
 
 @Component({
   selector: 'app-flight-management-list',
@@ -14,6 +15,7 @@ import { InventoryService, FlightInventoryGroup } from '../../../services/invent
 export class FlightManagementListComponent implements OnInit {
   #inventoryService = inject(InventoryService);
   #router = inject(Router);
+  pinService = inject(PinService);
 
   selectedDate = signal(new Date().toISOString().slice(0, 10));
 
@@ -28,13 +30,21 @@ export class FlightManagementListComponent implements OnInit {
     });
   });
 
-  flights = signal<FlightInventoryGroup[]>([]);
+  #allDayFlights = signal<FlightInventoryGroup[]>([]);
   loading = signal(false);
   error = signal('');
   loaded = signal(false);
 
+  /** Regular flights for the selected day — excludes any that are currently pinned. */
+  flights = computed(() => {
+    const pinnedSet = new Set(this.pinService.pinnedIds());
+    return this.#allDayFlights().filter(f => !pinnedSet.has(f.inventoryId));
+  });
+
+  pinnedFlights = computed(() => this.pinService.pinnedFlights());
+
   stats = computed(() => {
-    const all = this.flights();
+    const all = [...this.pinnedFlights(), ...this.flights()];
     const pax = all.reduce((s, f) => s + (f.totalSeats - f.totalSeatsAvailable), 0);
     return {
       total: all.length,
@@ -52,8 +62,12 @@ export class FlightManagementListComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     try {
-      const result = await this.#inventoryService.getFlightInventory(this.selectedDate());
-      this.flights.set(result);
+      const pinnedIds = this.pinService.pinnedIds();
+      const result = await this.#inventoryService.getFlightInventory(
+        this.selectedDate(), pinnedIds,
+      );
+      this.#allDayFlights.set(result.flights);
+      this.pinService.mergePinnedData(result.pinnedFlights);
       this.loaded.set(true);
     } catch {
       this.error.set('Failed to load flights. Please try again.');
@@ -83,6 +97,15 @@ export class FlightManagementListComponent implements OnInit {
         state: { flight },
       }
     );
+  }
+
+  togglePin(event: Event, flight: FlightInventoryGroup): void {
+    event.stopPropagation();
+    if (this.pinService.isPinned(flight.inventoryId)) {
+      this.pinService.unpin(flight.inventoryId);
+    } else {
+      this.pinService.pin(flight);
+    }
   }
 
   statusClass(status: string): string {

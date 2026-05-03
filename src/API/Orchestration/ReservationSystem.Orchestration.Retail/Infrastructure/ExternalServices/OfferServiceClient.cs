@@ -74,19 +74,22 @@ public sealed class OfferServiceClient
         return await response.Content.ReadFromJsonAsync<FlightInventoryDetailDto>(JsonOptions, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<FlightInventoryGroupDto>> GetFlightInventoryByDateAsync(
+    public async Task<FlightInventoryWithPinnedDto> GetFlightInventoryByDateAsync(
         DateOnly departureDate,
+        IReadOnlyList<Guid>? pinnedInventoryIds = null,
         CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync(
-            $"/api/v1/admin/inventory?departureDate={departureDate:yyyy-MM-dd}", cancellationToken);
+        var url = $"/api/v1/admin/inventory?departureDate={departureDate:yyyy-MM-dd}";
+        if (pinnedInventoryIds is { Count: > 0 })
+            url += $"&pinnedInventoryIds={string.Join(',', pinnedInventoryIds)}";
 
+        var response = await _httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<IReadOnlyList<FlightInventoryGroupDto>>(
+        var result = await response.Content.ReadFromJsonAsync<FlightInventoryWithPinnedDto>(
             JsonOptions, cancellationToken);
 
-        return result ?? [];
+        return result ?? new FlightInventoryWithPinnedDto();
     }
 
     public async Task SellInventoryAsync(

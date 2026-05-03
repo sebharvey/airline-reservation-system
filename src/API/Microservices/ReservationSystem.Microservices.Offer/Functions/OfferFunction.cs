@@ -967,17 +967,19 @@ public sealed class OfferFunction
         });
     }
 
-    // GET /v1/admin/inventory?departureDate=yyyy-MM-dd
+    // GET /v1/admin/inventory?departureDate=yyyy-MM-dd[&pinnedInventoryIds=id1,id2]
     [Function("GetFlightInventoryByDate")]
-    [OpenApiOperation(operationId: "GetFlightInventoryByDate", tags: new[] { "Admin Inventory" }, Summary = "Get flight inventory grouped by cabin for a given departure date")]
+    [OpenApiOperation(operationId: "GetFlightInventoryByDate", tags: new[] { "Admin Inventory" }, Summary = "Get flight inventory grouped by cabin for a given departure date, with optional pinned flights merged in")]
     [OpenApiParameter(name: "departureDate", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Departure date (yyyy-MM-dd). Defaults to today.")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<FlightInventoryGroupResponse>), Description = "OK")]
+    [OpenApiParameter(name: "pinnedInventoryIds", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Comma-separated inventory IDs to include as pinned flights regardless of departure date.")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FlightInventoryWithPinnedResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> GetFlightInventoryByDate(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/inventory")] HttpRequestData req,
         CancellationToken ct)
     {
-        var dateParam = System.Web.HttpUtility.ParseQueryString(req.Url.Query)["departureDate"];
+        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        var dateParam = qs["departureDate"];
 
         DateOnly departureDate;
         if (string.IsNullOrWhiteSpace(dateParam))
@@ -989,37 +991,57 @@ public sealed class OfferFunction
             return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
         }
 
-        var results = await _getFlightInventoryHandler.HandleAsync(
-            new GetFlightInventoryByDateQuery(departureDate), ct);
+        var pinnedIds = ParseGuidList(qs["pinnedInventoryIds"]);
 
-        var response = results.Select(r =>
+        var result = await _getFlightInventoryHandler.HandleAsync(
+            new GetFlightInventoryByDateQuery(departureDate, pinnedIds), ct);
+
+        var response = new FlightInventoryWithPinnedResponse
         {
-            var g = r.Group;
-            return new FlightInventoryGroupResponse
-            {
-                InventoryId          = g.InventoryId,
-                FlightNumber         = g.FlightNumber,
-                DepartureDate        = g.DepartureDate.ToString("yyyy-MM-dd"),
-                DepartureTime        = g.DepartureTime.ToString("HH:mm"),
-                ArrivalTime          = g.ArrivalTime.ToString("HH:mm"),
-                ArrivalDayOffset     = g.ArrivalDayOffset,
-                Origin               = g.Origin,
-                Destination          = g.Destination,
-                AircraftType         = g.AircraftType,
-                Status               = r.EffectiveStatus,
-                DepartureGate        = g.DepartureGate,
-                AircraftRegistration = g.AircraftRegistration,
-                TotalSeats           = g.TotalSeats,
-                TotalSeatsAvailable  = g.TotalSeatsAvailable,
-                LoadFactor           = r.LoadFactor,
-                F = MapCabinData(g.F),
-                J = MapCabinData(g.J),
-                W = MapCabinData(g.W),
-                Y = MapCabinData(g.Y),
-            };
-        }).ToList();
+            Flights       = result.Flights.Select(MapGroupResult).ToList().AsReadOnly(),
+            PinnedFlights = result.PinnedFlights.Select(MapGroupResult).ToList().AsReadOnly(),
+        };
 
         return await req.OkJsonAsync(response);
+    }
+
+    private static FlightInventoryGroupResponse MapGroupResult(
+        FlightInventoryGroupResult r)
+    {
+        var g = r.Group;
+        return new FlightInventoryGroupResponse
+        {
+            InventoryId          = g.InventoryId,
+            FlightNumber         = g.FlightNumber,
+            DepartureDate        = g.DepartureDate.ToString("yyyy-MM-dd"),
+            DepartureTime        = g.DepartureTime.ToString("HH:mm"),
+            ArrivalTime          = g.ArrivalTime.ToString("HH:mm"),
+            ArrivalDayOffset     = g.ArrivalDayOffset,
+            Origin               = g.Origin,
+            Destination          = g.Destination,
+            AircraftType         = g.AircraftType,
+            Status               = r.EffectiveStatus,
+            DepartureGate        = g.DepartureGate,
+            AircraftRegistration = g.AircraftRegistration,
+            TotalSeats           = g.TotalSeats,
+            TotalSeatsAvailable  = g.TotalSeatsAvailable,
+            LoadFactor           = r.LoadFactor,
+            F = MapCabinData(g.F),
+            J = MapCabinData(g.J),
+            W = MapCabinData(g.W),
+            Y = MapCabinData(g.Y),
+        };
+    }
+
+    private static IReadOnlyList<Guid> ParseGuidList(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return [];
+        return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => Guid.TryParse(s, out var g) ? (Guid?)g : null)
+            .Where(g => g.HasValue)
+            .Select(g => g!.Value)
+            .ToList()
+            .AsReadOnly();
     }
 
     private static Models.Responses.CabinInventory? MapCabinData(Domain.Entities.FlightInventoryGroup.CabinData? data)

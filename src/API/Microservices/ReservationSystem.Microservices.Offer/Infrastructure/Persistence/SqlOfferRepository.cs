@@ -270,6 +270,32 @@ public sealed class SqlOfferRepository : IOfferRepository
         return rows.Select(MapToInventoryGroup).ToList().AsReadOnly();
     }
 
+    public async Task<IReadOnlyList<FlightInventoryGroup>> GetInventoryGroupedByIdsAsync(
+        IReadOnlyList<Guid> inventoryIds, CancellationToken ct = default)
+    {
+        if (inventoryIds.Count == 0) return [];
+
+        const string sql = """
+            SELECT InventoryId, FlightNumber, DepartureDate, DepartureTime, ArrivalTime,
+                   ArrivalDayOffset, DepartureTimeUtc, ArrivalTimeUtc, ArrivalDayOffsetUtc,
+                   Origin, Destination, AircraftType,
+                   Cabins, TotalSeats, SeatsAvailable, Status, CreatedAt, UpdatedAt,
+                   DepartureGate, AircraftRegistration
+            FROM  [offer].[FlightInventory]
+            WHERE InventoryId IN @InventoryIds
+            ORDER BY LEFT(FlightNumber, PATINDEX('%[0-9]%', FlightNumber) - 1),
+                     CAST(SUBSTRING(FlightNumber, PATINDEX('%[0-9]%', FlightNumber), LEN(FlightNumber)) AS INT);
+            """;
+
+        using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
+
+        var rows = await connection.QueryAsync<dynamic>(
+            new CommandDefinition(sql, new { InventoryIds = inventoryIds },
+                commandTimeout: _options.CommandTimeoutSeconds));
+
+        return rows.Select(MapToInventoryGroup).ToList().AsReadOnly();
+    }
+
     public async Task CreateInventoryAsync(FlightInventory inventory, CancellationToken ct = default)
     {
         const string sql = """
