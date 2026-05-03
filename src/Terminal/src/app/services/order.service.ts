@@ -257,6 +257,7 @@ export interface Document {
 }
 
 export interface OrderNote {
+  noteId?: string;
   dateTime: string;
   type: string;
   message: string;
@@ -350,6 +351,32 @@ export class OrderService {
     return firstValueFrom(
       this.#http.get<Document[]>(
         `${environment.retailApiUrl}/api/v1/admin/orders/${bookingRef.toUpperCase()}/documents`
+      )
+    );
+  }
+
+  async addOrderNote(bookingRef: string, type: string, message: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.post(
+        `${this.#baseUrl}/${bookingRef.toUpperCase()}/notes`,
+        { type, message }
+      )
+    );
+  }
+
+  async updateOrderNote(bookingRef: string, noteId: string, type: string, message: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.put(
+        `${this.#baseUrl}/${bookingRef.toUpperCase()}/notes/${encodeURIComponent(noteId)}`,
+        { type, message }
+      )
+    );
+  }
+
+  async deleteOrderNote(bookingRef: string, noteId: string): Promise<void> {
+    await firstValueFrom(
+      this.#http.delete(
+        `${this.#baseUrl}/${bookingRef.toUpperCase()}/notes/${encodeURIComponent(noteId)}`
       )
     );
   }

@@ -524,7 +524,7 @@ The JSON captures the full in-progress state. It mirrors the eventual shape of `
 The `Order` table is written once the basket is confirmed — payment taken, inventory settled, and e-tickets issued — following the IATA ONE Order model.
 
 - Scalar fields (`BookingReference`, `OrderStatus`, `ChannelCode`, `TotalAmount`, etc.) stored as typed columns for querying, routing, and event publishing.
-- Full order detail (passengers, segments, order items, seat assignments, e-tickets, payments, audit history) stored in the `OrderData` JSON document.
+- Full order detail (passengers, segments, order items, seat assignments, e-tickets, payments, audit history, and agent notes) stored in the `OrderData` JSON document.
 - Fields present as typed columns are intentionally excluded from `OrderData` to avoid duplication; the columns are the single source of truth for those values.
 
 #### `order.Order`
@@ -550,7 +550,22 @@ The `Order` table is written once the basket is confirmed — payment taken, inv
 
 **Example `OrderData` JSON document**
 
-The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and status fields that exist as typed columns on the `order.Order` table (`orderId`, `bookingReference`, `orderStatus`, `channel`, `currency`, `totalAmount`, `createdAt`) are excluded from the JSON document — the table columns are the single source of truth for those values. The JSON carries the relational detail: passengers, flight segments, order items, payments, and audit history.
+The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and status fields that exist as typed columns on the `order.Order` table (`orderId`, `bookingReference`, `orderStatus`, `channel`, `currency`, `totalAmount`, `createdAt`) are excluded from the JSON document — the table columns are the single source of truth for those values. The JSON carries the relational detail: passengers, flight segments, order items, payments, audit history, and agent notes.
+
+#### Notes schema
+
+The `notes` array within `OrderData` stores free-form annotations added by contact-centre agents or written automatically by system events (e.g. OCI watchlist checks, Timatic results). Each entry:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `noteId` | `string` (UUID) | Yes | Server-assigned UUID; used as the stable identifier for edit and delete operations |
+| `dateTime` | ISO 8601 UTC string | Yes | Timestamp of when the note was created; set by the server on `POST`, immutable thereafter |
+| `type` | `string` | Yes | Short category label (e.g. `Agent Note`, `OCI`, `Watchlist`) |
+| `message` | `string` | Yes | Free-form note text |
+| `paxId` | `integer` | No | Passenger sequence number if the note relates to a specific passenger |
+| `segmentId` | `integer` | No | Segment sequence number if the note relates to a specific flight leg |
+
+Notes are only mutable on orders in `Confirmed` or `Changed` status. System-generated notes (OCI, Timatic, check-in) carry a `noteId` and are structurally identical to agent notes; the Terminal UI exposes edit and delete controls for any note that has a `noteId`.
 
 ```json
 {
@@ -747,6 +762,14 @@ The JSON structure is aligned to IATA ONE Order concepts. Scalar identifiers and
     { "event": "OrderCreated",   "at": "2025-06-01T10:30:00Z", "by": "WEB" },
     { "event": "OrderConfirmed", "at": "2025-06-01T10:32:00Z", "by": "WEB" },
     { "event": "BagAncillaryAdded", "at": "2025-06-01T10:45:00Z", "by": "WEB" }
+  ],
+  "notes": [
+    {
+      "noteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "dateTime": "2025-06-01T11:00:00Z",
+      "type": "Agent Note",
+      "message": "Passenger requested wheelchair assistance at LHR."
+    }
   ]
 }
 ```

@@ -124,6 +124,9 @@ Staff-only endpoints for searching and viewing orders. All routes require a vali
 | `GET` | `/v1/admin/orders/{bookingRef}/documents` | Retrieve all issued EMD documents for a booking including document data (ancillary detail, price breakdown, coupon status); returns both active and voided documents |
 | `PATCH` | `/v1/admin/orders/{bookingRef}/passengers` | Update passenger details (names, contacts, travel documents) on a confirmed order; replaces the full passengers array; `204 No Content` on success; `404` if not found; staff JWT required |
 | `PATCH` | `/v1/admin/orders/{bookingRef}/ssrs` | Add, update, or remove Special Service Requests on a confirmed order (staff); rejected with `422` if within the SSR amendment cut-off window; staff JWT required |
+| `POST` | `/v1/admin/orders/{bookingRef}/notes` | Append an agent note to an order; body `{ type, message }`; `dateTime` set to current UTC timestamp by the server; `204 No Content` on success; staff JWT required |
+| `PUT` | `/v1/admin/orders/{bookingRef}/notes/{noteId}` | Update the `type` and `message` of an existing note identified by its `noteId` (UUID); `204 No Content` on success; `404` if note not found; staff JWT required |
+| `DELETE` | `/v1/admin/orders/{bookingRef}/notes/{noteId}` | Remove a note from the order by `noteId`; `204 No Content` on success; `404` if note not found; staff JWT required |
 
 ### Admin inventory management
 
