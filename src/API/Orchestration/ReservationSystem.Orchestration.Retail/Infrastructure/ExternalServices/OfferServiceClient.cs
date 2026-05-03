@@ -136,6 +136,15 @@ public sealed class OfferServiceClient
         return result ?? [];
     }
 
+    public async Task<bool> UpdateHoldSeatAsync(
+        Guid inventoryId, Guid orderId, int passengerId, string seatNumber,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = new { inventoryId, orderId, passengerId, seatNumber };
+        using var response = await _httpClient.PatchAsJsonAsync("/api/v1/inventory/holds/seat", payload, JsonOptions, cancellationToken);
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task HoldInventoryAsync(
         Guid inventoryId, string cabinCode, IReadOnlyList<(string? SeatNumber, int? PassengerId)> passengers, Guid orderId,
         string holdType = "Revenue", short? standbyPriority = null,

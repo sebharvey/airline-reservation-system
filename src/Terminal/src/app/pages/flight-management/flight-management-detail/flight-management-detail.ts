@@ -369,6 +369,7 @@ export class FlightManagementDetailComponent implements OnInit {
         entry.passengerId,
         this.#inventoryId,
         seat.seatNumber,
+        entry.orderId,
       );
       await this.#silentRefresh();
       const updated = this.manifest()?.entries.find(e => e.eTicketNumber === entry.eTicketNumber);

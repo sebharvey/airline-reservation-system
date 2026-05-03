@@ -319,11 +319,12 @@ export class InventoryService {
     passengerId: string,
     inventoryId: string,
     seatNumber: string,
+    orderId: string,
   ): Promise<void> {
     await firstValueFrom(
       this.#http.post<void>(
         `${this.#baseUrl}/manifest/assign-seat`,
-        { eTicketNumber, bookingReference, passengerId, inventoryId, seatNumber }
+        { eTicketNumber, bookingReference, passengerId, inventoryId, seatNumber, orderId }
       )
     );
   }
