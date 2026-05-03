@@ -14,6 +14,7 @@ import {
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { httpDebugInterceptor } from './interceptors/http-debug.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -29,7 +30,7 @@ export const appConfig: ApplicationConfig = {
         }
       }),
     ),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, httpDebugInterceptor])),
     {
       provide: LUCIDE_ICONS,
       multi: true,
