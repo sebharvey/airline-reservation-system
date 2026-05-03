@@ -41,6 +41,13 @@ These four functions run concurrently at midnight UTC every day.
 
 ## 01:00 UTC batch
 
+### `DeleteExpiredManifestItems`
+
+- **Service** — Delivery microservice
+- **Class** — `ManifestCleanupFunction`
+- **Schedule** — `0 0 1 * * *`
+- **What it does** — Deletes manifest entries whose `DepartureDate` is more than 48 hours in the past. Manifest rows covering flights that departed over two days ago are no longer needed for operational processing and are removed to keep the table size bounded.
+
 ### `RollingInventoryImport`
 
 - **Service** — Offer microservice
@@ -97,5 +104,6 @@ These four functions run concurrently at midnight UTC every day.
        DeleteExpiredDraftOrders
        DeleteExpiredBaskets
 
-01:00  RollingInventoryImport
+01:00  DeleteExpiredManifestItems
+       RollingInventoryImport
 ```
