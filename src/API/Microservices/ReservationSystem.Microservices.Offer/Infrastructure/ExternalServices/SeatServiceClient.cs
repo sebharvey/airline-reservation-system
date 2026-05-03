@@ -6,8 +6,9 @@ using ReservationSystem.Microservices.Offer.Domain.ExternalServices;
 namespace ReservationSystem.Microservices.Offer.Infrastructure.ExternalServices;
 
 /// <summary>
-/// HTTP client for the Seat microservice.
-/// Used by the rolling inventory import timer trigger to resolve cabin configurations.
+/// HTTP client for the Ancillary microservice, used by the rolling inventory import timer trigger to resolve cabin configurations.
+/// TODO: remove this cross-domain call — cabin counts are already stored in offer.FlightInventory.Cabins and should be
+/// derived from existing inventory rows for the same AircraftType rather than fetched from the Ancillary MS.
 /// </summary>
 public sealed class SeatServiceClient : ISeatServiceClient
 {
@@ -21,7 +22,7 @@ public sealed class SeatServiceClient : ISeatServiceClient
 
     public SeatServiceClient(IHttpClientFactory httpClientFactory)
     {
-        _httpClient = httpClientFactory.CreateClient("SeatMs");
+        _httpClient = httpClientFactory.CreateClient("AncillaryMs");
     }
 
     /// <summary>

@@ -91,6 +91,8 @@ Each orchestration API reads downstream base URLs from Azure App Settings. The k
 | Retail API | `UserMs:JwtSecret` | Staff JWT signing secret (Base64-encoded 256-bit key) — used to validate staff tokens on admin endpoints |
 | Retail API | `UserMs:JwtIssuer` | Staff JWT issuer (default: `apex-air-user`) |
 | Retail API | `UserMs:JwtAudience` | Staff JWT audience (default: `apex-air-reservation`) |
+| Offer MS | `ScheduleMs:BaseUrl` | Schedule MS |
+| Offer MS | `AncillaryMs:BaseUrl` | Ancillary MS (aircraft type cabin configs used by `RollingInventoryImport`) |
 | Delivery MS | `Timatic:BaseUrl` | Timatic Simulator |
 | Delivery MS | `Timatic:ApiToken` | Bearer token sent in `Authorization` header to the Timatic Simulator |
 | Timatic Simulator | `Timatic:ApiToken` | Expected Bearer token — SHA-256 hash compared against each incoming `Authorization: Bearer` value |
