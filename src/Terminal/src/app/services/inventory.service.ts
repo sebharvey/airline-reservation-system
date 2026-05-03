@@ -100,7 +100,7 @@ export interface FlightSeatmap {
 export interface ManifestEntry {
   orderId: string;
   bookingReference: string;
-  passengerId: string;
+  passengerId: number;
   givenName: string;
   surname: string;
   eTicketNumber: string;
@@ -300,7 +300,7 @@ export class InventoryService {
   async releaseSeat(
     eTicketNumber: string,
     bookingReference: string,
-    passengerId: string,
+    passengerId: number,
     inventoryId: string,
     orderId: string,
     cabinCode: string,
@@ -308,7 +308,7 @@ export class InventoryService {
     await firstValueFrom(
       this.#http.post<void>(
         `${this.#baseUrl}/manifest/release-seat`,
-        { eTicketNumber, bookingReference, passengerId, inventoryId, orderId, cabinCode }
+        { eTicketNumber, bookingReference, passengerId: passengerId.toString(), inventoryId, orderId, cabinCode }
       )
     );
   }
@@ -316,7 +316,7 @@ export class InventoryService {
   async assignSeat(
     eTicketNumber: string,
     bookingReference: string,
-    passengerId: string,
+    passengerId: number,
     inventoryId: string,
     seatNumber: string,
     orderId: string,
@@ -324,7 +324,7 @@ export class InventoryService {
     await firstValueFrom(
       this.#http.post<void>(
         `${this.#baseUrl}/manifest/assign-seat`,
-        { eTicketNumber, bookingReference, passengerId, inventoryId, seatNumber, orderId }
+        { eTicketNumber, bookingReference, passengerId: passengerId.toString(), inventoryId, seatNumber, orderId }
       )
     );
   }
