@@ -43,7 +43,7 @@ export class InventoryComponent implements OnInit {
     this.error.set('');
     try {
       const result = await this.#inventoryService.getFlightInventory(this.selectedDate());
-      this.flights.set(result);
+      this.flights.set(result.flights);
       this.loaded.set(true);
     } catch {
       this.error.set('Failed to load flight inventory. Please try again.');
