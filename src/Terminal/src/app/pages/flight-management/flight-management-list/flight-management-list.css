@@ -272,84 +272,6 @@
   text-align: right;
 }
 
-/* ── Pin column & button ───────────────────────────────────────────────── */
-.pin-col {
-  width: 38px;
-  padding: 0 6px !important;
-  text-align: center;
-}
-
-.pin-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  opacity: 0.25;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.fd-table tbody tr:hover .pin-btn,
-.flight-card:hover .pin-btn { opacity: 0.65; }
-
-.pin-btn:hover {
-  opacity: 1 !important;
-  color: var(--grad-start, #6366f1);
-  background: rgba(99, 102, 241, 0.1);
-}
-
-.pin-btn-active {
-  opacity: 1;
-  color: var(--grad-start, #6366f1);
-}
-
-.pin-btn-active:hover {
-  color: #f85149;
-  background: rgba(248, 81, 73, 0.08);
-}
-
-/* ── Section dividers (pinned / date) ──────────────────────────────────── */
-.section-divider td {
-  padding: 5px 14px !important;
-  background: var(--bg-light) !important;
-  border-bottom: 1px solid var(--border) !important;
-  border-top: 1px solid var(--border) !important;
-}
-
-.section-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-}
-
-/* ── Pinned rows ───────────────────────────────────────────────────────── */
-.pinned-row td {
-  background: rgba(99, 102, 241, 0.03);
-}
-
-/* ── Mobile section label ──────────────────────────────────────────────── */
-.mobile-section-label {
-  display: none;
-}
-
-/* ── Subtle empty row ──────────────────────────────────────────────────── */
-.empty-row-subtle {
-  font-size: 0.8rem !important;
-  padding: 16px !important;
-}
-
 /* ── Clickable rows ────────────────────────────────────────────────────── */
 .fd-table tbody tr.clickable-row { cursor: pointer; }
 .fd-table tbody tr.clickable-row:hover td { background: var(--surface-hover, rgba(99, 102, 241, 0.04)); }
@@ -748,20 +670,6 @@
   .fc-cabin-item { display: flex; align-items: center; gap: 4px; }
   .fc-cabin-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
   .fc-load { display: flex; flex-direction: column; gap: 4px; }
-
-  .mobile-section-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    padding: 4px 2px;
-  }
-
-  .fc-pin-btn { margin-left: auto; }
 
   /* On mobile the overlay also goes full screen */
   .overlay-panel { width: 100%; }
