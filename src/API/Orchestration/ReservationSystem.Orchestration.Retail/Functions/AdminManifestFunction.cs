@@ -235,6 +235,7 @@ file sealed class AdminSeatRequest
     public string BookingReference { get; init; } = string.Empty;
 
     [System.Text.Json.Serialization.JsonPropertyName("passengerId")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(StringOrNumberConverter))]
     public string? PassengerId { get; init; }
 
     [System.Text.Json.Serialization.JsonPropertyName("inventoryId")]
@@ -248,4 +249,20 @@ file sealed class AdminSeatRequest
 
     [System.Text.Json.Serialization.JsonPropertyName("cabinCode")]
     public string? CabinCode { get; init; }
+}
+
+// Accepts either a JSON string ("PAX-1", "3") or a JSON number (3) for passengerId.
+file sealed class StringOrNumberConverter : System.Text.Json.Serialization.JsonConverter<string?>
+{
+    public override string? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        => reader.TokenType switch
+        {
+            System.Text.Json.JsonTokenType.String => reader.GetString(),
+            System.Text.Json.JsonTokenType.Number => reader.TryGetInt64(out var n) ? n.ToString() : reader.GetDecimal().ToString(),
+            System.Text.Json.JsonTokenType.Null   => null,
+            _                                     => throw new System.Text.Json.JsonException($"Cannot convert token {reader.TokenType} to string.")
+        };
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, string? value, System.Text.Json.JsonSerializerOptions options)
+        => writer.WriteStringValue(value);
 }
