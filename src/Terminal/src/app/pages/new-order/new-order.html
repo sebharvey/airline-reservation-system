@@ -485,36 +485,50 @@
                     </div>
                   }
 
-                  <!-- Passenger tabs -->
-                  @if (passengerForms().length > 1) {
-                    <div class="sm-pax-tabs">
-                      @for (pax of passengerForms(); track pax.passengerId; let i = $index) {
-                        <button class="sm-pax-tab" [class.active]="activeSeatPaxIdx() === i"
-                          (click)="activeSeatPaxIdx.set(i)">
-                          {{ pax.givenName || paxLabel(pax.type) + ' ' + (i + 1) }}
-                          @if (basket()?.flights?.length) {
-                            @let allSelected = basket()!.flights.every(f => getSelectedSeatForPaxFlight(pax.passengerId, f.basketItemId));
-                            @if (allSelected) { <lucide-icon name="check" [size]="12" /> }
+                  <!-- Progress bar -->
+                  @if (seatTotalSlots() > 0) {
+                    <div class="sm-progress-section">
+                      <div class="sm-progress-track">
+                        <div class="sm-progress-fill" [style.width.%]="seatProgressPercent()"></div>
+                      </div>
+                      <span class="sm-progress-label">
+                        @if (seatCompletedCount() < seatTotalSlots()) {
+                          {{ seatCompletedCount() }} of {{ seatTotalSlots() }} seats selected
+                        } @else {
+                          <lucide-icon name="check" [size]="11" /> All seats selected
+                        }
+                      </span>
+                    </div>
+                  }
+
+                  <!-- Slot stepper chips -->
+                  @if (seatSlots().length > 1) {
+                    <div class="sm-slot-scroll">
+                      @for (slot of seatSlots(); track slot.slotIndex) {
+                        <button class="sm-slot-chip"
+                          [class.sm-slot-chip--current]="getSeatSlotStatus(slot) === 'current'"
+                          [class.sm-slot-chip--done]="getSeatSlotStatus(slot) === 'done'"
+                          [class.sm-slot-chip--pending]="getSeatSlotStatus(slot) === 'pending'"
+                          (click)="goToSeatSlot(slot.slotIndex)">
+                          <span class="sm-slot-icon">
+                            @if (getSeatSlotStatus(slot) === 'done') { <lucide-icon name="check" [size]="10" /> }
+                            @else if (getSeatSlotStatus(slot) === 'current') { &#x2022; }
+                            @else { &#x25cb; }
+                          </span>
+                          <span class="sm-slot-text">
+                            <span class="sm-slot-flight">{{ slot.shortFlightLabel }}</span>
+                            <span class="sm-slot-pax">{{ slot.passengerName }}</span>
+                          </span>
+                          @if (getSeatSlotSelection(slot); as sel) {
+                            <span class="sm-slot-seat">{{ sel.seatOffer.seatNumber }}</span>
                           }
                         </button>
                       }
                     </div>
                   }
 
-                  <!-- Flight tabs -->
-                  @if (seatmapEntries().length > 1) {
-                    <div class="sm-flight-tabs">
-                      @for (entry of seatmapEntries(); track entry.flight.basketItemId; let i = $index) {
-                        <button class="sm-flight-tab" [class.active]="activeSeatFlightIdx() === i"
-                          (click)="activeSeatFlightIdx.set(i)">
-                          {{ entry.flight.origin }} &#8594; {{ entry.flight.destination }}
-                        </button>
-                      }
-                    </div>
-                  }
-
-                  <!-- Seatmap for active flight -->
-                  @if (activeSeatEntry(); as entry) {
+                  <!-- Seatmap for current slot -->
+                  @if (currentSeatEntry(); as entry) {
                     @if (entry.loading) {
                       <div class="sm-loading">
                         <span class="btn-spinner large-spinner"></span>
@@ -524,16 +538,28 @@
                       <div class="sm-error">
                         <lucide-icon name="triangle-alert" [size]="14" /> {{ entry.error }}
                       </div>
-                    } @else if (activeSeatCabin(); as cabin) {
+                    } @else if (currentSeatCabin(); as cabin) {
                       <div class="sm-wrap">
 
-                        <!-- Selection indicator -->
-                        @if (activeSeatPax(); as pax) {
-                          <div class="sm-selection-indicator">
-                            Selecting for: <strong>{{ pax | passengerName }}</strong>
-                            @if (getSelectedSeatForPaxFlight(pax.passengerId, entry.flight.basketItemId); as sel) {
-                              <span class="sm-selected-seat"><lucide-icon name="check" [size]="12" /> Seat {{ sel.seatOffer.seatNumber }}</span>
-                            }
+
+                        <!-- Slot header -->
+                        @if (currentSeatSlot(); as slot) {
+                          <div class="sm-slot-header" [class.sm-slot-header--pulse]="seatJustSelected()">
+                            <div class="sm-slot-header-left">
+                              <span class="sm-slot-fn">{{ entry.flight.flightNumber }}</span>
+                              <span class="sm-slot-route">{{ entry.flight.origin }} &#8594; {{ entry.flight.destination }}</span>
+                              @if (entry.flight.cabinName) {
+                                <span class="sm-slot-cabin">{{ entry.flight.cabinName }}</span>
+                              }
+                            </div>
+                            <div class="sm-slot-header-right">
+                              <span class="sm-slot-for-label">Selecting for</span>
+                              <strong class="sm-slot-pax-name">{{ slot.passengerName }}</strong>
+                              @if (getSeatSlotSelection(slot); as sel) {
+                                <span class="sm-slot-pax-seat"><lucide-icon name="check" [size]="11" /> {{ sel.seatOffer.seatNumber }}</span>
+                              }
+                            </div>
+
                           </div>
                         }
 
@@ -556,7 +582,7 @@
                                   [class.sm-aisle]="hasAisle(cabin.layout, ci)"
                                   [disabled]="seat.availability !== 'available' || isSeatTakenByOther(seat, entry.flight.basketItemId)"
                                   (click)="selectSeat(seat, entry)"
-                                  [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · ' + seat.price + '\u00A0' + seat.currency : '')">
+                                  [title]="seat.seatNumber + ' · ' + seat.position + (seat.price > 0 ? ' · ' + seat.price + ' ' + seat.currency : '')">
                                   <span class="sm-seat-num">{{ seat.seatNumber }}</span>
                                   <span class="sm-seat-price">{{ getSeatPrice(seat, cabin.cabinCode) }}</span>
                                 </button>
@@ -577,7 +603,43 @@
 
                       </div>
                     }
+
+                    <!-- Prev / Next slot nav -->
+                    @if (seatSlots().length > 1 && !entry.loading && !entry.error) {
+                      <div class="sm-slot-nav">
+                        <button class="sm-slot-nav-btn" [disabled]="isFirstSeatSlot()" (click)="goSeatPrev()">
+                          <lucide-icon name="arrow-left" [size]="13" /> Prev
+                        </button>
+                        <span class="sm-slot-nav-counter">{{ activeSeatSlotIndex() + 1 }} / {{ seatTotalSlots() }}</span>
+                        <button class="sm-slot-nav-btn sm-slot-nav-btn--next" [disabled]="isLastSeatSlot()" (click)="goSeatNext()">
+                          Next <lucide-icon name="arrow-right" [size]="13" />
+                        </button>
+                      </div>
+                    }
                   }
+
+                  <!-- Selected seats summary -->
+                  @if (seatCompletedCount() > 0) {
+                    <div class="sm-summary">
+                      <div class="sm-summary-title">Selected seats</div>
+                      @for (slot of seatSlots(); track slot.slotIndex) {
+                        @if (getSeatSlotSelection(slot); as sel) {
+                          <div class="sm-summary-row">
+                            <span class="sm-summary-route">{{ slot.shortFlightLabel }}</span>
+                            <span class="sm-summary-pax">{{ slot.passengerName }}</span>
+                            <span class="sm-summary-seat">{{ sel.seatOffer.seatNumber }}</span>
+                            @if (sel.seatOffer.price > 0 && basket()) {
+                              <span class="sm-summary-price">+{{ formatAmount(sel.seatOffer.price, basket()!.currency) }}</span>
+                            } @else if (sel.seatOffer.price === 0) {
+                              <span class="sm-summary-price sm-summary-free">Free</span>
+                            }
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+
+
 
                   <!-- Skip / Save row -->
                   <div class="sm-action-row">
