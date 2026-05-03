@@ -106,7 +106,7 @@ public sealed class AdminManifestFunction
         }
 
         // 2. Clear seat from order (best-effort — manifest is the authoritative departure record)
-        if (!string.IsNullOrWhiteSpace(body.PassengerId) && !string.IsNullOrWhiteSpace(body.InventoryId))
+        if (body.PassengerId.HasValue && !string.IsNullOrWhiteSpace(body.InventoryId))
         {
             try
             {
@@ -179,7 +179,7 @@ public sealed class AdminManifestFunction
         }
 
         // 2. Update seat on order (best-effort — manifest is the authoritative departure record)
-        if (!string.IsNullOrWhiteSpace(body.PassengerId) && !string.IsNullOrWhiteSpace(body.InventoryId))
+        if (body.PassengerId.HasValue && !string.IsNullOrWhiteSpace(body.InventoryId))
         {
             try
             {
@@ -196,13 +196,12 @@ public sealed class AdminManifestFunction
         }
 
         // 3. Update seat on inventory hold so the seatmap reflects the new assignment (best-effort)
-        var assignPaxId = ExtractPaxId(body.PassengerId);
-        if (Guid.TryParse(body.OrderId, out var assignOrderId) && assignPaxId.HasValue)
+        if (Guid.TryParse(body.OrderId, out var assignOrderId) && body.PassengerId.HasValue)
         {
             try
             {
                 await _offerServiceClient.UpdateHoldSeatAsync(
-                    assignInventoryId, assignOrderId, assignPaxId.Value, body.SeatNumber!, cancellationToken);
+                    assignInventoryId, assignOrderId, body.PassengerId.Value, body.SeatNumber!, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -215,15 +214,6 @@ public sealed class AdminManifestFunction
         return req.CreateResponse(HttpStatusCode.NoContent);
     }
 
-    // Parses "PAX-1" → 1, matching the INT PassengerId stored on InventoryHold rows.
-    private static int? ExtractPaxId(string? id)
-    {
-        if (string.IsNullOrEmpty(id)) return null;
-        if (id.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
-            int.TryParse(id["PAX-".Length..], out var n))
-            return n;
-        return int.TryParse(id, out n) ? n : null;
-    }
 }
 
 file sealed class AdminSeatRequest
@@ -235,8 +225,7 @@ file sealed class AdminSeatRequest
     public string BookingReference { get; init; } = string.Empty;
 
     [System.Text.Json.Serialization.JsonPropertyName("passengerId")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(StringOrNumberConverter))]
-    public string? PassengerId { get; init; }
+    public int? PassengerId { get; init; }
 
     [System.Text.Json.Serialization.JsonPropertyName("inventoryId")]
     public string? InventoryId { get; init; }
@@ -249,20 +238,4 @@ file sealed class AdminSeatRequest
 
     [System.Text.Json.Serialization.JsonPropertyName("cabinCode")]
     public string? CabinCode { get; init; }
-}
-
-// Accepts either a JSON string ("PAX-1", "3") or a JSON number (3) for passengerId.
-file sealed class StringOrNumberConverter : System.Text.Json.Serialization.JsonConverter<string?>
-{
-    public override string? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
-        => reader.TokenType switch
-        {
-            System.Text.Json.JsonTokenType.String => reader.GetString(),
-            System.Text.Json.JsonTokenType.Number => reader.TryGetInt64(out var n) ? n.ToString() : reader.GetDecimal().ToString(),
-            System.Text.Json.JsonTokenType.Null   => null,
-            _                                     => throw new System.Text.Json.JsonException($"Cannot convert token {reader.TokenType} to string.")
-        };
-
-    public override void Write(System.Text.Json.Utf8JsonWriter writer, string? value, System.Text.Json.JsonSerializerOptions options)
-        => writer.WriteStringValue(value);
 }
