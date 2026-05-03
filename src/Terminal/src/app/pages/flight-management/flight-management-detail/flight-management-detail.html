@@ -161,9 +161,19 @@
                 @for (group of groupedEntries(); track group.bookingReference) {
                   <tr class="booking-group-header">
                     <td colspan="10">
-                      <a class="booking-ref-link mono" [routerLink]="['/order', group.bookingReference]">
-                        {{ group.bookingReference }}
-                      </a>
+                      <span class="pnr-copy-wrap">
+                        <span class="booking-ref-text mono">{{ group.bookingReference }}</span>
+                        <button class="copy-btn" [class.copied]="copiedRef() === group.bookingReference" (click)="copyBookingRef(group.bookingReference, $event)" [title]="copiedRef() === group.bookingReference ? 'Copied!' : 'Copy booking reference'">
+                          @if (copiedRef() === group.bookingReference) {
+                            <lucide-icon name="check" [size]="13" />
+                          } @else {
+                            <lucide-icon name="copy" [size]="13" />
+                          }
+                        </button>
+                        <button class="copy-btn" (click)="navigateToOrder(group.bookingReference, $event)" title="Open order">
+                          <lucide-icon name="external-link" [size]="13" />
+                        </button>
+                      </span>
                       <span class="booking-type-badge" [class]="bookingTypeBadgeClass(group.bookingType)">
                         {{ group.bookingType || 'Confirmed' }}
                       </span>

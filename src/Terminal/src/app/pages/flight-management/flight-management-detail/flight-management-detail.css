@@ -322,13 +322,10 @@
 }
 .booking-group-header:first-child td { border-top: none; }
 
-.booking-ref-link {
-  color: var(--grad-start, #6366f1);
-  text-decoration: none;
+.booking-ref-text {
   font-size: 0.72rem;
   font-weight: 700;
 }
-.booking-ref-link:hover { text-decoration: underline; }
 
 .booking-type-badge {
   display: inline-block;
