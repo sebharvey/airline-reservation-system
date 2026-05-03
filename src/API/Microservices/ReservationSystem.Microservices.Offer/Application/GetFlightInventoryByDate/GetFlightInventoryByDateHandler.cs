@@ -12,6 +12,10 @@ public sealed record FlightInventoryGroupResult(
     int LoadFactor,
     string EffectiveStatus);
 
+public sealed record FlightInventoryWithPinnedResult(
+    IReadOnlyList<FlightInventoryGroupResult> Flights,
+    IReadOnlyList<FlightInventoryGroupResult> PinnedFlights);
+
 public sealed class GetFlightInventoryByDateHandler
 {
     private readonly IOfferRepository _repository;
@@ -23,27 +27,52 @@ public sealed class GetFlightInventoryByDateHandler
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<FlightInventoryGroupResult>> HandleAsync(
+    public async Task<FlightInventoryWithPinnedResult> HandleAsync(
         GetFlightInventoryByDateQuery query,
         CancellationToken ct = default)
     {
-        var groups = await _repository.GetInventoryGroupedByDateAsync(query.DepartureDate, ct);
+        var pinnedIds = query.PinnedInventoryIds ?? [];
 
-        _logger.LogInformation("Retrieved {Count} inventory groups for {DepartureDate}", groups.Count, query.DepartureDate);
+        var groupsTask = _repository.GetInventoryGroupedByDateAsync(query.DepartureDate, ct);
+        var pinnedTask = pinnedIds.Count > 0
+            ? _repository.GetInventoryGroupedByIdsAsync(pinnedIds, ct)
+            : Task.FromResult<IReadOnlyList<FlightInventoryGroup>>([]);
+
+        await Task.WhenAll(groupsTask, pinnedTask);
+
+        var groups = groupsTask.Result;
+        var pinnedGroups = pinnedTask.Result;
+
+        _logger.LogInformation(
+            "Retrieved {Count} inventory groups for {DepartureDate}, {PinnedCount} pinned",
+            groups.Count, query.DepartureDate, pinnedGroups.Count);
 
         var now = DateTime.UtcNow;
+        var pinnedIdSet = new HashSet<Guid>(pinnedIds);
 
-        return groups.Select(g =>
-        {
-            var departure = g.DepartureDate.ToDateTime(g.DepartureTime, DateTimeKind.Utc);
-            var loadFactor = g.TotalSeats > 0
-                ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
-                : 0;
-            var effectiveStatus = g.Status == "Active" && (departure - now).TotalHours <= 1
-                ? "Ticketing Closed"
-                : g.Status;
+        var flights = groups
+            .Where(g => !pinnedIdSet.Contains(g.InventoryId))
+            .Select(g => Enrich(g, now))
+            .ToList()
+            .AsReadOnly();
 
-            return new FlightInventoryGroupResult(g, loadFactor, effectiveStatus);
-        }).ToList().AsReadOnly();
+        var pinned = pinnedGroups
+            .Select(g => Enrich(g, now))
+            .ToList()
+            .AsReadOnly();
+
+        return new FlightInventoryWithPinnedResult(flights, pinned);
+    }
+
+    private static FlightInventoryGroupResult Enrich(FlightInventoryGroup g, DateTime now)
+    {
+        var departure = g.DepartureDate.ToDateTime(g.DepartureTime, DateTimeKind.Utc);
+        var loadFactor = g.TotalSeats > 0
+            ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
+            : 0;
+        var effectiveStatus = g.Status == "Active" && (departure - now).TotalHours <= 1
+            ? "Ticketing Closed"
+            : g.Status;
+        return new FlightInventoryGroupResult(g, loadFactor, effectiveStatus);
     }
 }

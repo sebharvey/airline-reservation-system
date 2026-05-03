@@ -208,6 +208,11 @@ export interface InventoryOrders {
   orders: InventoryOrderRow[];
 }
 
+export interface FlightInventoryWithPinned {
+  flights: FlightInventoryGroup[];
+  pinnedFlights: FlightInventoryGroup[];
+}
+
 export interface AircraftType {
   aircraftTypeCode: string;
   manufacturer: string;
@@ -224,11 +229,17 @@ export class InventoryService {
 
   lastSelectedDate: string = new Date().toISOString().slice(0, 10);
 
-  async getFlightInventory(departureDate: string): Promise<FlightInventoryGroup[]> {
+  async getFlightInventory(
+    departureDate: string,
+    pinnedInventoryIds?: string[],
+  ): Promise<FlightInventoryWithPinned> {
+    const params: Record<string, string> = { departureDate };
+    if (pinnedInventoryIds && pinnedInventoryIds.length > 0)
+      params['pinnedInventoryIds'] = pinnedInventoryIds.join(',');
     return firstValueFrom(
-      this.#http.get<FlightInventoryGroup[]>(
+      this.#http.get<FlightInventoryWithPinned>(
         `${this.#baseUrl}/inventory`,
-        { params: { departureDate } }
+        { params }
       )
     );
   }

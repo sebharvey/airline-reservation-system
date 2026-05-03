@@ -75,6 +75,7 @@
       <table class="fd-table">
         <thead>
           <tr>
+            <th class="pin-col"></th>
             <th>Flight</th>
             <th>Route</th>
             <th>Dep / Arr</th>
@@ -86,8 +87,73 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Pinned flights group -->
+          @if (pinnedFlights().length > 0) {
+            <tr class="group-header-row">
+              <td colspan="9">
+                <lucide-icon name="pin" [size]="12" />
+                Pinned flights
+              </td>
+            </tr>
+            @for (flight of pinnedFlights(); track flight.inventoryId) {
+              <tr class="clickable-row pinned-row" [class.row-cancelled]="flight.status === 'Cancelled'" (click)="openFlight(flight)">
+                <td class="pin-col">
+                  <button class="pin-btn pin-btn-active" (click)="togglePin($event, flight)"
+                          title="Unpin flight" aria-label="Unpin flight">
+                    <lucide-icon name="pin-off" [size]="14" />
+                  </button>
+                </td>
+                <td class="mono flight-num">{{ flight.flightNumber }}</td>
+                <td>
+                  <span class="route">
+                    {{ flight.origin }}
+                    <span class="route-arrow">→</span>
+                    {{ flight.destination }}
+                  </span>
+                </td>
+                <td class="mono time-cell">
+                  {{ flight.departureDate }}
+                  <span class="time-sep date-sep">·</span>
+                  {{ flight.departureTime }}
+                  <span class="time-sep">–</span>
+                  {{ flight.arrivalTime }}
+                  @if (flight.arrivalDayOffset > 0) {
+                    <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
+                  }
+                </td>
+                <td class="mono muted">{{ flight.aircraftType }}</td>
+                <td class="mono">{{ flight.departureGate ?? '—' }}</td>
+                <td class="mono muted">{{ flight.aircraftRegistration ?? '—' }}</td>
+                <td class="load-col">
+                  <div class="load-bar-wrap">
+                    <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
+                  </div>
+                  <span class="load-pct muted">{{ paxOnBoard(flight) }}/{{ flight.totalSeats }} · {{ flight.loadFactor | number:'1.0-0' }}%</span>
+                </td>
+                <td>
+                  <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
+                </td>
+              </tr>
+            }
+            @if (flights().length > 0) {
+              <tr class="group-header-row">
+                <td colspan="9">
+                  <lucide-icon name="calendar" [size]="12" />
+                  {{ selectedDateDisplay() }}
+                </td>
+              </tr>
+            }
+          }
+
+          <!-- Day flights -->
           @for (flight of flights(); track flight.inventoryId) {
             <tr class="clickable-row" [class.row-cancelled]="flight.status === 'Cancelled'" (click)="openFlight(flight)">
+              <td class="pin-col">
+                <button class="pin-btn" (click)="togglePin($event, flight)"
+                        title="Pin flight" aria-label="Pin flight">
+                  <lucide-icon name="pin" [size]="14" />
+                </button>
+              </td>
               <td class="mono flight-num">{{ flight.flightNumber }}</td>
               <td>
                 <span class="route">
@@ -119,9 +185,9 @@
             </tr>
           }
 
-          @if (flights().length === 0) {
+          @if (pinnedFlights().length === 0 && flights().length === 0) {
             <tr>
-              <td colspan="8" class="empty-row">No flights scheduled.</td>
+              <td colspan="9" class="empty-row">No flights scheduled.</td>
             </tr>
           }
         </tbody>
@@ -130,12 +196,66 @@
 
     <!-- Mobile cards -->
     <div class="flight-cards">
+
+      <!-- Pinned flights -->
+      @if (pinnedFlights().length > 0) {
+        <div class="mobile-group-header">
+          <lucide-icon name="pin" [size]="13" />
+          Pinned flights
+        </div>
+        @for (flight of pinnedFlights(); track flight.inventoryId) {
+          <div class="flight-card flight-card-pinned clickable-row" [class.flight-card-cancelled]="flight.status === 'Cancelled'" (click)="openFlight(flight)">
+            <div class="fc-header">
+              <span class="fc-flight mono">{{ flight.flightNumber }}</span>
+              <span class="fc-route">{{ flight.origin }}<span class="route-arrow"> → </span>{{ flight.destination }}</span>
+              <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
+              <button class="pin-btn pin-btn-active fc-pin-btn" (click)="togglePin($event, flight)"
+                      title="Unpin flight" aria-label="Unpin flight">
+                <lucide-icon name="pin-off" [size]="14" />
+              </button>
+            </div>
+            <div class="fc-times mono muted">
+              <span class="fc-date">{{ flight.departureDate }}</span>
+              <span class="time-sep"> · </span>
+              {{ flight.departureTime }}<span class="time-sep"> – </span>{{ flight.arrivalTime }}
+              @if (flight.arrivalDayOffset > 0) {
+                <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
+              }
+              <span class="fc-aircraft"> · {{ flight.aircraftType }}</span>
+              @if (flight.departureGate) {
+                <span class="fc-gate"> · Gate {{ flight.departureGate }}</span>
+              }
+              @if (flight.aircraftRegistration) {
+                <span class="fc-reg"> · {{ flight.aircraftRegistration }}</span>
+              }
+            </div>
+            <div class="fc-load">
+              <div class="load-bar-wrap">
+                <div class="load-bar" [class]="loadBarClass(flight.loadFactor)" [style.width.%]="flight.loadFactor"></div>
+              </div>
+              <span class="load-pct muted">{{ paxOnBoard(flight) }}/{{ flight.totalSeats }} pax · {{ flight.loadFactor | number:'1.0-0' }}% load</span>
+            </div>
+          </div>
+        }
+        @if (flights().length > 0) {
+          <div class="mobile-group-header">
+            <lucide-icon name="calendar" [size]="13" />
+            {{ selectedDateDisplay() }}
+          </div>
+        }
+      }
+
+      <!-- Day flights -->
       @for (flight of flights(); track flight.inventoryId) {
         <div class="flight-card clickable-row" [class.flight-card-cancelled]="flight.status === 'Cancelled'" (click)="openFlight(flight)">
           <div class="fc-header">
             <span class="fc-flight mono">{{ flight.flightNumber }}</span>
             <span class="fc-route">{{ flight.origin }}<span class="route-arrow"> → </span>{{ flight.destination }}</span>
             <span class="badge" [class]="statusClass(flight.status)">{{ flight.status }}</span>
+            <button class="pin-btn fc-pin-btn" (click)="togglePin($event, flight)"
+                    title="Pin flight" aria-label="Pin flight">
+              <lucide-icon name="pin" [size]="14" />
+            </button>
           </div>
           <div class="fc-times mono muted">
             {{ flight.departureTime }}<span class="time-sep"> – </span>{{ flight.arrivalTime }}
@@ -158,12 +278,13 @@
           </div>
         </div>
       }
-      @if (flights().length === 0) {
+
+      @if (pinnedFlights().length === 0 && flights().length === 0) {
         <p class="empty-row">No flights scheduled.</p>
       }
     </div>
 
-    <p class="results-count">{{ flights().length }} flight{{ flights().length !== 1 ? 's' : '' }} · {{ selectedDate() }}</p>
+    <p class="results-count">{{ flights().length + pinnedFlights().length }} flight{{ (flights().length + pinnedFlights().length) !== 1 ? 's' : '' }} · {{ selectedDate() }}</p>
   }
 
   <!-- Loading -->

@@ -272,6 +272,69 @@
   text-align: right;
 }
 
+/* ── Pin column & button ───────────────────────────────────────────────── */
+.pin-col { width: 36px; padding-right: 4px !important; }
+
+.pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+
+.pin-btn:hover {
+  color: var(--grad-start, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.pin-btn-active {
+  opacity: 1;
+  color: var(--grad-start, #6366f1);
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.pin-btn-active:hover {
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.08);
+  border-color: rgba(248, 81, 73, 0.25);
+}
+
+/* Show pin button when row is hovered */
+.fd-table tbody tr:hover .pin-btn,
+.flight-card:hover .pin-btn { opacity: 1; }
+
+/* ── Pinned row highlight ──────────────────────────────────────────────── */
+.pinned-row td { background: rgba(99, 102, 241, 0.03); }
+.pinned-row:hover td { background: rgba(99, 102, 241, 0.07) !important; }
+
+/* ── Group header rows ─────────────────────────────────────────────────── */
+.group-header-row td {
+  padding: 8px 14px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  background: var(--bg-light);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* ── Clickable rows ────────────────────────────────────────────────────── */
 .fd-table tbody tr.clickable-row { cursor: pointer; }
 .fd-table tbody tr.clickable-row:hover td { background: var(--surface-hover, rgba(99, 102, 241, 0.04)); }
@@ -633,6 +696,19 @@
 .legend-dot.seat-checked-in { background: #3fb950; }
 .legend-dot.seat-held       { background: #f0883e; opacity: 0.7; }
 
+/* ── Mobile group headers ──────────────────────────────────────────────── */
+.mobile-group-header {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
 /* ── Mobile cards ─────────────────────────────────────────────────────── */
 .flight-cards { display: none; }
 
@@ -649,6 +725,8 @@
     gap: 10px;
   }
 
+  .mobile-group-header { display: flex; }
+
   .flight-card {
     background: var(--white);
     border: 1px solid var(--border);
@@ -657,6 +735,11 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .flight-card-pinned {
+    border-color: rgba(99, 102, 241, 0.35);
+    background: rgba(99, 102, 241, 0.03);
   }
 
   .flight-card-cancelled { opacity: 0.55; }
@@ -670,6 +753,13 @@
   .fc-cabin-item { display: flex; align-items: center; gap: 4px; }
   .fc-cabin-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
   .fc-load { display: flex; flex-direction: column; gap: 4px; }
+  .fc-date { color: var(--grad-start, #6366f1); font-weight: 600; }
+
+  .fc-pin-btn {
+    opacity: 1;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
 
   /* On mobile the overlay also goes full screen */
   .overlay-panel { width: 100%; }

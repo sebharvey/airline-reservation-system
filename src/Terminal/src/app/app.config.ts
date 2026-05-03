@@ -7,6 +7,7 @@ import {
   Calendar, Check, ChevronLeft, ChevronRight, CircleAlert, CircleArrowUp,
   CircleCheck, CircleDollarSign, CircleX, ClipboardList, Clock, Copy,
   CreditCard, FileText, Inbox, Lock, LogOut, Luggage, MapPin, Moon, Package,
+  Pin, PinOff,
   Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShieldAlert,
   ShoppingBag, ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
 } from 'lucide-angular';
@@ -37,6 +38,7 @@ export const appConfig: ApplicationConfig = {
         Calendar, Check, ChevronLeft, ChevronRight, CircleAlert, CircleArrowUp,
         CircleCheck, CircleDollarSign, CircleX, ClipboardList, Clock, Copy,
         CreditCard, FileText, Inbox, Lock, LogOut, Luggage, MapPin, Moon, Package,
+        Pin, PinOff,
         Plane, PlaneTakeoff, Play, Plus, Receipt, RotateCcw, Search, ShieldAlert,
         ShoppingBag, ShoppingCart, Sun, Tag, Trash2, TriangleAlert, User, Users, X,
       }),

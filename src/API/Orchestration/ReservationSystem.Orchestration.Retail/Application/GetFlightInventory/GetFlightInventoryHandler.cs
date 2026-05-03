@@ -12,10 +12,11 @@ public sealed class GetFlightInventoryHandler
         _offerServiceClient = offerServiceClient;
     }
 
-    public async Task<IReadOnlyList<FlightInventoryGroupDto>> HandleAsync(
+    public async Task<FlightInventoryWithPinnedDto> HandleAsync(
         GetFlightInventoryQuery query,
         CancellationToken cancellationToken)
     {
-        return await _offerServiceClient.GetFlightInventoryByDateAsync(query.DepartureDate, cancellationToken);
+        return await _offerServiceClient.GetFlightInventoryByDateAsync(
+            query.DepartureDate, query.PinnedInventoryIds, cancellationToken);
     }
 }
