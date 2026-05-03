@@ -308,7 +308,7 @@ export class InventoryService {
     await firstValueFrom(
       this.#http.post<void>(
         `${this.#baseUrl}/manifest/release-seat`,
-        { eTicketNumber, bookingReference, passengerId: passengerId.toString(), inventoryId, orderId, cabinCode }
+        { eTicketNumber, bookingReference, passengerId, inventoryId, orderId, cabinCode }
       )
     );
   }
@@ -324,7 +324,7 @@ export class InventoryService {
     await firstValueFrom(
       this.#http.post<void>(
         `${this.#baseUrl}/manifest/assign-seat`,
-        { eTicketNumber, bookingReference, passengerId: passengerId.toString(), inventoryId, seatNumber, orderId }
+        { eTicketNumber, bookingReference, passengerId, inventoryId, seatNumber, orderId }
       )
     );
   }
