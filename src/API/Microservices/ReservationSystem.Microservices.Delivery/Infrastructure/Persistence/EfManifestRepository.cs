@@ -196,6 +196,25 @@ public sealed class EfManifestRepository : IManifestRepository
         return entries.Count;
     }
 
+    public async Task<int> DeleteExpiredManifestItemsAsync(CancellationToken cancellationToken = default)
+    {
+        var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(-48));
+
+        var expired = await _context.Manifests
+            .Where(m => m.DepartureDate < cutoff)
+            .ToListAsync(cancellationToken);
+
+        if (expired.Count == 0)
+            return 0;
+
+        _context.Manifests.RemoveRange(expired);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Deleted {Count} expired manifest entries with DepartureDate before {Cutoff}", expired.Count, cutoff);
+
+        return expired.Count;
+    }
+
     public async Task<int> DeleteByBookingAndFlightAsync(
         string bookingReference,
         string flightNumber,

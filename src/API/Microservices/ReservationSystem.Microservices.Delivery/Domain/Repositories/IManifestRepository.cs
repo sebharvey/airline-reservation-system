@@ -44,4 +44,10 @@ public interface IManifestRepository
         string toCabinCode,
         IReadOnlyDictionary<int, ManifestPassengerRebook> passengerRebooks,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes all manifest entries whose <c>DepartureDate</c> is more than 48 hours in the past.
+    /// Returns the number of rows deleted.
+    /// </summary>
+    Task<int> DeleteExpiredManifestItemsAsync(CancellationToken cancellationToken = default);
 }

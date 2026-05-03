@@ -18,6 +18,7 @@ using ReservationSystem.Microservices.Delivery.Application.OciBoardingDocs;
 using ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
 using ReservationSystem.Microservices.Delivery.Application.VoidDocument;
 using ReservationSystem.Microservices.Delivery.Application.VoidTicket;
+using ReservationSystem.Microservices.Delivery.Application.DeleteExpiredManifestItems;
 using ReservationSystem.Microservices.Delivery.Application.DeleteManifestFlight;
 using ReservationSystem.Microservices.Delivery.Application.GetManifest;
 using ReservationSystem.Microservices.Delivery.Application.RebookManifest;
@@ -106,6 +107,7 @@ var host = new HostBuilder()
         services.AddScoped<RebookManifestHandler>();
         services.AddScoped<GetManifestHandler>();
         services.AddScoped<UpdateManifestSeatHandler>();
+        services.AddScoped<DeleteExpiredManifestItemsHandler>();
         services.AddScoped<DeleteManifestFlightHandler>();
         services.AddScoped<UpdateManifestSsrsHandler>();
         services.AddScoped<GetAllWatchlistEntriesHandler>();
