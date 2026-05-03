@@ -60,6 +60,16 @@ interface SelectedSeat {
   seatOffer: SeatOffer;
 }
 
+interface SeatSlot {
+  slotIndex: number;
+  passengerIndex: number;
+  flightIndex: number;
+  passengerId: string;
+  passengerName: string;
+  basketItemId: string;
+  shortFlightLabel: string;
+}
+
 interface SelectedProduct {
   productId: string;
   offerId: string;
@@ -197,8 +207,8 @@ export class NewOrderComponent {
 
   // ── Seats ─────────────────────────────────────────────────────────────────
   seatmapEntries = signal<SeatmapEntry[]>([]);
-  activeSeatPaxIdx = signal(0);
-  activeSeatFlightIdx = signal(0);
+  activeSeatSlotIndex = signal(0);
+  seatJustSelected = signal(false);
   seatSelections = signal<Map<string, SelectedSeat>>(new Map());
   seatsSaving = signal(false);
   seatsError = signal('');
@@ -211,15 +221,55 @@ export class NewOrderComponent {
     };
   });
 
-  readonly activeSeatEntry = computed(() => this.seatmapEntries()[this.activeSeatFlightIdx()] ?? null);
-  readonly activeSeatPax = computed(() => this.passengerForms()[this.activeSeatPaxIdx()] ?? null);
-  readonly activeSeatCabin = computed((): CabinSeatmap | null => {
-    const entry = this.activeSeatEntry();
+  // Ordered slots: segment 0 → all pax, segment 1 → all pax, …
+  readonly seatSlots = computed((): SeatSlot[] => {
+    const forms = this.passengerForms();
+    const entries = this.seatmapEntries();
+    if (!forms.length || !entries.length) return [];
+    const result: SeatSlot[] = [];
+    entries.forEach((entry, fi) => {
+      forms.forEach((pax, pi) => {
+        const name = pax.givenName
+          ? `${pax.givenName} ${pax.surname}`.trim()
+          : `${this.paxLabel(pax.type)} ${pi + 1}`;
+        result.push({
+          slotIndex: result.length,
+          passengerIndex: pi,
+          flightIndex: fi,
+          passengerId: pax.passengerId,
+          passengerName: name,
+          basketItemId: entry.flight.basketItemId,
+          shortFlightLabel: `${entry.flight.origin}→${entry.flight.destination}`
+        });
+      });
+    });
+    return result;
+  });
+
+  readonly currentSeatSlot = computed(() => this.seatSlots()[this.activeSeatSlotIndex()] ?? null);
+
+  readonly currentSeatEntry = computed(() => {
+    const slot = this.currentSeatSlot();
+    if (!slot) return null;
+    return this.seatmapEntries()[slot.flightIndex] ?? null;
+  });
+
+  readonly currentSeatCabin = computed((): CabinSeatmap | null => {
+    const entry = this.currentSeatEntry();
     if (!entry?.seatmap) return null;
     return entry.seatmap.cabins.find(c => c.cabinCode === entry.flight.cabinCode)
       ?? entry.seatmap.cabins[0]
       ?? null;
   });
+
+  readonly seatCompletedCount = computed(() => this.seatSelections().size);
+  readonly seatTotalSlots = computed(() => this.seatSlots().length);
+  readonly seatProgressPercent = computed(() => {
+    const total = this.seatTotalSlots();
+    return total ? Math.round((this.seatCompletedCount() / total) * 100) : 0;
+  });
+  readonly isFirstSeatSlot = computed(() => this.activeSeatSlotIndex() === 0);
+  readonly isLastSeatSlot = computed(() => this.activeSeatSlotIndex() === this.seatTotalSlots() - 1);
 
   // ── Products ─────────────────────────────────────────────────────────────
   productCatalogue = signal<ProductCatalogue | null>(null);
@@ -360,8 +410,7 @@ export class NewOrderComponent {
       } else {
         this.step.set('seats');
         this.accordionSection.set('seats');
-        this.activeSeatPaxIdx.set(0);
-        this.activeSeatFlightIdx.set(0);
+        this.activeSeatSlotIndex.set(0);
         this.#loadSeatmaps();
       }
     } catch (err: any) {
@@ -407,34 +456,61 @@ export class NewOrderComponent {
 
   selectSeat(seatOffer: SeatOffer, entry: SeatmapEntry): void {
     if (seatOffer.availability !== 'available') return;
-    const pax = this.activeSeatPax();
-    if (!pax) return;
+    const slot = this.currentSeatSlot();
+    if (!slot) return;
     if (this.isSeatTakenByOther(seatOffer, entry.flight.basketItemId)) return;
-    const key = `${pax.passengerId}__${entry.flight.basketItemId}`;
+    const key = `${slot.passengerId}__${entry.flight.basketItemId}`;
     const newMap = new Map<string, SelectedSeat>(this.seatSelections());
     if (newMap.get(key)?.seatOffer.seatOfferId === seatOffer.seatOfferId) {
       newMap.delete(key);
+      this.seatSelections.set(newMap);
     } else {
-      newMap.set(key, { passengerId: pax.passengerId, segmentId: entry.flight.inventoryId ?? '', basketItemId: entry.flight.basketItemId, seatOffer });
+      newMap.set(key, { passengerId: slot.passengerId, segmentId: entry.flight.inventoryId ?? '', basketItemId: entry.flight.basketItemId, seatOffer });
+      this.seatSelections.set(newMap);
+      this.seatJustSelected.set(true);
+      setTimeout(() => {
+        this.seatJustSelected.set(false);
+        this.#advanceToNextSeatSlot();
+      }, 500);
     }
-    this.seatSelections.set(newMap);
   }
 
   isSeatSelected(seatOffer: SeatOffer, basketItemId: string): boolean {
-    const pax = this.activeSeatPax();
-    if (!pax) return false;
-    const sel = this.seatSelections().get(`${pax.passengerId}__${basketItemId}`);
+    const slot = this.currentSeatSlot();
+    if (!slot) return false;
+    const sel = this.seatSelections().get(`${slot.passengerId}__${basketItemId}`);
     return sel?.seatOffer.seatOfferId === seatOffer.seatOfferId;
   }
 
   isSeatTakenByOther(seatOffer: SeatOffer, basketItemId: string): boolean {
-    const pax = this.activeSeatPax();
-    if (!pax) return false;
+    const slot = this.currentSeatSlot();
+    if (!slot) return false;
     for (const [key, sel] of this.seatSelections()) {
-      if (key.startsWith(pax.passengerId + '__')) continue;
+      if (key.startsWith(slot.passengerId + '__')) continue;
       if (sel.seatOffer.seatOfferId === seatOffer.seatOfferId && sel.basketItemId === basketItemId) return true;
     }
     return false;
+  }
+
+  getSeatSlotSelection(slot: SeatSlot): SelectedSeat | undefined {
+    return this.seatSelections().get(`${slot.passengerId}__${slot.basketItemId}`);
+  }
+
+  getSeatSlotStatus(slot: SeatSlot): 'current' | 'done' | 'pending' {
+    if (slot.slotIndex === this.activeSeatSlotIndex()) return 'current';
+    return this.getSeatSlotSelection(slot) ? 'done' : 'pending';
+  }
+
+  goToSeatSlot(index: number): void {
+    this.activeSeatSlotIndex.set(index);
+  }
+
+  goSeatPrev(): void {
+    if (!this.isFirstSeatSlot()) this.activeSeatSlotIndex.update(i => i - 1);
+  }
+
+  goSeatNext(): void {
+    if (!this.isLastSeatSlot()) this.activeSeatSlotIndex.update(i => i + 1);
   }
 
   getSeatClass(seatOffer: SeatOffer | null, basketItemId: string): string {
@@ -473,6 +549,23 @@ export class NewOrderComponent {
 
   getSelectedSeatForPaxFlight(passengerId: string, basketItemId: string): SelectedSeat | undefined {
     return this.seatSelections().get(`${passengerId}__${basketItemId}`);
+  }
+
+  #advanceToNextSeatSlot(): void {
+    const slots = this.seatSlots();
+    const currentIdx = this.activeSeatSlotIndex();
+    for (let i = currentIdx + 1; i < slots.length; i++) {
+      if (!this.getSeatSlotSelection(slots[i])) {
+        this.activeSeatSlotIndex.set(i);
+        return;
+      }
+    }
+    for (let i = 0; i < currentIdx; i++) {
+      if (!this.getSeatSlotSelection(slots[i])) {
+        this.activeSeatSlotIndex.set(i);
+        return;
+      }
+    }
   }
 
   async skipSeats(): Promise<void> {
@@ -717,8 +810,8 @@ export class NewOrderComponent {
     this.paymentSubmitted.set(false);
     this.payMethod.set('CreditCard');
     this.seatmapEntries.set([]);
-    this.activeSeatPaxIdx.set(0);
-    this.activeSeatFlightIdx.set(0);
+    this.activeSeatSlotIndex.set(0);
+    this.seatJustSelected.set(false);
     this.seatSelections.set(new Map());
     this.seatsSaving.set(false);
     this.seatsError.set('');
