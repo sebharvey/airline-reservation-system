@@ -302,6 +302,12 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_InventoryHold_StandbyQ
         WHERE HoldType = 'Standby';
 GO
 
+-- PaxCount: total number of passengers on the order at the time the hold was created.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[offer].[InventoryHold]') AND name = 'PaxCount')
+    ALTER TABLE [offer].[InventoryHold]
+        ADD PaxCount SMALLINT NOT NULL CONSTRAINT DF_InventoryHold_PaxCount DEFAULT 1;
+GO
+
 -- offer.Fare ------------------------------------------------------------------
 IF OBJECT_ID('[offer].[Fare]', 'U') IS NULL
 CREATE TABLE [offer].[Fare] (

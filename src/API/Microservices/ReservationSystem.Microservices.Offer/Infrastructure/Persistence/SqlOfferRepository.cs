@@ -658,12 +658,12 @@ public sealed class SqlOfferRepository : IOfferRepository
                 commandTimeout: _options.CommandTimeoutSeconds));
     }
 
-    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, int? passengerId, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default)
+    public async Task CreateHoldAsync(Guid inventoryId, Guid orderId, string cabinCode, string? seatNumber, int? passengerId, int paxCount, string holdType = "Revenue", short? standbyPriority = null, CancellationToken ct = default)
     {
         const string sql = """
             INSERT INTO [offer].[InventoryHold]
-                   (HoldId, InventoryId, OrderId, CabinCode, SeatNumber, PassengerId, Status, HoldType, StandbyPriority)
-            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @SeatNumber, @PassengerId, 'Held', @HoldType, @StandbyPriority);
+                   (HoldId, InventoryId, OrderId, CabinCode, SeatNumber, PassengerId, PaxCount, Status, HoldType, StandbyPriority)
+            VALUES (@HoldId, @InventoryId, @OrderId, @CabinCode, @SeatNumber, @PassengerId, @PaxCount, 'Held', @HoldType, @StandbyPriority);
             """;
 
         using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct);
@@ -677,6 +677,7 @@ public sealed class SqlOfferRepository : IOfferRepository
                 CabinCode = cabinCode,
                 SeatNumber = seatNumber,
                 PassengerId = passengerId,
+                PaxCount = paxCount,
                 HoldType = holdType,
                 StandbyPriority = standbyPriority
             }, commandTimeout: _options.CommandTimeoutSeconds));
@@ -724,7 +725,7 @@ public sealed class SqlOfferRepository : IOfferRepository
     public async Task<IReadOnlyList<InventoryHoldRecord>> GetHoldsByInventoryAsync(Guid inventoryId, CancellationToken ct = default)
     {
         const string sql = """
-            SELECT HoldId, OrderId, PassengerId, CabinCode, SeatNumber, Status, HoldType, StandbyPriority, CreatedAt
+            SELECT HoldId, OrderId, PassengerId, CabinCode, SeatNumber, Status, HoldType, StandbyPriority, PaxCount, CreatedAt
             FROM   [offer].[InventoryHold]
             WHERE  InventoryId = @InventoryId
             ORDER BY
@@ -747,6 +748,7 @@ public sealed class SqlOfferRepository : IOfferRepository
             Status:          (string)r.Status,
             HoldType:        (string)r.HoldType,
             StandbyPriority: (short?)r.StandbyPriority,
+            PaxCount:        (int)r.PaxCount,
             CreatedAt:       new DateTimeOffset((DateTime)r.CreatedAt, TimeSpan.Zero)))
             .ToList().AsReadOnly();
     }
