@@ -323,11 +323,6 @@ export class FlightManagementDetailComponent implements OnInit {
   selectSeatFromMap(seat: SeatmapSeat): void {
     if (!this.inSeatSelectMode()) return;
     if (seat.availability !== 'available') return;
-    const takenByOther = this.manifest()?.entries.find(
-      e => e.seatNumber === seat.seatNumber &&
-           e.eTicketNumber !== this.selectedEntry()?.eTicketNumber
-    );
-    if (takenByOther) return;
     this.pendingSeat.set(
       this.pendingSeat()?.seatNumber === seat.seatNumber ? null : seat
     );
@@ -407,16 +402,13 @@ export class FlightManagementDetailComponent implements OnInit {
     if (pending?.seatNumber === seat.seatNumber) return 'seat-pending';
     const selected = this.selectedEntry();
     if (selected?.seatNumber === seat.seatNumber) return 'seat-selected';
-    // Check manifest first — it refreshes reliably after seat ops, whereas the
-    // seatmap API may return stale availability values for recently assigned seats.
-    const entry = this.manifest()?.entries.find(e => e.seatNumber === seat.seatNumber);
-    if (entry) {
-      return entry.checkedIn ? 'seat-checked-in' : 'seat-booked';
-    }
     if (seat.availability === 'available') {
       return this.inSeatSelectMode() ? 'seat-open seat-selectable' : 'seat-open';
     }
-    return seat.availability === 'sold' ? 'seat-booked' : 'seat-held';
+    const entry = this.manifest()?.entries.find(e => e.seatNumber === seat.seatNumber);
+    return entry?.checkedIn            ? 'seat-checked-in'
+         : seat.availability === 'sold' ? 'seat-booked'
+         : 'seat-held';
   }
 
   seatTooltip(seat: SeatmapSeat | null): string {
