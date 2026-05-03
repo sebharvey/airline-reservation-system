@@ -8,13 +8,9 @@ import {
 } from '../../../services/inventory.service';
 
 interface OrderLine {
-  passengerName: string | null;
-  passengerType: string | null;
-  showName: boolean;
   itemType: 'Flight' | 'Seat' | 'Bag' | 'Product';
   description: string;
   cabinCode: string | null;
-  seatNumber: string | null;
   fare: number | null;
   tax: number | null;
   total: number | null;
@@ -82,31 +78,21 @@ export class InventoryDetailComponent implements OnInit {
     return Array.from(map.entries()).map(([bookingRef, rows]) => {
       const lines: OrderLine[] = [];
       for (const row of rows) {
-        // Flight fare line — always the first entry for this passenger.
         lines.push({
-          passengerName: row.passengerName,
-          passengerType: row.passengerType,
-          showName: true,
           itemType: 'Flight',
           description: [row.fareFamily, row.fareBasisCode].filter(Boolean).join(' / ') || '—',
           cabinCode: row.cabinCode,
-          seatNumber: row.seatNumber,
           fare:  row.baseFareAmount,
           tax:   row.taxAmount,
           total: row.totalFareAmount,
           currency: row.currency,
         });
 
-        // One line per ancillary item for this passenger.
         for (const anc of row.ancillaries) {
           lines.push({
-            passengerName: row.passengerName,
-            passengerType: row.passengerType,
-            showName: false,
             itemType: anc.productType as 'Seat' | 'Bag' | 'Product',
             description: anc.description,
             cabinCode: null,
-            seatNumber: null,
             fare:  null,
             tax:   null,
             total: anc.amount > 0 ? anc.amount : null,
@@ -114,22 +100,24 @@ export class InventoryDetailComponent implements OnInit {
           });
         }
       }
-      return { bookingReference: bookingRef, passengerCount: rows.length, lines };
+      const passengerCount = rows[0]?.paxCount ?? rows.length;
+      return { bookingReference: bookingRef, passengerCount, lines };
     });
   });
 
   stats = computed<FlightStats>(() => {
     const orders = this.data()?.orders ?? [];
     const bookingRefs = new Set(orders.map(r => r.bookingReference));
-    let totalFare = 0, totalTax = 0, totalAncillary = 0;
+    let totalFare = 0, totalTax = 0, totalAncillary = 0, passengerCount = 0;
     for (const row of orders) {
+      passengerCount += row.paxCount;
       totalFare      += row.baseFareAmount  ?? 0;
       totalTax       += row.taxAmount       ?? 0;
       totalAncillary += row.ancillaries.reduce((s, a) => s + a.amount, 0);
     }
     return {
       bookingCount:   bookingRefs.size,
-      passengerCount: orders.length,
+      passengerCount,
       totalFare:      Math.round(totalFare      * 100) / 100,
       totalTax:       Math.round(totalTax       * 100) / 100,
       totalAncillary: Math.round(totalAncillary * 100) / 100,
@@ -143,7 +131,7 @@ export class InventoryDetailComponent implements OnInit {
     for (const row of orders) {
       const name = row.fareFamily ?? '(Unknown)';
       const entry = map.get(name) ?? { paxCount: 0, revenue: 0 };
-      entry.paxCount++;
+      entry.paxCount += row.paxCount;
       entry.revenue += (row.baseFareAmount ?? 0) + (row.taxAmount ?? 0);
       map.set(name, entry);
     }
@@ -199,16 +187,6 @@ export class InventoryDetailComponent implements OnInit {
       case 'Bag':     return 'luggage';
       case 'Product': return 'package';
       default:        return 'tag';
-    }
-  }
-
-  ptcLabel(ptc: string | null): string {
-    switch (ptc) {
-      case 'ADT': return 'Adult';
-      case 'CHD': return 'Child';
-      case 'INF': return 'Infant';
-      case 'YTH': return 'Youth';
-      default:    return ptc ?? '';
     }
   }
 

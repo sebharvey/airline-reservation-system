@@ -123,11 +123,9 @@
           <table class="orders-table">
             <thead>
               <tr>
-                <th>Passenger</th>
                 <th>Type</th>
                 <th>Description</th>
                 <th class="text-center">Cabin</th>
-                <th>Seat</th>
                 <th class="text-right">Fare</th>
                 <th class="text-right">Tax</th>
                 <th class="text-right">Total</th>
@@ -138,7 +136,7 @@
 
                 <!-- Group header: booking reference row -->
                 <tr class="group-header-row">
-                  <td colspan="8">
+                  <td colspan="6">
                     <span class="pnr-copy-wrap">
                       <a [routerLink]="['/order', group.bookingReference]" class="booking-ref-link">{{ group.bookingReference }}</a>
                       <button
@@ -161,16 +159,6 @@
                 <!-- One or more line items per passenger in this booking -->
                 @for (line of group.lines; track $index) {
                   <tr class="item-row">
-                    <!-- Passenger name (only shown on first line per pax) -->
-                    <td class="pax-name-cell">
-                      @if (line.showName) {
-                        {{ line.passengerName ?? '—' }}
-                        @if (line.passengerType) {
-                          <span class="ptc-badge">{{ ptcLabel(line.passengerType) }}</span>
-                        }
-                      }
-                    </td>
-
                     <!-- Item type chip -->
                     <td>
                       <span class="item-type" [class]="'item-type-' + line.itemType.toLowerCase()">
@@ -190,9 +178,6 @@
                         <span class="muted">—</span>
                       }
                     </td>
-
-                    <!-- Seat (flight rows only) -->
-                    <td class="mono muted">{{ line.seatNumber ?? '—' }}</td>
 
                     <!-- Amounts -->
                     <td class="text-right mono muted">{{ line.fare !== null ? formatAmount(line.fare, line.currency) : '—' }}</td>

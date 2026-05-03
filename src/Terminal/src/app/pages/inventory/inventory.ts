@@ -1,6 +1,6 @@
 import { LucideAngularModule } from 'lucide-angular';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { InventoryService, FlightInventoryGroup, CabinInventory, DisruptionCancelResponse } from '../../services/inventory.service';
 
@@ -10,7 +10,7 @@ type DisruptionStep = 'action' | 'confirm';
   selector: 'app-inventory',
   templateUrl: './inventory.html',
   styleUrl: './inventory.css',
-  imports: [FormsModule, RouterLink, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule],
 })
 export class InventoryComponent implements OnInit {
   #inventoryService = inject(InventoryService);
