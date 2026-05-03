@@ -357,6 +357,36 @@ When adding a new `DbContext` or a new entity mapping:
 
 ---
 
+## Pre-completion checklist
+
+Run through this checklist before every commit on a backend change.
+
+### NuGet packages
+
+For every type used that belongs to an Azure Functions extension (`TimerTrigger`, `TimerInfo`, `QueueTrigger`, `BlobTrigger`, etc.), confirm the corresponding NuGet package is present in **this project's** `.csproj`. The fact that the type resolves in another microservice is not sufficient — each project declares its own dependencies.
+
+Cross-reference the project that already uses the same extension type and use the same package name and version.
+
+| Extension type | Required NuGet package |
+|---|---|
+| `TimerTrigger`, `TimerInfo` | `Microsoft.Azure.Functions.Worker.Extensions.Timer` |
+| `[BlobTrigger]`, `BlobClient` | `Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs` |
+| `[QueueTrigger]`, `QueueClient` | `Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues` |
+
+A missing package produces a compile-time error locally but can also silently fail at runtime in Azure if the extension is absent from the bundle.
+
+### External HTTP clients
+
+For every new `HttpClient` named registration in `Program.cs`, confirm:
+
+1. The config key (e.g. `AncillaryMs:BaseUrl`) matches an entry in `documentation/service-urls.md`.
+2. No existing registration already covers the same downstream service under a different name.
+3. The base URL in `service-urls.md` is reachable from this service's Azure environment.
+
+Do not invent new service names — always map to the canonical service identifiers listed in `service-urls.md`.
+
+---
+
 ## Cross-References
 
 - **Domain model** — `system-overview.md`: architecture and domain capability model. `design/<domain>.md`: per-domain design, schemas, and flows.
