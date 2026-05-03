@@ -90,7 +90,7 @@ export class AircraftSwapComponent implements OnInit {
     this.flightLoading.set(true);
     try {
       const all = await this.#inventoryService.getFlightInventory(this.departureDate());
-      const found = all.find(f => f.flightNumber === this.flightNumber()) ?? null;
+      const found = [...all.flights, ...all.pinnedFlights].find(f => f.flightNumber === this.flightNumber()) ?? null;
       this.flight.set(found);
       if (found) this.selectedType.set(found.aircraftType);
     } finally {
