@@ -144,49 +144,6 @@ public sealed class OciCheckInHandler
         // All passengers on this segment were already checked in — skip re-persisting to order
         var allAlreadyCheckedIn = newlyCheckedIn.Count == 0 && alreadyCheckedInTickets.Count > 0;
 
-        // Update inventory hold seat for any ticket that received an auto-assigned seat.
-        // Parse inventoryId from orderItems matching the departure airport, then patch each hold.
-        var ticketsWithNewSeat = result.Tickets
-            .Where(t => string.Equals(t.Status, "C", StringComparison.OrdinalIgnoreCase)
-                     && !string.IsNullOrWhiteSpace(t.SeatNumber))
-            .ToList();
-
-        if (ticketsWithNewSeat.Count > 0)
-        {
-            var inventoryId = CheckInHelper.ParseInventoryIdForDeparture(order.OrderData, command.DepartureAirport);
-            if (inventoryId.HasValue)
-            {
-                foreach (var ticketResult in ticketsWithNewSeat)
-                {
-                    if (!paxIdByTicket.TryGetValue(ticketResult.TicketNumber, out var passengerIdStr))
-                        continue;
-                    var passengerId = CheckInHelper.ExtractPaxIdInt(passengerIdStr);
-                    if (passengerId is null) continue;
-
-                    try
-                    {
-                        await _offerServiceClient.UpdateHoldSeatAsync(
-                            inventoryId.Value, order.OrderId, passengerId.Value, ticketResult.SeatNumber!, ct);
-
-                        _logger.LogInformation(
-                            "Updated inventory hold seat to {Seat} for passenger {PassengerId} on inventory {InventoryId}",
-                            ticketResult.SeatNumber, passengerId, inventoryId.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex,
-                            "Failed to update inventory hold seat for passenger {PassengerId} on inventory {InventoryId} — non-fatal",
-                            passengerId, inventoryId.Value);
-                    }
-                }
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "Could not resolve inventoryId for departure {DepartureAirport} on booking {BookingReference} — inventory hold seats not updated",
-                    command.DepartureAirport, command.BookingReference);
-            }
-        }
 
         if (!allAlreadyCheckedIn)
         {
