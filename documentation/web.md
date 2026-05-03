@@ -328,7 +328,21 @@ Follow this workflow when implementing a new feature in the web app:
 
 ## Pre-completion checklist
 
-Run through this checklist before every commit on an Angular change.
+Run through this checklist before every commit on an Angular change. All steps are mandatory — do not commit until every item passes.
+
+### Build verification
+
+Run a production build before committing. This catches TypeScript type errors, missing imports, template binding errors, and broken lazy-loaded routes that are invisible in `ng serve`.
+
+```bash
+# Terminal app
+cd src/Terminal && ng build
+
+# Web app
+cd src/Web && ng build
+```
+
+A clean build produces no errors and exits with code 0. If the build fails, fix all reported errors before committing — do not suppress them with `// @ts-ignore` or `any` casts.
 
 ### Lucide icons (Terminal app)
 
