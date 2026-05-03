@@ -196,13 +196,13 @@ public sealed class AdminManifestFunction
         }
 
         // 3. Update seat on inventory hold so the seatmap reflects the new assignment (best-effort)
-        if (Guid.TryParse(body.OrderId, out var assignOrderId) &&
-            int.TryParse(body.PassengerId, out var assignPassengerId))
+        var assignPaxId = ExtractPaxId(body.PassengerId);
+        if (Guid.TryParse(body.OrderId, out var assignOrderId) && assignPaxId.HasValue)
         {
             try
             {
                 await _offerServiceClient.UpdateHoldSeatAsync(
-                    assignInventoryId, assignOrderId, assignPassengerId, body.SeatNumber!, cancellationToken);
+                    assignInventoryId, assignOrderId, assignPaxId.Value, body.SeatNumber!, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -213,6 +213,16 @@ public sealed class AdminManifestFunction
         _logger.LogInformation("Seat {SeatNumber} assigned for e-ticket {ETicketNumber} on booking {BookingRef}",
             body.SeatNumber, body.ETicketNumber, body.BookingReference);
         return req.CreateResponse(HttpStatusCode.NoContent);
+    }
+
+    // Parses "PAX-1" → 1, matching the INT PassengerId stored on InventoryHold rows.
+    private static int? ExtractPaxId(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        if (id.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(id["PAX-".Length..], out var n))
+            return n;
+        return int.TryParse(id, out n) ? n : null;
     }
 }
 
