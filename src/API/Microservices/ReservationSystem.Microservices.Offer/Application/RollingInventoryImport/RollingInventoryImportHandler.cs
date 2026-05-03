@@ -8,19 +8,21 @@ using ReservationSystem.Microservices.Offer.Domain.Repositories;
 namespace ReservationSystem.Microservices.Offer.Application.RollingInventoryImport;
 
 /// <summary>
-/// Extends the rolling inventory window by importing the next day of flights at the
-/// 1-month boundary. Runs daily via a timer trigger so the system always holds exactly
-/// 1 month of forward inventory.
+/// Extends the rolling inventory window and backfills any missed days.
 ///
 /// Flow:
-///   1. Calculate targetDate = today + 1 month.
-///   2. Fetch all schedules from Schedule MS (accepted anti-pattern for timer triggers).
+///   1. Calculate the window: today through today + 1 month (inclusive).
+///   2. Fetch all schedules from Schedule MS.
 ///   3. Fetch aircraft type configurations from Seat MS.
-///   4. For each schedule valid on targetDate and matching the days-of-week bitmask,
-///      build a BatchFlightItem for that single date.
-///   5. Batch-create inventory in the Offer repository (existing records are skipped).
+///   4. For every date in the window, for each schedule valid on that date and matching
+///      the days-of-week bitmask, build a BatchFlightItem.
+///   5. Batch-create inventory in the Offer repository (existing records are skipped
+///      automatically, so days already populated incur no side-effects).
 ///   6. For each newly created inventory, resolve applicable fare rules from the
 ///      repository and create Fare entities in bulk.
+///
+/// Scanning the full window on every run ensures that any days missed due to prior
+/// failures are backfilled without manual intervention.
 /// </summary>
 public sealed class RollingInventoryImportHandler
 {
@@ -46,12 +48,12 @@ public sealed class RollingInventoryImportHandler
 
     public async Task HandleAsync(CancellationToken ct = default)
     {
-        var targetDate = DateTime.UtcNow.Date.AddMonths(1);
-        var targetDateOnly = DateOnly.FromDateTime(targetDate);
+        var today = DateTime.UtcNow.Date;
+        var windowEnd = today.AddMonths(1);
 
         _logger.LogInformation(
-            "RollingInventoryImport: importing inventory for target date {TargetDate:yyyy-MM-dd}",
-            targetDate);
+            "RollingInventoryImport: scanning window {WindowStart:yyyy-MM-dd} to {WindowEnd:yyyy-MM-dd}",
+            today, windowEnd);
 
         // 1. Fetch all schedules from Schedule MS.
         var schedulesResult = await _scheduleClient.GetSchedulesAsync(ct);
@@ -72,67 +74,63 @@ public sealed class RollingInventoryImportHandler
                 a => (IReadOnlyList<CabinCount>)a.CabinCounts!,
                 StringComparer.OrdinalIgnoreCase);
 
-        // 3. Build flight items for the target date.
-        var dayBit = targetDate.DayOfWeek switch
-        {
-            DayOfWeek.Monday    => 1,
-            DayOfWeek.Tuesday   => 2,
-            DayOfWeek.Wednesday => 4,
-            DayOfWeek.Thursday  => 8,
-            DayOfWeek.Friday    => 16,
-            DayOfWeek.Saturday  => 32,
-            DayOfWeek.Sunday    => 64,
-            _                   => 0
-        };
-
+        // 3. Build flight items for every date in the window.
+        //    Existing records are skipped by BatchCreateInventoryAsync, so days already
+        //    populated are harmless to re-submit — this is what provides the backfill.
         var flightItems = new List<BatchFlightItem>();
 
-        foreach (var schedule in schedulesResult.Schedules)
+        for (var date = today; date <= windowEnd; date = date.AddDays(1))
         {
-            if (!cabinsByAircraftType.TryGetValue(schedule.AircraftType, out var cabins))
+            var dayBit = date.DayOfWeek switch
             {
-                _logger.LogDebug(
-                    "RollingInventoryImport: no cabin config for aircraft type '{AircraftType}' — skipping {FlightNumber}",
-                    schedule.AircraftType, schedule.FlightNumber);
-                continue;
+                DayOfWeek.Monday    => 1,
+                DayOfWeek.Tuesday   => 2,
+                DayOfWeek.Wednesday => 4,
+                DayOfWeek.Thursday  => 8,
+                DayOfWeek.Friday    => 16,
+                DayOfWeek.Saturday  => 32,
+                DayOfWeek.Sunday    => 64,
+                _                   => 0
+            };
+
+            foreach (var schedule in schedulesResult.Schedules)
+            {
+                if (!cabinsByAircraftType.TryGetValue(schedule.AircraftType, out var cabins))
+                    continue;
+
+                var validFrom = DateTime.Parse(schedule.ValidFrom).Date;
+                var validTo = DateTime.Parse(schedule.ValidTo).Date;
+
+                if (date < validFrom || date > validTo)
+                    continue;
+
+                if ((schedule.DaysOfWeek & dayBit) == 0)
+                    continue;
+
+                var cabinItems = cabins
+                    .Select(c => new CabinItem(c.Cabin, c.Count))
+                    .ToList()
+                    .AsReadOnly();
+
+                flightItems.Add(new BatchFlightItem(
+                    schedule.FlightNumber,
+                    date.ToString("yyyy-MM-dd"),
+                    schedule.DepartureTime,
+                    schedule.ArrivalTime,
+                    schedule.ArrivalDayOffset,
+                    schedule.Origin,
+                    schedule.Destination,
+                    schedule.AircraftType,
+                    cabinItems,
+                    schedule.DepartureTimeUtc,
+                    schedule.ArrivalTimeUtc,
+                    schedule.ArrivalDayOffsetUtc));
             }
-
-            var validFrom = DateTime.Parse(schedule.ValidFrom).Date;
-            var validTo = DateTime.Parse(schedule.ValidTo).Date;
-
-            // Skip schedules that don't cover the target date.
-            if (targetDate < validFrom || targetDate > validTo)
-                continue;
-
-            // Skip if this flight doesn't operate on the target day of week.
-            if ((schedule.DaysOfWeek & dayBit) == 0)
-                continue;
-
-            var cabinItems = cabins
-                .Select(c => new CabinItem(c.Cabin, c.Count))
-                .ToList()
-                .AsReadOnly();
-
-            flightItems.Add(new BatchFlightItem(
-                schedule.FlightNumber,
-                targetDate.ToString("yyyy-MM-dd"),
-                schedule.DepartureTime,
-                schedule.ArrivalTime,
-                schedule.ArrivalDayOffset,
-                schedule.Origin,
-                schedule.Destination,
-                schedule.AircraftType,
-                cabinItems,
-                schedule.DepartureTimeUtc,
-                schedule.ArrivalTimeUtc,
-                schedule.ArrivalDayOffsetUtc));
         }
 
         if (flightItems.Count == 0)
         {
-            _logger.LogInformation(
-                "RollingInventoryImport: no flights operate on {TargetDate:yyyy-MM-dd} — nothing to create",
-                targetDate);
+            _logger.LogInformation("RollingInventoryImport: no flights operate in window — nothing to create");
             return;
         }
 
@@ -141,60 +139,68 @@ public sealed class RollingInventoryImportHandler
             new BatchCreateFlightsCommand(flightItems.AsReadOnly()), ct);
 
         _logger.LogInformation(
-            "RollingInventoryImport: inventories created={Created}, skipped={Skipped} for {TargetDate:yyyy-MM-dd}",
-            batchResult.Created.Count, batchResult.SkippedCount, targetDate);
-
-        // 5. Apply fare rules to each newly created inventory.
-        var flightNumbers = batchResult.Created.Select(i => i.FlightNumber).Distinct().ToList();
-        var cabinCodes = batchResult.Created
-            .SelectMany(i => i.Cabins.Select(c => c.CabinCode))
-            .Distinct()
-            .ToList();
+            "RollingInventoryImport: inventories created={Created}, skipped={Skipped} across window {WindowStart:yyyy-MM-dd} to {WindowEnd:yyyy-MM-dd}",
+            batchResult.Created.Count, batchResult.SkippedCount, today, windowEnd);
 
         if (batchResult.Created.Count == 0)
             return;
 
-        var allApplicableRules = await _repository.GetApplicableFareRulesForFlightsAsync(
-            flightNumbers, cabinCodes, targetDateOnly, ct: ct);
-
-        var rulesByCabinAndFlight = allApplicableRules
-            .GroupBy(r => (r.CabinCode, r.FlightNumber))
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<FareRule>)g.ToList().AsReadOnly());
-
+        // 5. Apply fare rules to each newly created inventory, grouped by departure date
+        //    so the correct date-windowed fare rules are resolved for each day.
         var faresToCreate = new List<Fare>();
 
-        foreach (var inventory in batchResult.Created)
+        var createdByDate = batchResult.Created
+            .GroupBy(i => i.DepartureDate)
+            .ToList();
+
+        foreach (var dateGroup in createdByDate)
         {
-            foreach (var cabin in inventory.Cabins)
+            var departureDateOnly = dateGroup.Key;
+            var flightNumbers = dateGroup.Select(i => i.FlightNumber).Distinct().ToList();
+            var cabinCodes = dateGroup
+                .SelectMany(i => i.Cabins.Select(c => c.CabinCode))
+                .Distinct()
+                .ToList();
+
+            var allApplicableRules = await _repository.GetApplicableFareRulesForFlightsAsync(
+                flightNumbers, cabinCodes, departureDateOnly, ct: ct);
+
+            var rulesByCabinAndFlight = allApplicableRules
+                .GroupBy(r => (r.CabinCode, r.FlightNumber))
+                .ToDictionary(g => g.Key, g => (IReadOnlyList<FareRule>)g.ToList().AsReadOnly());
+
+            foreach (var inventory in dateGroup)
             {
-                // Rules scoped to this exact flight + cabin, plus global rules for this cabin.
-                var specificRules = rulesByCabinAndFlight.GetValueOrDefault(
-                    (cabin.CabinCode, inventory.FlightNumber), []);
-                var globalRules = rulesByCabinAndFlight.GetValueOrDefault(
-                    (cabin.CabinCode, null), []);
-
-                foreach (var rule in specificRules.Concat(globalRules))
+                foreach (var cabin in inventory.Cabins)
                 {
-                    var validFrom = rule.ValidFrom ?? DateTimeOffset.UtcNow;
-                    var validTo = rule.ValidTo ?? DateTimeOffset.UtcNow.AddYears(1);
+                    var specificRules = rulesByCabinAndFlight.GetValueOrDefault(
+                        (cabin.CabinCode, inventory.FlightNumber), []);
+                    var globalRules = rulesByCabinAndFlight.GetValueOrDefault(
+                        (cabin.CabinCode, null), []);
 
-                    faresToCreate.Add(Fare.Create(
-                        inventory.InventoryId,
-                        rule.FareBasisCode,
-                        rule.FareFamily,
-                        rule.CabinCode,
-                        rule.BookingClass,
-                        rule.CurrencyCode ?? "GBP",
-                        rule.MinAmount ?? 0m,
-                        rule.GetTotalTaxAmount(),
-                        rule.IsRefundable,
-                        rule.IsChangeable,
-                        rule.ChangeFeeAmount,
-                        rule.CancellationFeeAmount,
-                        rule.RuleType == "Points" ? rule.MinPoints : null,
-                        rule.RuleType == "Points" ? rule.PointsTaxes : null,
-                        validFrom,
-                        validTo));
+                    foreach (var rule in specificRules.Concat(globalRules))
+                    {
+                        var validFrom = rule.ValidFrom ?? DateTimeOffset.UtcNow;
+                        var validTo = rule.ValidTo ?? DateTimeOffset.UtcNow.AddYears(1);
+
+                        faresToCreate.Add(Fare.Create(
+                            inventory.InventoryId,
+                            rule.FareBasisCode,
+                            rule.FareFamily,
+                            rule.CabinCode,
+                            rule.BookingClass,
+                            rule.CurrencyCode ?? "GBP",
+                            rule.MinAmount ?? 0m,
+                            rule.GetTotalTaxAmount(),
+                            rule.IsRefundable,
+                            rule.IsChangeable,
+                            rule.ChangeFeeAmount,
+                            rule.CancellationFeeAmount,
+                            rule.RuleType == "Points" ? rule.MinPoints : null,
+                            rule.RuleType == "Points" ? rule.PointsTaxes : null,
+                            validFrom,
+                            validTo));
+                    }
                 }
             }
         }
@@ -203,8 +209,8 @@ public sealed class RollingInventoryImportHandler
         {
             await _repository.BatchCreateFaresAsync(faresToCreate.AsReadOnly(), ct);
             _logger.LogInformation(
-                "RollingInventoryImport: created {FareCount} fares for {TargetDate:yyyy-MM-dd}",
-                faresToCreate.Count, targetDate);
+                "RollingInventoryImport: created {FareCount} fares for {NewInventoryCount} new inventories",
+                faresToCreate.Count, batchResult.Created.Count);
         }
     }
 }
