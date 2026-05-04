@@ -70,7 +70,11 @@ WITH Staged AS (
         ) AS seg
     JOIN [delivery].[Ticket] t
         ON  t.BookingReference = o.BookingReference
-        AND t.PassengerId      = pax.PassengerId
+        AND t.PassengerId      = CASE
+                                     WHEN pax.PassengerId LIKE 'PAX-%'
+                                     THEN TRY_CAST(SUBSTRING(pax.PassengerId, 5, 20) AS INT)
+                                     ELSE TRY_CAST(pax.PassengerId AS INT)
+                                 END
         AND t.IsVoided         = 0
     CROSS APPLY OPENJSON(JSON_QUERY(t.TicketData, '$.coupons'))
         WITH (

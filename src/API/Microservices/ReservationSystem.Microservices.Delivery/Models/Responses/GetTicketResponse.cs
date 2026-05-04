@@ -8,7 +8,7 @@ public sealed class GetTicketResponse
     [JsonPropertyName("ticketId")] public Guid TicketId { get; init; }
     [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
     [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
-    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public int PassengerId { get; init; }
 
     // ── Stored fare amounts ──────────────────────────────────────────────────────
     [JsonPropertyName("totalFareAmount")] public decimal TotalFareAmount { get; init; }

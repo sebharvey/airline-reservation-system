@@ -11,6 +11,6 @@ public sealed class TicketSummary
 {
     [JsonPropertyName("ticketId")] public Guid TicketId { get; init; }
     [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
-    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public int PassengerId { get; init; }
     [JsonPropertyName("segmentIds")] public List<string> SegmentIds { get; init; } = [];
 }

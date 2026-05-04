@@ -53,7 +53,7 @@ public sealed class WriteManifestHandler
             }
 
             var ticket = tickets.FirstOrDefault(t =>
-                string.Equals(t.PassengerId, entry.PassengerId, StringComparison.OrdinalIgnoreCase) &&
+                t.PassengerId == ParsePassengerId(entry.PassengerId) &&
                 !t.IsVoided);
 
             if (ticket is null)

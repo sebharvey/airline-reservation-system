@@ -12,7 +12,7 @@ public sealed class IssueTicketsRequest
 
 public sealed class PassengerDetail
 {
-    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public int PassengerId { get; init; }
     [JsonPropertyName("givenName")] public string GivenName { get; init; } = string.Empty;
     [JsonPropertyName("surname")] public string Surname { get; init; } = string.Empty;
     [JsonPropertyName("dob")] public string? Dob { get; init; }
@@ -51,7 +51,7 @@ public sealed class SegmentDetail
 
 public sealed class SeatAssignmentDetail
 {
-    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public int PassengerId { get; init; }
     [JsonPropertyName("seatNumber")] public string SeatNumber { get; init; } = string.Empty;
     [JsonPropertyName("positionType")] public string PositionType { get; init; } = string.Empty;
     [JsonPropertyName("deckCode")] public string DeckCode { get; init; } = string.Empty;
@@ -59,7 +59,7 @@ public sealed class SeatAssignmentDetail
 
 public sealed class SsrCodeDetail
 {
-    [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")] public int PassengerId { get; init; }
     [JsonPropertyName("code")] public string Code { get; init; } = string.Empty;
     [JsonPropertyName("description")] public string Description { get; init; } = string.Empty;
     [JsonPropertyName("segmentRef")] public string SegmentRef { get; init; } = string.Empty;

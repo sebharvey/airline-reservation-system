@@ -26,7 +26,7 @@ Each row represents one issued e-ticket: one passenger on one flight segment. Th
 | TicketId | UNIQUEIDENTIFIER | No | NEWID() | PK | |
 | TicketNumber | BIGINT | No | IDENTITY(1000000001,1) | UK | Database-generated auto-increment; the numeric second part of the IATA e-ticket number. The full formatted string (e.g. `932-1000000001`) is assembled at the API layer by prepending the airline accounting code. |
 | BookingReference | CHAR(6) | No | | | e.g. `AB1234` |
-| PassengerId | VARCHAR(20) | No | | | PAX reference from the order, e.g. `PAX-1` |
+| PassengerId | INT | No | | | Numeric PAX identifier from the order (e.g. `PAX-1` → `1`) |
 | IsVoided | BIT | No | `0` | | Set to `1` on voluntary change, cancellation, or IROPS reissuance |
 | VoidedAt | DATETIME2 | Yes | | | Null until voided |
 | TicketData | NVARCHAR(MAX) | No | | | JSON document containing full ticket detail: passenger, fare, payment, per-segment coupon detail, SSR codes, APIS data, seat assignment, change history |

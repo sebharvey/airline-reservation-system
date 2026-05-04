@@ -31,7 +31,7 @@ public sealed class Ticket
     public long TicketNumber { get; private set; }
 
     public string BookingReference { get; private set; } = string.Empty;
-    public string PassengerId { get; private set; } = string.Empty;
+    public int PassengerId { get; private set; }
 
     public bool IsVoided { get; private set; }
     public DateTime? VoidedAt { get; private set; }
@@ -50,7 +50,7 @@ public sealed class Ticket
 
     public static Ticket Create(
         string bookingReference,
-        string passengerId,
+        int passengerId,
         string ticketData = "{}")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bookingReference);
@@ -73,7 +73,7 @@ public sealed class Ticket
 
     public static Ticket Reconstitute(
         Guid ticketId, long ticketNumber, string bookingReference,
-        string passengerId, bool isVoided, DateTime? voidedAt,
+        int passengerId, bool isVoided, DateTime? voidedAt,
         string ticketData, DateTime createdAt, DateTime updatedAt, int version)
     {
         return new Ticket

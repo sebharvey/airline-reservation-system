@@ -43,7 +43,7 @@ public sealed class RebookManifestHandler
         foreach (var (passengerId, eTicketNumber) in command.Passengers)
         {
             var ticket = tickets.LastOrDefault(t =>
-                string.Equals(t.PassengerId, passengerId, StringComparison.OrdinalIgnoreCase)
+                t.PassengerId == ParsePassengerId(passengerId)
                 && !t.IsVoided);
 
             if (ticket is null)

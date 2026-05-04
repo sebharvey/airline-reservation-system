@@ -25,7 +25,7 @@ public sealed class ReissueTicketsHandler
     {
         // Void old tickets. Collect them keyed by PassengerId so the retained coupons and
         // originalIssue data can be merged into the replacement ticket for each passenger.
-        var oldTicketsByPassenger = new Dictionary<string, (string ETicketNumber, Ticket Ticket)?>(StringComparer.OrdinalIgnoreCase);
+        var oldTicketsByPassenger = new Dictionary<int, (string ETicketNumber, Ticket Ticket)?>();
 
         foreach (var eTicketNumber in request.VoidedETicketNumbers)
         {

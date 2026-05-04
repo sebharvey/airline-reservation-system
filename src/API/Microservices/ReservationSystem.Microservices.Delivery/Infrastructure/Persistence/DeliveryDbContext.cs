@@ -28,7 +28,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(t => t.TicketNumber).HasColumnType("bigint").ValueGeneratedOnAdd()
                 .Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
             entity.Property(t => t.BookingReference).HasColumnType("char(6)").HasMaxLength(6).IsRequired();
-            entity.Property(t => t.PassengerId).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
+            entity.Property(t => t.PassengerId).HasColumnType("int").IsRequired();
             entity.Property(t => t.IsVoided).HasColumnType("bit").IsRequired();
             entity.Property(t => t.VoidedAt).HasColumnType("datetime2").IsRequired(false);
             entity.Property(t => t.TicketData).HasColumnType("json").IsRequired();
