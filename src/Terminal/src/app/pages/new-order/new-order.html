@@ -501,24 +501,22 @@
                     </div>
                   }
 
-                  <!-- Slot stepper chips -->
+                  <!-- Slot stepper list -->
                   @if (seatSlots().length > 1) {
-                    <div class="sm-slot-scroll">
+                    <div class="sm-slot-list">
                       @for (slot of seatSlots(); track slot.slotIndex) {
-                        <button class="sm-slot-chip"
-                          [class.sm-slot-chip--current]="getSeatSlotStatus(slot) === 'current'"
-                          [class.sm-slot-chip--done]="getSeatSlotStatus(slot) === 'done'"
-                          [class.sm-slot-chip--pending]="getSeatSlotStatus(slot) === 'pending'"
+                        <button class="sm-slot-row"
+                          [class.sm-slot-row--current]="getSeatSlotStatus(slot) === 'current'"
+                          [class.sm-slot-row--done]="getSeatSlotStatus(slot) === 'done'"
+                          [class.sm-slot-row--pending]="getSeatSlotStatus(slot) === 'pending'"
                           (click)="goToSeatSlot(slot.slotIndex)">
                           <span class="sm-slot-icon">
                             @if (getSeatSlotStatus(slot) === 'done') { <lucide-icon name="check" [size]="10" /> }
                             @else if (getSeatSlotStatus(slot) === 'current') { &#x2022; }
                             @else { &#x25cb; }
                           </span>
-                          <span class="sm-slot-text">
-                            <span class="sm-slot-flight">{{ slot.shortFlightLabel }}</span>
-                            <span class="sm-slot-pax">{{ slot.passengerName }}</span>
-                          </span>
+                          <span class="sm-slot-flight">{{ slot.shortFlightLabel }}</span>
+                          <span class="sm-slot-pax">{{ slot.passengerName }}</span>
                           @if (getSeatSlotSelection(slot); as sel) {
                             <span class="sm-slot-seat">{{ sel.seatOffer.seatNumber }}</span>
                           }
