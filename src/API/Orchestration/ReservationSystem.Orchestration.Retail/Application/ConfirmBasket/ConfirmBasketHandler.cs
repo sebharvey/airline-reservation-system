@@ -962,8 +962,10 @@ public sealed class ConfirmBasketHandler
         {
             var (passengers, segments) = ParseBasketDataForTickets(basketDataJson);
 
+            var segmentIndex = 0;
             foreach (var segment in segments)
             {
+                segmentIndex++;
                 if (!Guid.TryParse(segment.InventoryId, out var inventoryId)) continue;
 
                 var entries = passengers.Select(pax =>
@@ -992,6 +994,7 @@ public sealed class ConfirmBasketHandler
 
                 await _deliveryServiceClient.WriteManifestAsync(
                     bookingReference, orderId, inventoryId,
+                    segmentIndex,
                     segment.FlightNumber,
                     segment.Origin,
                     segment.Destination,
