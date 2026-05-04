@@ -4,8 +4,10 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Orchestration.Operations.Application.AutoAssignSeats;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Operations.Models.Requests;
+using ReservationSystem.Orchestration.Operations.Models.Responses;
 using System.Net;
 
 namespace ReservationSystem.Orchestration.Operations.Functions;
@@ -13,12 +15,17 @@ namespace ReservationSystem.Orchestration.Operations.Functions;
 public sealed class AdminInventoryFunction
 {
     private readonly OfferServiceClient _offerServiceClient;
+    private readonly AutoAssignSeatsHandler _autoAssignSeatsHandler;
     private readonly ILogger<AdminInventoryFunction> _logger;
 
-    public AdminInventoryFunction(OfferServiceClient offerServiceClient, ILogger<AdminInventoryFunction> logger)
+    public AdminInventoryFunction(
+        OfferServiceClient offerServiceClient,
+        AutoAssignSeatsHandler autoAssignSeatsHandler,
+        ILogger<AdminInventoryFunction> logger)
     {
-        _offerServiceClient = offerServiceClient;
-        _logger = logger;
+        _offerServiceClient     = offerServiceClient;
+        _autoAssignSeatsHandler = autoAssignSeatsHandler;
+        _logger                 = logger;
     }
 
     [Function("AdminCancelInventory")]
@@ -64,6 +71,80 @@ public sealed class AdminInventoryFunction
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to cancel inventory for flight {FlightNumber} on {DepartureDate}",
+                request.FlightNumber, request.DepartureDate);
+            return await req.InternalServerErrorAsync();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /v1/admin/flights/{inventoryId}/auto-assign-seats
+    // -------------------------------------------------------------------------
+
+    [Function("AdminAutoAssignSeats")]
+    [OpenApiOperation(operationId: "AdminAutoAssignSeats", tags: new[] { "Admin Inventory" },
+        Summary = "Auto-assign seats to all unassigned confirmed passengers on a flight (staff)")]
+    [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid),
+        Description = "Flight inventory identifier")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(AdminAutoAssignSeatsRequest), Required = true,
+        Description = "flightNumber, departureDate, aircraftType")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json",
+        bodyType: typeof(AdminAutoAssignSeatsResponse),
+        Description = "Auto-assignment complete — counts of assigned and failed outcomes")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest,  Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound,    Description = "Seatmap not found for aircraft type")]
+    public async Task<HttpResponseData> AutoAssignSeats(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post",
+            Route = "v1/admin/flights/{inventoryId:guid}/auto-assign-seats")] HttpRequestData req,
+        Guid inventoryId,
+        CancellationToken cancellationToken)
+    {
+        var (request, error) = await req.TryDeserializeBodyAsync<AdminAutoAssignSeatsRequest>(_logger, cancellationToken);
+        if (error is not null) return error;
+
+        if (string.IsNullOrWhiteSpace(request!.FlightNumber))
+            return await req.BadRequestAsync("'flightNumber' is required.");
+
+        if (string.IsNullOrWhiteSpace(request.DepartureDate) ||
+            !DateOnly.TryParseExact(request.DepartureDate, "yyyy-MM-dd", out _))
+            return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
+
+        if (string.IsNullOrWhiteSpace(request.AircraftType))
+            return await req.BadRequestAsync("'aircraftType' is required.");
+
+        try
+        {
+            var command = new AutoAssignSeatsCommand(
+                inventoryId,
+                request.FlightNumber,
+                request.DepartureDate,
+                request.AircraftType);
+
+            var result = await _autoAssignSeatsHandler.HandleAsync(command, cancellationToken);
+
+            var response = new AdminAutoAssignSeatsResponse
+            {
+                Assigned = result.Assigned,
+                Failed   = result.Failed,
+                Outcomes = result.Outcomes.Select(o => new SeatAssignmentOutcomeResponse
+                {
+                    BookingReference = o.BookingReference,
+                    ETicketNumber    = o.ETicketNumber,
+                    SeatNumber       = o.SeatNumber,
+                    Status           = o.Status,
+                    FailureReason    = o.FailureReason
+                }).ToList()
+            };
+
+            return await req.OkJsonAsync(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return await req.NotFoundAsync(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Auto-assign seats failed for flight {FlightNumber}/{DepartureDate}",
                 request.FlightNumber, request.DepartureDate);
             return await req.InternalServerErrorAsync();
         }

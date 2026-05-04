@@ -36,6 +36,9 @@ public sealed class ManifestEntryDto
 
     [JsonPropertyName("seatPosition")]
     public string? SeatPosition { get; init; } // "Window" | "Aisle" | "Middle"
+
+    [JsonPropertyName("bookingType")]
+    public string BookingType { get; init; } = string.Empty;
 }
 
 public sealed class RebookManifestRequest

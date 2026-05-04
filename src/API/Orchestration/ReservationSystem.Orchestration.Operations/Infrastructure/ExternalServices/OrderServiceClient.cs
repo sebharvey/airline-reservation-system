@@ -164,6 +164,23 @@ public sealed class OrderServiceClient
         }
     }
 
+    /// <summary>
+    /// Updates seat assignments on a confirmed order via Order MS PATCH /v1/orders/{bookingRef}/seats.
+    /// Best-effort — the manifest is the authoritative departure record.
+    /// </summary>
+    public async Task UpdateOrderSeatsPostSaleAsync(string bookingReference, object seatsData, CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(seatsData, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/seats", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order seats for {bookingReference}: {error}");
+        }
+    }
+
     public async Task CancelOrderIropsAsync(string bookingReference, CancelOrderRequest request, CancellationToken ct)
     {
         var json = JsonSerializer.Serialize(request, JsonOptions);

@@ -783,6 +783,113 @@
 .modal-btn-warn:hover:not(:disabled) { background: rgba(210, 153, 34, 0.22); }
 
 .modal-card-warn { width: 420px; }
+.modal-card-wide { width: 620px; }
+
+/* ── Auto-assign button ─────────────────────────────────────────────────── */
+.auto-assign-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--grad-start, #6366f1);
+  text-transform: none;
+  letter-spacing: 0;
+  transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+  margin-left: 4px;
+}
+.auto-assign-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.55);
+}
+.auto-assign-btn:disabled { opacity: 0.45; cursor: default; }
+
+.auto-assign-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.2);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Auto-assign result modal ───────────────────────────────────────────── */
+.auto-assign-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.auto-assign-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.auto-assign-stat-ok  { background: rgba(34, 197, 94, 0.07); border-color: rgba(34, 197, 94, 0.25); }
+.auto-assign-stat-fail { background: rgba(239, 68, 68, 0.07); border-color: rgba(239, 68, 68, 0.25); }
+
+.auto-assign-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+.auto-assign-stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.auto-assign-outcomes-wrap {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.auto-assign-outcomes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.auto-assign-outcomes-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-light);
+  padding: 7px 10px;
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  z-index: 1;
+}
+.auto-assign-outcomes-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.auto-assign-outcomes-table tr:last-child td { border-bottom: none; }
+.auto-assign-row-fail td { background: rgba(239, 68, 68, 0.04); }
 
 .modal-title-warn {
   display: inline-flex;
