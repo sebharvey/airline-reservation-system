@@ -163,6 +163,7 @@ public sealed class ReissuedTicketDto
     [JsonPropertyName("eTicketNumber")]
     public string ETicketNumber { get; init; } = string.Empty;
 
+    [JsonConverter(typeof(PassengerIdAsStringConverter))]
     [JsonPropertyName("passengerId")]
     public string PassengerId { get; init; } = string.Empty;
 }
