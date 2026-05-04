@@ -1,10 +1,12 @@
 # Offer — sequence diagrams
 
-Covers flight search flows: direct (slice) search and connecting flight search. Both paths originate from the Angular web frontend, route through the Retail Orchestration API, and delegate to the Offer microservice.
+Covers flight search flows: direct (slice) search, connecting flight search via LHR hub, and admin-facing search with private fares. Both paths originate from the Angular web frontend (or Terminal app for admin), route through the Retail Orchestration API, and delegate to the Offer microservice.
 
 ---
 
 ## Direct flight search
+
+`SearchFlightsHandler` first attempts a direct search. If no direct results are found and neither endpoint is LHR, it falls back automatically to a connecting search via LHR (see below).
 
 ```mermaid
 sequenceDiagram
@@ -14,18 +16,20 @@ sequenceDiagram
 
     Web->>RetailAPI: POST /v1/search/slice
     Note over Web,RetailAPI: origin, destination, departureDate,<br/>passengers (ADT/CHD/INF), cabinCode
+
     RetailAPI->>OfferMS: POST /api/v1/search
-    Note over RetailAPI,OfferMS: Translates request, queries inventory<br/>and returns priced offers
+    Note over RetailAPI,OfferMS: origin, destination, departureDate,<br/>paxCount, includePrivateFares=false
     OfferMS-->>RetailAPI: FlightSearchResponse (offers with fares, availability)
+
     RetailAPI-->>Web: SliceSearchResponse
     Note over RetailAPI,Web: itineraries[], each with offerId,<br/>price, taxes, cabins, availability
 ```
 
 ---
 
-## Connecting flight search
+## Connecting flight search (via LHR hub)
 
-Two independent searches are executed in parallel against the Offer MS — one for each leg of the connection — then combined with a 60-minute minimum connection time (MCT) validation before returning results.
+When called explicitly at `/v1/search/connecting`, or triggered automatically by the slice handler when no direct service is found, a connecting search is performed. Leg 1 runs first; Leg 2 searches then run in parallel for each unique arrival date returned from Leg 1. A 60-minute minimum connection time (MCT) filter is applied before results are returned.
 
 ```mermaid
 sequenceDiagram
@@ -34,17 +38,43 @@ sequenceDiagram
     participant OfferMS as Offer MS
 
     Web->>RetailAPI: POST /v1/search/connecting
-    Note over Web,RetailAPI: origin, hubAirport, destination,<br/>departureDate, passengers, cabinCode
+    Note over Web,RetailAPI: origin, destination, departureDate,<br/>passengers, cabinCode
 
-    par Leg 1 search
-        RetailAPI->>OfferMS: POST /api/v1/search (origin → hub)
-        OfferMS-->>RetailAPI: Leg 1 offers
-    and Leg 2 search
-        RetailAPI->>OfferMS: POST /api/v1/search (hub → destination)
-        OfferMS-->>RetailAPI: Leg 2 offers
+    RetailAPI->>OfferMS: POST /api/v1/search (origin → LHR)
+    OfferMS-->>RetailAPI: Leg 1 offers (per unique arrival date)
+
+    par Leg 2 searches — parallel per unique arrival date
+        RetailAPI->>OfferMS: POST /api/v1/search (LHR → destination)
+        OfferMS-->>RetailAPI: Leg 2 offers for date 1
+    and
+        RetailAPI->>OfferMS: POST /api/v1/search (LHR → destination)
+        OfferMS-->>RetailAPI: Leg 2 offers for date 2
     end
 
-    Note over RetailAPI: Apply 60-minute MCT validation -<br/>discard incompatible pairings
-    RetailAPI-->>Web: ConnectingSearchResponse
-    Note over RetailAPI,Web: itineraryPairs[], each with<br/>leg1OfferId, leg2OfferId, combinedPrice
+    Note over RetailAPI: Apply 60-minute MCT validation -<br/>discard incompatible leg 1 / leg 2 pairings
+
+    RetailAPI-->>Web: SliceSearchResponse
+    Note over RetailAPI,Web: itineraries[] combining both legs,<br/>each with leg1OfferId, leg2OfferId,<br/>combinedPrice, cabins, availability
+```
+
+---
+
+## Admin (staff) flight search
+
+Staff search uses the same handler logic but sets `includePrivateFares=true` so that private fare tiers are included in results.
+
+```mermaid
+sequenceDiagram
+    participant Terminal as Admin UI / Terminal
+    participant RetailAPI as Retail API
+    participant OfferMS as Offer MS
+
+    Terminal->>RetailAPI: POST /v1/admin/search/slice
+    Note over Terminal,RetailAPI: Same payload as /v1/search/slice
+
+    RetailAPI->>OfferMS: POST /api/v1/search
+    Note over RetailAPI,OfferMS: includePrivateFares=true
+    OfferMS-->>RetailAPI: FlightSearchResponse (including private fares)
+
+    RetailAPI-->>Terminal: SliceSearchResponse
 ```

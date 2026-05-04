@@ -1,12 +1,12 @@
 # Disruption — sequence diagrams
 
-Covers IROPS (Irregular Operations) handling: admin-initiated flight cancellation with automatic rebooking, manual rebook of individual affected orders, and FOS (Flight Operations System) event processing. Aircraft type change and time change are defined but not yet implemented.
+Covers IROPS (Irregular Operations) handling: admin-initiated flight cancellation with automatic rebooking, manual rebook of individual affected orders, and FOS (Flight Operations System) event processing. Flight time change is defined but not yet implemented.
 
 ---
 
 ## Admin — cancel flight and auto-rebook all passengers
 
-The most complex disruption flow. Immediately closes inventory to prevent new bookings, retrieves the manifest to identify affected passengers, fetches replacement availability, then processes each booking in IROPS priority order (cabin class, loyalty tier, booking date).
+The most complex disruption flow. Immediately closes inventory to prevent new bookings, retrieves the manifest to identify affected passengers, fetches replacement availability, then processes each booking in IROPS priority order (cabin class → loyalty tier → booking date).
 
 ```mermaid
 sequenceDiagram
@@ -19,46 +19,53 @@ sequenceDiagram
     Terminal->>OpsAPI: POST /v1/admin/disruption/cancel
     Note over Terminal,OpsAPI: {flightNumber, departureDate, reason?}
 
-    OpsAPI->>OfferMS: POST /api/v1/flights/{flightNumber}/cancel
-    Note over OpsAPI,OfferMS: Immediately closes inventory —<br/>prevents new bookings on cancelled flight
+    OpsAPI->>OfferMS: PATCH /api/v1/inventory/cancel
+    Note over OpsAPI,OfferMS: flightNumber, departureDate —<br/>immediately closes inventory,<br/>prevents new bookings on cancelled flight
     OfferMS-->>OpsAPI: Inventory closed
 
-    OpsAPI->>OfferMS: GET /api/v1/flights/{flightNumber}/{departureDate}
+    OpsAPI->>OfferMS: GET /api/v1/flights/{flightNumber}/inventory?departureDate={date}
     Note over OpsAPI,OfferMS: Retrieve origin + destination for replacement search
     OfferMS-->>OpsAPI: FlightInventory (origin, destination)
 
-    OpsAPI->>DeliveryMS: GET /api/v1/manifest/{flightNumber}/{departureDate}
+    OpsAPI->>DeliveryMS: GET /api/v1/manifest?flightNumber={fn}&departureDate={date}
     Note over OpsAPI,DeliveryMS: Retrieve manifest for indexed orderId lookup
     DeliveryMS-->>OpsAPI: Manifest (entries[]: orderId, passengerId, eTicketNumber)
 
-    OpsAPI->>OrderMS: POST /api/v1/orders/by-ids
+    OpsAPI->>OrderMS: POST /api/v1/orders/irops
     Note over OpsAPI,OrderMS: Batch fetch confirmed orders using<br/>orderIds from manifest (avoids full table scan)
-    OrderMS-->>OpsAPI: AffectedOrders []
+    OrderMS-->>OpsAPI: AffectedOrders[]
 
     Note over OpsAPI: Sort by IROPS priority:<br/>cabin (F→J→W→Y), loyalty tier, booking date
 
-    OpsAPI->>OfferMS: GET /api/v1/flights/availability
-    Note over OpsAPI,OfferMS: origin, destination, departureDate,<br/>lookaheadDays=7,<br/>lightweight read — no fares, no stored offers
+    OpsAPI->>OfferMS: GET /api/v1/flights/availability?origin={o}&destination={d}&fromDate={date}&days=7
+    Note over OpsAPI,OfferMS: Lightweight read — no fares, no stored offers
     OfferMS-->>OpsAPI: AvailabilityResponse (flights × cabins × seats)
 
     loop For each affected order (IROPS priority order)
-        alt Replacement flight found with available seats in same cabin
-            OpsAPI->>OfferMS: POST /api/v1/inventory/{inventoryId}/hold
-            Note over OpsAPI,OfferMS: Hold seats on replacement flight
+        alt Replacement flight found with seats available in same cabin
+            OpsAPI->>OfferMS: POST /api/v1/inventory/hold
+            Note over OpsAPI,OfferMS: inventoryId, cabinCode,<br/>paxCount, orderId
             OfferMS-->>OpsAPI: Held
 
-            OpsAPI->>OrderMS: PATCH /api/v1/orders/{bookingRef}/change
-            Note over OpsAPI,OrderMS: newFlightNumber, newDepartureDate,<br/>inventoryId, reason=IropsRebooking
+            OpsAPI->>OrderMS: PATCH /api/v1/orders/{bookingRef}/rebook
+            Note over OpsAPI,OrderMS: newFlightNumber, newDepartureDate,<br/>newInventoryId, reason=IropsRebooking
             OrderMS-->>OpsAPI: Order updated
 
-            OpsAPI->>DeliveryMS: POST /api/v1/tickets/{eTicketNumber}/void
-            DeliveryMS-->>OpsAPI: Voided
+            OpsAPI->>OfferMS: POST /api/v1/inventory/rebook
+            Note over OpsAPI,OfferMS: Atomic swap — sell replacement,<br/>release original inventory
+            OfferMS-->>OpsAPI: Inventory swapped
+
+            OpsAPI->>DeliveryMS: GET /api/v1/tickets?bookingRef={bookingRef}
+            DeliveryMS-->>OpsAPI: ExistingTickets[]
 
             OpsAPI->>DeliveryMS: POST /api/v1/tickets/reissue
-            Note over OpsAPI,DeliveryMS: reason=IropsRebooking, new segments
+            Note over OpsAPI,DeliveryMS: reason=IropsRebooking,<br/>existingTicketNumbers[], newSegments[]
             DeliveryMS-->>OpsAPI: NewTickets issued
 
-            Note over OpsAPI: Mark replacement seats as sold,<br/>reduce available count in pool
+            OpsAPI->>DeliveryMS: PATCH /api/v1/manifest/{bookingRef}/flight/{oldFlight}/{oldDate}
+            Note over OpsAPI,DeliveryMS: Update manifest to replacement flight
+            DeliveryMS-->>OpsAPI: Manifest updated
+
         else No replacement available
             Note over OpsAPI: Record outcome as NoFlightAvailable,<br/>manual handling required
         end
@@ -70,20 +77,29 @@ sequenceDiagram
 
 ---
 
-## Admin — get affected orders for cancelled flight
+## Admin — get affected orders for disrupted flight
 
-Used to view the disruption passenger list before or after processing, in IROPS priority order.
+Returns all confirmed orders on a flight in IROPS priority order (cabin class → loyalty tier → booking date). Runs two calls in parallel.
 
 ```mermaid
 sequenceDiagram
     participant Terminal as Admin UI
     participant OpsAPI as Operations API
+    participant OfferMS as Offer MS
     participant OrderMS as Order MS
 
     Terminal->>OpsAPI: GET /v1/admin/disruption/orders?flightNumber={fn}&departureDate={date}
-    OpsAPI->>OrderMS: GET /api/v1/orders/affected?flightNumber={fn}&departureDate={date}
-    Note over OpsAPI,OrderMS: Returns confirmed orders sorted by<br/>cabin, loyalty tier, booking date
-    OrderMS-->>OpsAPI: AffectedOrdersResponse
+
+    par
+        OpsAPI->>OfferMS: GET /api/v1/flights/{flightNumber}/inventory?departureDate={date}
+        OfferMS-->>OpsAPI: FlightInventory (origin, destination, status)
+    and
+        OpsAPI->>OrderMS: GET /api/v1/orders?flightNumber={fn}&departureDate={date}&status=Confirmed
+        OrderMS-->>OpsAPI: ConfirmedOrders[]
+    end
+
+    Note over OpsAPI: Sort by IROPS priority:<br/>cabin (F→J→W→Y), loyalty tier, booking date
+
     OpsAPI-->>Terminal: AdminDisruptionOrdersResponse
     Note over OpsAPI,Terminal: orders[]: {bookingReference, passengers,<br/>cabinCode, loyaltyTier, bookingDate}
 ```
@@ -92,41 +108,80 @@ sequenceDiagram
 
 ## Admin — manual rebook of a single order
 
-Allows a staff member to rebook one specific booking onto a chosen replacement flight after the automatic process.
+Allows a staff member to rebook one specific booking onto a chosen replacement flight. Fetches replacement availability, holds a seat, updates the order, performs an atomic inventory swap, reissues tickets, and updates the manifest.
 
 ```mermaid
 sequenceDiagram
     participant Terminal as Admin UI
     participant OpsAPI as Operations API
-    participant OrderMS as Order MS
     participant OfferMS as Offer MS
+    participant OrderMS as Order MS
     participant DeliveryMS as Delivery MS
 
     Terminal->>OpsAPI: POST /v1/admin/disruption/rebook-order
-    Note over Terminal,OpsAPI: {bookingReference,<br/>flightNumber, departureDate, reason?}
+    Note over Terminal,OpsAPI: {bookingReference,<br/>newFlightNumber, newDepartureDate, reason?}
 
-    OpsAPI->>OrderMS: GET /api/v1/orders/{bookingRef}
-    OrderMS-->>OpsAPI: Order (passengers, eTickets, currentSegment)
+    OpsAPI->>OfferMS: GET /api/v1/flights/{newFlightNumber}/inventory?departureDate={newDate}
+    OfferMS-->>OpsAPI: FlightInventory (inventoryId, cabins)
 
-    OpsAPI->>OfferMS: POST /api/v1/inventory/{inventoryId}/hold
-    Note over OpsAPI,OfferMS: Hold seats on chosen replacement flight
+    OpsAPI->>OrderMS: GET /api/v1/orders?flightNumber={origFlight}&departureDate={origDate}&status=Confirmed
+    OrderMS-->>OpsAPI: AffectedOrders (including target bookingRef)
+
+    OpsAPI->>OfferMS: GET /api/v1/flights/availability?origin={o}&destination={d}&fromDate={date}&days=7
+    OfferMS-->>OpsAPI: AvailabilityResponse
+
+    OpsAPI->>OfferMS: POST /api/v1/inventory/hold
+    Note over OpsAPI,OfferMS: inventoryId, cabinCode, paxCount, orderId
     OfferMS-->>OpsAPI: Held
 
-    OpsAPI->>OrderMS: PATCH /api/v1/orders/{bookingRef}/change
-    Note over OpsAPI,OrderMS: reason=IropsRebooking
+    OpsAPI->>OrderMS: PATCH /api/v1/orders/{bookingRef}/rebook
+    Note over OpsAPI,OrderMS: reason=IropsRebooking,<br/>newFlightNumber, newDepartureDate
     OrderMS-->>OpsAPI: Updated
 
-    loop For each original e-ticket
-        OpsAPI->>DeliveryMS: POST /api/v1/tickets/{eTicketNumber}/void
-        DeliveryMS-->>OpsAPI: Voided
+    OpsAPI->>OfferMS: POST /api/v1/inventory/rebook
+    Note over OpsAPI,OfferMS: Atomic swap — sell replacement,<br/>release original inventory
+    OfferMS-->>OpsAPI: Inventory swapped
+
+    alt Hold failed for any leg
+        OpsAPI->>OfferMS: POST /api/v1/inventory/release
+        Note over OpsAPI,OfferMS: Release all held seats
     end
 
+    OpsAPI->>DeliveryMS: GET /api/v1/tickets?bookingRef={bookingRef}
+    DeliveryMS-->>OpsAPI: ExistingTickets[]
+
     OpsAPI->>DeliveryMS: POST /api/v1/tickets/reissue
-    Note over OpsAPI,DeliveryMS: reason=IropsRebooking, new segments
+    Note over OpsAPI,DeliveryMS: reason=IropsRebooking,<br/>existingTicketNumbers[], newSegments[]
     DeliveryMS-->>OpsAPI: New tickets issued
+
+    OpsAPI->>DeliveryMS: PATCH /api/v1/manifest/{bookingRef}/flight/{origFlight}/{origDate}
+    Note over OpsAPI,DeliveryMS: Update manifest to replacement flight
+    DeliveryMS-->>OpsAPI: Manifest updated
 
     OpsAPI-->>Terminal: AdminDisruptionRebookOrderResponse
     Note over OpsAPI,Terminal: {bookingReference, status,<br/>newFlightNumber, newETicketNumbers}
+```
+
+---
+
+## Admin — aircraft type change
+
+Updates the aircraft type on all inventory for a given flight, used when equipment substitution is required.
+
+```mermaid
+sequenceDiagram
+    participant Terminal as Admin UI
+    participant OpsAPI as Operations API
+    participant OfferMS as Offer MS
+
+    Terminal->>OpsAPI: POST /v1/admin/disruption/change
+    Note over Terminal,OpsAPI: {flightNumber, departureDate, newAircraftType}
+
+    OpsAPI->>OfferMS: PATCH /api/v1/inventory/aircraft-type
+    Note over OpsAPI,OfferMS: flightNumber, departureDate, newAircraftType
+    OfferMS-->>OpsAPI: Updated (all inventory on flight updated)
+
+    OpsAPI-->>Terminal: AdminDisruptionChangeResponse
 ```
 
 ---
@@ -173,21 +228,6 @@ sequenceDiagram
 
     Terminal->>OpsAPI: POST /v1/admin/disruption/time
     Note over Terminal,OpsAPI: {flightNumber, departureDate,<br/>newDepartureTime, newArrivalTime, reason?}
-    Note over OpsAPI: Handler not yet implemented —<br/>returns 501 Not Implemented
-    OpsAPI-->>Terminal: 501 Not Implemented
-```
-
----
-
-## Admin — aircraft type change (not yet implemented)
-
-```mermaid
-sequenceDiagram
-    participant Terminal as Admin UI
-    participant OpsAPI as Operations API
-
-    Terminal->>OpsAPI: POST /v1/admin/disruption/change
-    Note over Terminal,OpsAPI: {flightNumber, departureDate,<br/>newAircraftType, reason?}
-    Note over OpsAPI: Handler not yet implemented —<br/>returns 501 Not Implemented
-    OpsAPI-->>Terminal: 501 Not Implemented
+    Note over OpsAPI: Handler not yet implemented —<br/>throws NotImplementedException
+    OpsAPI-->>Terminal: 500 Internal Server Error
 ```
