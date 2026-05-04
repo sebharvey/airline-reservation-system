@@ -698,6 +698,17 @@
     </div>
   }
 
+  <!-- Auto-assign blocking overlay -->
+  @if (autoAssignLoading()) {
+    <div class="auto-assign-overlay">
+      <div class="auto-assign-overlay-card">
+        <span class="auto-assign-overlay-spinner"></span>
+        <span class="auto-assign-overlay-title">Assigning seats…</span>
+        <span class="auto-assign-overlay-sub">Please wait — this may take a few moments</span>
+      </div>
+    </div>
+  }
+
   <!-- Auto-assign seats result modal -->
   @if (autoAssignModalOpen() && autoAssignResult()) {
     <div class="modal-backdrop" (click)="closeAutoAssignModal()">

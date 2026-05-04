@@ -1,120 +1,108 @@
--- =============================================================================
--- Migration: delivery.Ticket.PassengerId  VARCHAR(20) → INT
--- =============================================================================
--- Converts the composite string passenger identifier (e.g. "PAX-1") to a plain
--- integer by extracting the numeric suffix after the last hyphen.
--- Rows where PassengerId cannot be parsed are surfaced and block the migration.
---
--- Safe to re-run: each step is guarded by a sys.columns type check.
--- Run inside a transaction so a failed parse rolls back cleanly.
--- =============================================================================
-
-SET NOCOUNT ON;
-GO
-
 BEGIN TRANSACTION;
-BEGIN TRY
 
-    -- -------------------------------------------------------------------------
-    -- Step 1: nothing to do if column is already INT
-    -- -------------------------------------------------------------------------
-    IF EXISTS (
-        SELECT 1
-        FROM   sys.columns c
-        JOIN   sys.types   t ON t.user_type_id = c.user_type_id
-        WHERE  c.object_id = OBJECT_ID('[delivery].[Ticket]')
-          AND  c.name      = 'PassengerId'
-          AND  t.name      = 'int'
-    )
-    BEGIN
-        PRINT 'PassengerId is already INT — nothing to do.';
-        ROLLBACK TRANSACTION;
-        RETURN;
-    END
+-- 1. Clear the manifest
+DELETE FROM [delivery].[Manifest];
 
-    -- -------------------------------------------------------------------------
-    -- Step 2: verify the column is the expected VARCHAR type before proceeding
-    -- -------------------------------------------------------------------------
-    IF NOT EXISTS (
-        SELECT 1
-        FROM   sys.columns c
-        JOIN   sys.types   t ON t.user_type_id = c.user_type_id
-        WHERE  c.object_id = OBJECT_ID('[delivery].[Ticket]')
-          AND  c.name      = 'PassengerId'
-          AND  t.name      IN ('varchar', 'nvarchar', 'char', 'nchar')
-    )
-    BEGIN
-        RAISERROR('PassengerId column has an unexpected type — migration aborted.', 16, 1);
-    END
+-- 2. Re-seed — one row per passenger × per FLIGHT segment, driven by order.Order
+--    Duplicate seat assignments are nulled out (first ticket wins; agent reassigns the rest)
+WITH Staged AS (
+    SELECT
+        t.TicketId,
+        o.OrderId,
+        TRY_CAST(seg.InventoryId AS UNIQUEIDENTIFIER)                AS InventoryId,
+        seg.FlightNumber,
+        seg.Origin,
+        seg.Destination,
+        seg.DepartureDate,
+        seg.AircraftType,
+        NULLIF(c.Seat, '')                                           AS SeatNumber,
+        seg.CabinCode,
+        o.BookingReference,
+        '932-' + CAST(t.TicketNumber AS VARCHAR(20))                 AS ETicketNumber,
+        CASE
+            WHEN pax.PassengerId LIKE 'PAX-%'
+            THEN TRY_CAST(SUBSTRING(pax.PassengerId, 5, 20) AS INT)
+            ELSE 0
+        END                                                          AS PassengerId,
+        c.CouponNumber                                               AS SegmentId,
+        pax.GivenName,
+        pax.Surname,
+        CAST(seg.DepartureTime AS TIME)                              AS DepartureTime,
+        CAST(seg.ArrivalTime   AS TIME)                              AS ArrivalTime,
+        'Confirmed'                                                  AS BookingType,
+        (
+            SELECT '[' + STRING_AGG('"' + JSON_VALUE(si.[value], '$.ssrCode') + '"', ',') + ']'
+            FROM OPENJSON(o.OrderData, '$.orderItems') AS si
+            WHERE JSON_VALUE(si.[value], '$.productType') = 'SERVICE'
+              AND JSON_VALUE(si.[value], '$.passengerRef') = pax.PassengerId
+              AND JSON_VALUE(si.[value], '$.segmentRef')   = seg.InventoryId
+        )                                                            AS SsrCodes,
+        pax.Gender,
+        TRY_CAST(pax.Dob AS DATE)                                   AS DateOfBirth,
+        pax.PtcCode,
+        -- rank duplicate seat+inventory assignments; first ticket wins
+        ROW_NUMBER() OVER (
+            PARTITION BY TRY_CAST(seg.InventoryId AS UNIQUEIDENTIFIER), NULLIF(c.Seat, '')
+            ORDER BY t.TicketNumber
+        )                                                            AS SeatRank
+    FROM [order].[Order] o
+    CROSS APPLY OPENJSON(JSON_QUERY(o.OrderData, '$.dataLists.passengers'))
+        WITH (
+            PassengerId VARCHAR(20)  '$.passengerId',
+            GivenName   VARCHAR(100) '$.givenName',
+            Surname     VARCHAR(100) '$.surname',
+            Dob         VARCHAR(10)  '$.dob',
+            Gender      CHAR(1)      '$.gender',
+            PtcCode     VARCHAR(10)  '$.type'
+        ) AS pax
+    CROSS APPLY OPENJSON(JSON_QUERY(o.OrderData, '$.orderItems'))
+        WITH (
+            ProductType   VARCHAR(20) '$.productType',
+            InventoryId   VARCHAR(36) '$.inventoryId',
+            FlightNumber  VARCHAR(10) '$.flightNumber',
+            CabinCode     CHAR(1)     '$.cabinCode',
+            DepartureDate DATE        '$.departureDate',
+            DepartureTime VARCHAR(5)  '$.departureTime',
+            ArrivalTime   VARCHAR(5)  '$.arrivalTime',
+            Origin        CHAR(3)     '$.origin',
+            Destination   CHAR(3)     '$.destination',
+            AircraftType  VARCHAR(4)  '$.aircraftType'
+        ) AS seg
+    JOIN [delivery].[Ticket] t
+        ON  t.BookingReference = o.BookingReference
+        AND t.PassengerId      = CASE
+                                     WHEN pax.PassengerId LIKE 'PAX-%'
+                                     THEN TRY_CAST(SUBSTRING(pax.PassengerId, 5, 20) AS INT)
+                                     ELSE TRY_CAST(pax.PassengerId AS INT)
+                                 END
+        AND t.IsVoided         = 0
+    CROSS APPLY OPENJSON(JSON_QUERY(t.TicketData, '$.coupons'))
+        WITH (
+            CouponNumber  INT         '$.couponNumber',
+            FlightNumber  VARCHAR(10) '$.marketing.flightNumber',
+            DepartureDate DATE        '$.departureDate',
+            Seat          VARCHAR(5)  '$.seat'
+        ) AS c
+    WHERE o.OrderStatus   = 'Confirmed'
+      AND seg.ProductType = 'FLIGHT'
+      AND seg.InventoryId IS NOT NULL
+      AND c.FlightNumber  = seg.FlightNumber
+      AND c.DepartureDate = seg.DepartureDate
+)
+INSERT INTO [delivery].[Manifest]
+    (TicketId, OrderId, InventoryId, FlightNumber, Origin, Destination,
+     DepartureDate, AircraftType, SeatNumber, CabinCode,
+     BookingReference, ETicketNumber, PassengerId, SegmentId,
+     GivenName, Surname, DepartureTime, ArrivalTime,
+     BookingType, SsrCodes, Gender, DateOfBirth, PtcCode)
+SELECT
+    TicketId, OrderId, InventoryId, FlightNumber, Origin, Destination,
+    DepartureDate, AircraftType,
+    -- null out the seat for any duplicate assignment; agent reassigns manually
+    CASE WHEN SeatRank = 1 THEN SeatNumber ELSE NULL END             AS SeatNumber,
+    CabinCode, BookingReference, ETicketNumber, PassengerId, SegmentId,
+    GivenName, Surname, DepartureTime, ArrivalTime,
+    BookingType, SsrCodes, Gender, DateOfBirth, PtcCode
+FROM Staged;
 
-    -- -------------------------------------------------------------------------
-    -- Step 3: add a staging column to hold the converted integers
-    -- -------------------------------------------------------------------------
-    IF NOT EXISTS (
-        SELECT 1 FROM sys.columns
-        WHERE  object_id = OBJECT_ID('[delivery].[Ticket]')
-          AND  name      = 'PassengerIdInt'
-    )
-    BEGIN
-        ALTER TABLE [delivery].[Ticket] ADD PassengerIdInt INT NULL;
-        PRINT 'Added staging column PassengerIdInt.';
-    END
-
-    -- -------------------------------------------------------------------------
-    -- Step 4: migrate data
-    --   "PAX-1"  → 1      (extract suffix after last hyphen)
-    --   "1"      → 1      (already numeric, no hyphen)
-    --   unparseable → NULL (TRY_CAST absorbs bad values; surfaced and rejected below)
-    -- -------------------------------------------------------------------------
-    UPDATE [delivery].[Ticket]
-    SET    PassengerIdInt =
-               CASE
-                   WHEN CHARINDEX('-', PassengerId) > 0 THEN
-                       TRY_CAST(
-                           REVERSE(LEFT(REVERSE(PassengerId),
-                                        CHARINDEX('-', REVERSE(PassengerId)) - 1))
-                           AS INT)
-                   ELSE
-                       TRY_CAST(PassengerId AS INT)
-               END;
-
-    DECLARE @Migrated INT = @@ROWCOUNT;
-    DECLARE @Nulled   INT = (SELECT COUNT(*) FROM [delivery].[Ticket]
-                             WHERE PassengerIdInt IS NULL);
-
-    PRINT CONCAT('Rows updated: ', @Migrated,
-                 ' — rows where parse failed: ', @Nulled);
-
-    IF @Nulled > 0
-    BEGIN
-        SELECT TicketId, PassengerId AS UnparseableValue
-        FROM   [delivery].[Ticket]
-        WHERE  PassengerIdInt IS NULL;
-
-        RAISERROR('%d row(s) could not be parsed — see result set above. Migration aborted.', 16, 1, @Nulled);
-    END
-
-    -- -------------------------------------------------------------------------
-    -- Step 5: drop the old VARCHAR column
-    -- -------------------------------------------------------------------------
-    ALTER TABLE [delivery].[Ticket] DROP COLUMN PassengerId;
-    PRINT 'Dropped old PassengerId VARCHAR column.';
-
-    -- -------------------------------------------------------------------------
-    -- Step 6: rename the staging column to PassengerId
-    -- -------------------------------------------------------------------------
-    EXEC sp_rename 'delivery.Ticket.PassengerIdInt', 'PassengerId', 'COLUMN';
-    PRINT 'Renamed PassengerIdInt → PassengerId.';
-
-    COMMIT TRANSACTION;
-    PRINT 'Migration completed successfully.';
-
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-    DECLARE @Msg  NVARCHAR(4000) = ERROR_MESSAGE();
-    DECLARE @Sev  INT            = ERROR_SEVERITY();
-    DECLARE @St   INT            = ERROR_STATE();
-    RAISERROR(@Msg, @Sev, @St);
-END CATCH
-GO
+COMMIT TRANSACTION;

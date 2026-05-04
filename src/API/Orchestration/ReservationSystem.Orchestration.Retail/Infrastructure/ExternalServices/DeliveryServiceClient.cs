@@ -191,6 +191,7 @@ public sealed class DeliveryServiceClient
         string bookingReference,
         Guid orderId,
         Guid inventoryId,
+        int segmentId,
         string flightNumber,
         string origin,
         string destination,
@@ -202,7 +203,7 @@ public sealed class DeliveryServiceClient
         List<ManifestPassengerEntry> entries,
         CancellationToken ct)
     {
-        var payload = new { bookingReference, orderId, inventoryId, flightNumber, origin, destination, departureDate, aircraftType, departureTime, arrivalTime, bookingType, entries };
+        var payload = new { bookingReference, orderId, inventoryId, segmentId, flightNumber, origin, destination, departureDate, aircraftType, departureTime, arrivalTime, bookingType, entries };
         using var response = await _httpClient.PostAsJsonAsync("/api/v1/manifest", payload, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {

@@ -90,7 +90,7 @@ public sealed class WriteManifestHandler
                 arrivalTime:     arrivalTime,
                 bookingType:     request.BookingType,
                 ssrCodes:        ssrCodesJson,
-                gender:          entry.Gender,
+                gender:          NormaliseGender(entry.Gender),
                 dateOfBirth:     DateOnly.TryParse(entry.DateOfBirth, out var dob) ? dob : null,
                 ptcCode:         entry.PtcCode);
 
@@ -104,6 +104,15 @@ public sealed class WriteManifestHandler
 
         return new WriteManifestResponse { Written = written, Skipped = skipped };
     }
+
+    // Collapses any gender string to the single-char M/F/U required by the DB CHAR(1) column
+    private static string? NormaliseGender(string? gender) => gender?.Trim().ToUpperInvariant() switch
+    {
+        "M" or "MALE"   => "M",
+        "F" or "FEMALE" => "F",
+        null or ""      => null,
+        _               => "U"
+    };
 
     // Converts "PAX-1" → 1; falls back to 0 for unrecognised formats
     private static int ParsePassengerId(string passengerId)
