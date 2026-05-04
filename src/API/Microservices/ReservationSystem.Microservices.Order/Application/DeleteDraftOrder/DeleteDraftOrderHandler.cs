@@ -5,8 +5,8 @@ namespace ReservationSystem.Microservices.Order.Application.DeleteDraftOrder;
 
 /// <summary>
 /// Handles the <see cref="DeleteDraftOrderCommand"/>.
-/// Deletes a single Draft order by ID. Only Draft orders may be deleted via this handler;
-/// confirmed or cancelled orders are not affected.
+/// Deletes an order by ID regardless of status. Used for draft clean-up and rollback
+/// of confirmed orders when post-confirmation steps (e.g. ticket issuance) fail.
 /// </summary>
 public sealed class DeleteDraftOrderHandler
 {
@@ -21,17 +21,17 @@ public sealed class DeleteDraftOrderHandler
         _logger = logger;
     }
 
-    /// <returns><c>true</c> if the order was found and deleted; <c>false</c> if not found or not in Draft status.</returns>
+    /// <returns><c>true</c> if the order was found and deleted; <c>false</c> if not found.</returns>
     public async Task<bool> HandleAsync(DeleteDraftOrderCommand command, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Deleting draft order {OrderId}", command.OrderId);
+        _logger.LogInformation("Deleting order {OrderId}", command.OrderId);
 
-        var deleted = await _repository.DeleteDraftOrderAsync(command.OrderId, cancellationToken);
+        var deleted = await _repository.DeleteOrderAsync(command.OrderId, cancellationToken);
 
         if (deleted)
-            _logger.LogInformation("Draft order {OrderId} deleted", command.OrderId);
+            _logger.LogInformation("Order {OrderId} deleted", command.OrderId);
         else
-            _logger.LogWarning("Draft order {OrderId} not found or not in Draft status — nothing deleted", command.OrderId);
+            _logger.LogWarning("Order {OrderId} not found — nothing deleted", command.OrderId);
 
         return deleted;
     }

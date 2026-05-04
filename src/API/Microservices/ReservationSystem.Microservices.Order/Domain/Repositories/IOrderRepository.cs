@@ -24,5 +24,7 @@ public interface IOrderRepository
 
     Task<bool> DeleteDraftOrderAsync(Guid orderId, CancellationToken cancellationToken = default);
 
+    Task<bool> DeleteOrderAsync(Guid orderId, CancellationToken cancellationToken = default);
+
     Task<int> DeleteExpiredDraftOrdersAsync(CancellationToken cancellationToken = default);
 }
