@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using ReservationSystem.Microservices.Delivery.Models.Converters;
 
 namespace ReservationSystem.Microservices.Delivery.Models.Requests;
 
@@ -12,6 +13,7 @@ public sealed class IssueTicketsRequest
 
 public sealed class PassengerDetail
 {
+    [JsonConverter(typeof(PassengerIdJsonConverter))]
     [JsonPropertyName("passengerId")] public int PassengerId { get; init; }
     [JsonPropertyName("givenName")] public string GivenName { get; init; } = string.Empty;
     [JsonPropertyName("surname")] public string Surname { get; init; } = string.Empty;
@@ -51,6 +53,7 @@ public sealed class SegmentDetail
 
 public sealed class SeatAssignmentDetail
 {
+    [JsonConverter(typeof(PassengerIdJsonConverter))]
     [JsonPropertyName("passengerId")] public int PassengerId { get; init; }
     [JsonPropertyName("seatNumber")] public string SeatNumber { get; init; } = string.Empty;
     [JsonPropertyName("positionType")] public string PositionType { get; init; } = string.Empty;
@@ -59,6 +62,7 @@ public sealed class SeatAssignmentDetail
 
 public sealed class SsrCodeDetail
 {
+    [JsonConverter(typeof(PassengerIdJsonConverter))]
     [JsonPropertyName("passengerId")] public int PassengerId { get; init; }
     [JsonPropertyName("code")] public string Code { get; init; } = string.Empty;
     [JsonPropertyName("description")] public string Description { get; init; } = string.Empty;

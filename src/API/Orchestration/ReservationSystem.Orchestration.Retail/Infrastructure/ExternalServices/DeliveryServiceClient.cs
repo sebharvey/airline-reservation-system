@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Shared.Common.Http;
 
 namespace ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
@@ -222,6 +223,7 @@ public sealed class IssuedTicket
     [JsonPropertyName("eTicketNumber")]
     public string ETicketNumber { get; init; } = string.Empty;
 
+    [JsonConverter(typeof(PassengerIdAsStringConverter))]
     [JsonPropertyName("passengerId")]
     public string PassengerId { get; init; } = string.Empty;
 
@@ -396,6 +398,7 @@ public sealed class AdminTicketRecord
     [JsonPropertyName("ticketId")] public string TicketId { get; init; } = string.Empty;
     [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;
     [JsonPropertyName("bookingReference")] public string BookingReference { get; init; } = string.Empty;
+    [JsonConverter(typeof(PassengerIdAsStringConverter))]
     [JsonPropertyName("passengerId")] public string PassengerId { get; init; } = string.Empty;
     [JsonPropertyName("isVoided")] public bool IsVoided { get; init; }
     [JsonPropertyName("voidedAt")] public DateTime? VoidedAt { get; init; }
