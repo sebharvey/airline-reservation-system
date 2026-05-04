@@ -1,6 +1,6 @@
 # Customer — sequence diagrams
 
-Covers loyalty customer profile management, points transactions, preferences, and points redemption authorisation. All flows originate from the Angular web frontend through the Loyalty Orchestration API.
+Covers loyalty customer profile management, points transactions, preferences, and account operations. All flows originate from the Angular web frontend through the Loyalty Orchestration API.
 
 ---
 
@@ -82,8 +82,9 @@ sequenceDiagram
     participant CustomerMS as Customer MS
 
     Web->>LoyaltyAPI: GET /v1/customers/{loyaltyNumber}/transactions
-    LoyaltyAPI->>CustomerMS: GET /api/v1/customers/{loyaltyNumber}/transactions
-    CustomerMS-->>LoyaltyAPI: TransactionsResponse
+    Note over Web,LoyaltyAPI: Optional: page, pageSize
+    LoyaltyAPI->>CustomerMS: GET /api/v1/customers/{loyaltyNumber}/transactions?page={p}&pageSize={ps}
+    CustomerMS-->>LoyaltyAPI: TransactionsResponse (paginated)
     LoyaltyAPI-->>Web: [LoyaltyTransaction]
     Note over LoyaltyAPI,Web: [{transactionId, type (Earn/Redeem/Expire),<br/>points, description, transactedAt}]
 ```
@@ -109,7 +110,7 @@ sequenceDiagram
 
 ## Transfer points
 
-The recipient loyalty number and email are cross-validated before the transfer executes to prevent misdirected transfers.
+The recipient loyalty number and email are cross-validated against the Identity MS before the transfer executes, preventing misdirected transfers.
 
 ```mermaid
 sequenceDiagram
@@ -128,10 +129,10 @@ sequenceDiagram
     Note over LoyaltyAPI,IdentityMS: Verify recipient email matches<br/>registered identity email
     IdentityMS-->>LoyaltyAPI: IdentityAccount (email)
 
-    Note over LoyaltyAPI: Validate email match - throw if mismatch
+    Note over LoyaltyAPI: Validate email match — throw if mismatch
 
-    LoyaltyAPI->>CustomerMS: POST /api/v1/customers/points/transfer
-    Note over LoyaltyAPI,CustomerMS: {senderLoyaltyNumber,<br/>recipientLoyaltyNumber, points}
+    LoyaltyAPI->>CustomerMS: POST /api/v1/customers/{loyaltyNumber}/points/transfer
+    Note over LoyaltyAPI,CustomerMS: {recipientLoyaltyNumber, points}
     CustomerMS-->>LoyaltyAPI: TransferResult
 
     LoyaltyAPI-->>Web: TransferPointsResponse
@@ -142,67 +143,82 @@ sequenceDiagram
 
 ## Delete account
 
+Deletes the customer loyalty record only. The associated Identity MS account is not deleted by this flow.
+
 ```mermaid
 sequenceDiagram
     participant Web
     participant LoyaltyAPI as Loyalty API
     participant CustomerMS as Customer MS
-    participant IdentityMS as Identity MS
 
     Web->>LoyaltyAPI: DELETE /v1/customers/{loyaltyNumber}/account
     Note over Web,LoyaltyAPI: Bearer token in Authorization header
     LoyaltyAPI->>CustomerMS: DELETE /api/v1/customers/{loyaltyNumber}
     CustomerMS-->>LoyaltyAPI: Customer record deleted
-    LoyaltyAPI->>IdentityMS: DELETE /api/v1/accounts/{identityId}
-    IdentityMS-->>LoyaltyAPI: Identity account deleted
     LoyaltyAPI-->>Web: 204 No Content
 ```
 
 ---
 
-## Points accrual (post-booking, internal)
+## Link order to loyalty account (post-booking, internal)
 
-Called from within `ConfirmBasketHandler` for revenue bookings where the customer is loyalty-enrolled. Not triggered directly by the web frontend.
-
-```mermaid
-sequenceDiagram
-    participant RetailAPI as Retail API
-    participant CustomerMS as Customer MS
-
-    RetailAPI->>CustomerMS: POST /api/v1/customers/{loyaltyNumber}/points
-    Note over RetailAPI,CustomerMS: {bookingReference, points,<br/>transactionType=Earn,<br/>description=Revenue booking accrual}
-    CustomerMS-->>RetailAPI: Points recorded
-```
-
----
-
-## Points reinstatement (post-cancellation, internal)
-
-Called from within `CancelOrderHandler` for reward bookings.
+Called from within `ConfirmBasketHandler` for any booking where a loyalty number is present (both revenue and reward bookings).
 
 ```mermaid
 sequenceDiagram
     participant RetailAPI as Retail API
     participant CustomerMS as Customer MS
 
-    RetailAPI->>CustomerMS: POST /api/v1/customers/{loyaltyNumber}/points/reinstate
-    Note over RetailAPI,CustomerMS: {points, reason=VoluntaryCancellation}
-    CustomerMS-->>RetailAPI: Points reinstated
+    RetailAPI->>CustomerMS: POST /api/v1/customers/{loyaltyNumber}/orders
+    Note over RetailAPI,CustomerMS: {bookingReference, orderId}
+    CustomerMS-->>RetailAPI: Order linked to loyalty account
 ```
 
 ---
 
-## Admin — customer search and lookup
+## Sign-up bonus points award (registration, internal)
+
+Called from within `RegisterHandler` after account creation.
+
+```mermaid
+sequenceDiagram
+    participant LoyaltyAPI as Loyalty API
+    participant CustomerMS as Customer MS
+
+    LoyaltyAPI->>CustomerMS: POST /api/v1/customers/{loyaltyNumber}/points/add
+    Note over LoyaltyAPI,CustomerMS: {points=1500,<br/>transactionType=Earn,<br/>description=Sign up bonus}
+    CustomerMS-->>LoyaltyAPI: Points awarded
+```
+
+---
+
+## Admin — customer search
+
+Staff search uses both a name/loyalty-number lookup and, if the search term contains `@`, a parallel email lookup via the Identity MS. Email results are merged with name results and prioritised.
 
 ```mermaid
 sequenceDiagram
     participant Terminal as Contact Centre / Admin UI
     participant LoyaltyAPI as Loyalty API
     participant CustomerMS as Customer MS
+    participant IdentityMS as Identity MS
 
-    Terminal->>LoyaltyAPI: GET /v1/customers?search={query}
-    LoyaltyAPI->>CustomerMS: GET /api/v1/customers?search={query}
-    CustomerMS-->>LoyaltyAPI: CustomerSearchResponse
-    LoyaltyAPI-->>Terminal: [CustomerSummary]
-    Note over LoyaltyAPI,Terminal: [{loyaltyNumber, givenName,<br/>surname, email, tier}]
+    Terminal->>LoyaltyAPI: POST /v1/customers/search
+    Note over Terminal,LoyaltyAPI: {searchTerm}
+
+    par Name and loyalty number search
+        LoyaltyAPI->>CustomerMS: POST /api/v1/customers/search
+        Note over LoyaltyAPI,CustomerMS: Contains match on name,<br/>exact match on loyalty number
+        CustomerMS-->>LoyaltyAPI: CustomerSearchResponse (up to 50 results)
+    and Email search (if searchTerm contains @)
+        LoyaltyAPI->>IdentityMS: GET /api/v1/accounts/by-email/{email}
+        IdentityMS-->>LoyaltyAPI: IdentityAccount (userAccountId)
+        LoyaltyAPI->>CustomerMS: GET /api/v1/customers/by-identity/{userAccountId}
+        CustomerMS-->>LoyaltyAPI: CustomerProfile
+    end
+
+    Note over LoyaltyAPI: Merge results — email result prioritised
+
+    LoyaltyAPI-->>Terminal: [CustomerSummaryResponse]
+    Note over LoyaltyAPI,Terminal: [{loyaltyNumber, givenName,<br/>surname, tier, pointsBalance, isActive}]
 ```

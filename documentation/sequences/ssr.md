@@ -79,12 +79,12 @@ sequenceDiagram
 
     Terminal->>AdminAPI: PUT /v1/admin/ssr/{ssrCode}
     Note over Terminal,AdminAPI: {label, category}
-    AdminAPI->>OrderMS: PUT /api/v1/ssr/{ssrCode}
+    AdminAPI->>OrderMS: PUT /api/v1/ssr/options/{ssrCode}
     OrderMS-->>AdminAPI: Updated SsrOption
     AdminAPI-->>Terminal: SsrOptionResponse
 
     Terminal->>AdminAPI: DELETE /v1/admin/ssr/{ssrCode}
-    AdminAPI->>OrderMS: DELETE /api/v1/ssr/{ssrCode}
+    AdminAPI->>OrderMS: DELETE /api/v1/ssr/options/{ssrCode}
     OrderMS-->>AdminAPI: 204 No Content
     AdminAPI-->>Terminal: 204 No Content
 ```

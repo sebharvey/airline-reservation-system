@@ -30,6 +30,27 @@ sequenceDiagram
 
 ---
 
+## Token refresh
+
+Refresh tokens are single-use. Each refresh issues a new access token and a new refresh token.
+
+```mermaid
+sequenceDiagram
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant IdentityMS as Identity MS
+
+    Web->>LoyaltyAPI: POST /v1/auth/refresh
+    Note over Web,LoyaltyAPI: {refreshToken}
+    LoyaltyAPI->>IdentityMS: POST /api/v1/auth/refresh
+    Note over LoyaltyAPI,IdentityMS: Validates refresh token,<br/>rotates to new token pair
+    IdentityMS-->>LoyaltyAPI: {accessToken, refreshToken, expiresAt}
+    LoyaltyAPI-->>Web: RefreshTokenResponse
+    Note over LoyaltyAPI,Web: {accessToken, refreshToken, expiresAt}
+```
+
+---
+
 ## Loyalty member logout
 
 ```mermaid
@@ -39,9 +60,9 @@ sequenceDiagram
     participant IdentityMS as Identity MS
 
     Web->>LoyaltyAPI: POST /v1/auth/logout
-    Note over Web,LoyaltyAPI: Bearer token in Authorization header
+    Note over Web,LoyaltyAPI: {refreshToken}
     LoyaltyAPI->>IdentityMS: POST /api/v1/auth/logout
-    Note over LoyaltyAPI,IdentityMS: Revoke/invalidate tokens
+    Note over LoyaltyAPI,IdentityMS: Revoke refresh token
     IdentityMS-->>LoyaltyAPI: 204 No Content
     LoyaltyAPI-->>Web: 204 No Content
     Note over Web: Clear LoyaltyStateService (tokens, profile)
@@ -60,7 +81,7 @@ sequenceDiagram
     Web->>LoyaltyAPI: POST /v1/auth/password/reset-request
     Note over Web,LoyaltyAPI: {email}
     LoyaltyAPI->>IdentityMS: POST /api/v1/auth/password/reset-request
-    Note over LoyaltyAPI,IdentityMS: Sends one-time reset code to email
+    Note over LoyaltyAPI,IdentityMS: Sends one-time reset token to email
     IdentityMS-->>LoyaltyAPI: 204 No Content
     LoyaltyAPI-->>Web: 204 No Content
 ```
@@ -76,7 +97,7 @@ sequenceDiagram
     participant IdentityMS as Identity MS
 
     Web->>LoyaltyAPI: POST /v1/auth/password/reset
-    Note over Web,LoyaltyAPI: {email, resetToken, newPassword}
+    Note over Web,LoyaltyAPI: {token, newPassword}
     LoyaltyAPI->>IdentityMS: POST /api/v1/auth/password/reset
     Note over LoyaltyAPI,IdentityMS: Validates token and updates password
     IdentityMS-->>LoyaltyAPI: 204 No Content
@@ -85,32 +106,41 @@ sequenceDiagram
 
 ---
 
-## Email change
+## Email change request
 
-The email change flow involves a request step (sends verification to the new address) and a confirmation step (verifies the token and applies the change in both Identity MS and Customer MS).
+Sends a verification token to the new email address. The change is not applied until the token is verified.
 
 ```mermaid
 sequenceDiagram
     participant Web
     participant LoyaltyAPI as Loyalty API
     participant IdentityMS as Identity MS
-    participant CustomerMS as Customer MS
 
     Web->>LoyaltyAPI: POST /v1/customers/{loyaltyNumber}/email/change-request
     Note over Web,LoyaltyAPI: {newEmail}
-    LoyaltyAPI->>IdentityMS: POST /api/v1/auth/email/change-request
+    LoyaltyAPI->>IdentityMS: POST /api/v1/accounts/{userAccountId}/email/change-request
     Note over LoyaltyAPI,IdentityMS: Sends verification token to new email
     IdentityMS-->>LoyaltyAPI: 204 No Content
     LoyaltyAPI-->>Web: 204 No Content
+```
+
+---
+
+## Email change confirm
+
+Verifies the token and updates the email in the Identity MS. The Customer MS email field is not currently synced as part of this flow.
+
+```mermaid
+sequenceDiagram
+    participant Web
+    participant LoyaltyAPI as Loyalty API
+    participant IdentityMS as Identity MS
 
     Web->>LoyaltyAPI: POST /v1/auth/email/confirm
     Note over Web,LoyaltyAPI: {token, newEmail}
-    LoyaltyAPI->>IdentityMS: POST /api/v1/auth/email/confirm
-    Note over LoyaltyAPI,IdentityMS: Validate token, update email in Identity MS
-    IdentityMS-->>LoyaltyAPI: {identityId, newEmail}
-    LoyaltyAPI->>CustomerMS: PATCH /api/v1/customers/{loyaltyNumber}/email
-    Note over LoyaltyAPI,CustomerMS: Sync new email to Customer MS
-    CustomerMS-->>LoyaltyAPI: Updated
+    LoyaltyAPI->>IdentityMS: POST /api/v1/email/verify
+    Note over LoyaltyAPI,IdentityMS: Validate token, update email in Identity MS only
+    IdentityMS-->>LoyaltyAPI: 204 No Content
     LoyaltyAPI-->>Web: 204 No Content
 ```
 
@@ -140,8 +170,8 @@ sequenceDiagram
     Note over LoyaltyAPI,CustomerMS: Link identityId to customer record
     CustomerMS-->>LoyaltyAPI: Linked
 
-    LoyaltyAPI->>CustomerMS: POST /api/v1/customers/{loyaltyNumber}/points
-    Note over LoyaltyAPI,CustomerMS: Award 1,500 sign-up bonus points<br/>(transactionType=Earn)
+    LoyaltyAPI->>CustomerMS: POST /api/v1/customers/{loyaltyNumber}/points/add
+    Note over LoyaltyAPI,CustomerMS: Award 1,500 sign-up bonus points
     CustomerMS-->>LoyaltyAPI: Points awarded
 
     LoyaltyAPI->>CustomerMS: GET /api/v1/customers/{loyaltyNumber}
@@ -163,7 +193,7 @@ sequenceDiagram
 
     Terminal->>AdminAPI: POST /v1/auth/login
     Note over Terminal,AdminAPI: {username, password}
-    AdminAPI->>UserMS: POST /api/v1/auth/login
+    AdminAPI->>UserMS: POST /api/v1/users/login
     Note over AdminAPI,UserMS: Validate credentials, check account<br/>not locked/inactive, issue JWT
     UserMS-->>AdminAPI: {accessToken, userId, expiresAt}
     AdminAPI-->>Terminal: LoginResponse
