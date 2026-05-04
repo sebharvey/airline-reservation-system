@@ -785,6 +785,51 @@
 .modal-card-warn { width: 420px; }
 .modal-card-wide { width: 620px; }
 
+/* ── Auto-assign blocking overlay ──────────────────────────────────────── */
+.auto-assign-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  backdrop-filter: blur(2px);
+}
+
+.auto-assign-overlay-card {
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+  padding: 36px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-width: 280px;
+}
+
+.auto-assign-overlay-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--grad-start, #6366f1);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  display: block;
+}
+
+.auto-assign-overlay-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.auto-assign-overlay-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 /* ── Auto-assign button ─────────────────────────────────────────────────── */
 .auto-assign-btn {
   display: inline-flex;
