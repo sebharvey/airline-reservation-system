@@ -149,6 +149,22 @@ public sealed class EfOrderRepository : IOrderRepository
         return true;
     }
 
+    public async Task<bool> DeleteOrderAsync(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        var order = await _context.Orders
+            .FirstOrDefaultAsync(o => o.OrderId == orderId, cancellationToken);
+
+        if (order is null)
+            return false;
+
+        _context.Orders.Remove(order);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug("Deleted order {OrderId} (status: {Status}) from [order].[Order]", orderId, order.OrderStatus);
+
+        return true;
+    }
+
     public async Task<int> DeleteExpiredDraftOrdersAsync(CancellationToken cancellationToken = default)
     {
         var cutoff = DateTime.UtcNow.AddHours(-24);

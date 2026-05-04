@@ -137,7 +137,20 @@ public sealed class ConfirmBasketHandler
         var bagEmdTask      = bagAmount     > 0 ? RunBagEmdIssuanceAsync(basketDataJson,     confirmedOrder.BookingReference, paymentId, cancellationToken) : Task.CompletedTask;
         var productEmdTask  = productAmount > 0 ? RunProductEmdIssuanceAsync(basketDataJson, confirmedOrder.BookingReference, paymentId, cancellationToken) : Task.CompletedTask;
 
-        await Task.WhenAll(inventoryTask, ticketsTask, settleTask, customerTask, seatEmdTask, bagEmdTask, productEmdTask);
+        try
+        {
+            await Task.WhenAll(inventoryTask, ticketsTask, settleTask, customerTask, seatEmdTask, bagEmdTask, productEmdTask);
+        }
+        catch (Exception) when (ticketsTask.IsFaulted)
+        {
+            _logger.LogError(ticketsTask.Exception?.InnerException ?? ticketsTask.Exception,
+                "[ConfirmBasket] Ticket issuance failed for {BookingReference} — rolling back order and voiding payment",
+                confirmedOrder.BookingReference);
+            try { await _paymentServiceClient.VoidAsync(paymentId, "TicketIssuanceFailure", cancellationToken); } catch { }
+            try { await _orderServiceClient.DeleteDraftOrderAsync(confirmedOrder.OrderId, cancellationToken); } catch { }
+            throw new InvalidOperationException(
+                $"Ticket issuance failed. Booking {confirmedOrder.BookingReference} has been rolled back and payment voided.");
+        }
 
         var issuedTickets = await ticketsTask;
 
@@ -874,60 +887,53 @@ public sealed class ConfirmBasketHandler
         Dictionary<Guid, RepriceOfferDto> repricedOffers,
         CancellationToken cancellationToken)
     {
-        if (basketDataJson == null) return [];
-        try
-        {
-            var (passengers, segments) = ParseBasketDataForTickets(basketDataJson);
-            if (passengers.Count == 0 || segments.Count == 0) return [];
+        if (basketDataJson == null)
+            throw new InvalidOperationException("Basket data is unavailable; cannot issue tickets.");
 
-            segments = EnrichSegmentsWithFareBasisCode(basketDataJson, segments, repricedOffers);
+        var (passengers, segments) = ParseBasketDataForTickets(basketDataJson);
+        if (passengers.Count == 0 || segments.Count == 0)
+            throw new InvalidOperationException("No passengers or segments found in basket; cannot issue tickets.");
 
-            var fareConstruction = BuildFareConstruction(basketDataJson, repricedOffers);
-            // FOP amount on the e-ticket covers the air fare only (base + taxes per pax),
-            // not the entire order total which also includes seats and ancillaries.
-            var perPaxAmount = fareConstruction != null
-                ? Math.Round(fareConstruction.BaseFare + fareConstruction.TotalTaxes, 2, MidpointRounding.AwayFromZero)
-                : (passengers.Count > 0 ? Math.Round(totalAmount / passengers.Count, 2, MidpointRounding.AwayFromZero) : totalAmount);
-            var formOfPayment = BuildFormOfPayment(command, paymentId, perPaxAmount, currency);
-            var passengersWithPayment = passengers
-                .Select(p => new TicketPassenger
-                {
-                    PassengerId = p.PassengerId,
-                    GivenName = p.GivenName,
-                    Surname = p.Surname,
-                    Dob = p.Dob,
-                    Gender = p.Gender,
-                    PtcCode = p.PtcCode,
-                    FareConstruction = fareConstruction,
-                    FormOfPayment = formOfPayment
-                })
-                .ToList();
+        segments = EnrichSegmentsWithFareBasisCode(basketDataJson, segments, repricedOffers);
 
-            var issuedTickets = await _deliveryServiceClient.IssueTicketsAsync(
-                command.BasketId,
-                confirmedOrder.BookingReference,
-                passengersWithPayment,
-                segments,
-                cancellationToken);
-
-            if (issuedTickets.Count > 0)
+        var fareConstruction = BuildFareConstruction(basketDataJson, repricedOffers);
+        // FOP amount on the e-ticket covers the air fare only (base + taxes per pax),
+        // not the entire order total which also includes seats and ancillaries.
+        var perPaxAmount = fareConstruction != null
+            ? Math.Round(fareConstruction.BaseFare + fareConstruction.TotalTaxes, 2, MidpointRounding.AwayFromZero)
+            : (passengers.Count > 0 ? Math.Round(totalAmount / passengers.Count, 2, MidpointRounding.AwayFromZero) : totalAmount);
+        var formOfPayment = BuildFormOfPayment(command, paymentId, perPaxAmount, currency);
+        var passengersWithPayment = passengers
+            .Select(p => new TicketPassenger
             {
-                var eTicketsJson = JsonSerializer.Serialize(
-                    issuedTickets.Select(t => new { t.PassengerId, t.SegmentIds, t.ETicketNumber }),
-                    SharedJsonOptions.CamelCase);
-                await _orderServiceClient.UpdateOrderETicketsAsync(
-                    confirmedOrder.BookingReference, eTicketsJson, cancellationToken);
-            }
+                PassengerId = p.PassengerId,
+                GivenName = p.GivenName,
+                Surname = p.Surname,
+                Dob = p.Dob,
+                Gender = p.Gender,
+                PtcCode = p.PtcCode,
+                FareConstruction = fareConstruction,
+                FormOfPayment = formOfPayment
+            })
+            .ToList();
 
-            return issuedTickets;
-        }
-        catch (Exception ex)
+        var issuedTickets = await _deliveryServiceClient.IssueTicketsAsync(
+            command.BasketId,
+            confirmedOrder.BookingReference,
+            passengersWithPayment,
+            segments,
+            cancellationToken);
+
+        if (issuedTickets.Count > 0)
         {
-            // Ticket issuance failure after order confirmation — order is confirmed, tickets need manual issuance
-            _logger.LogError(ex, "[ConfirmBasket] Ticket issuance failed for {BookingReference}: {ErrorMessage}",
-                confirmedOrder.BookingReference, ex.Message);
-            return [];
+            var eTicketsJson = JsonSerializer.Serialize(
+                issuedTickets.Select(t => new { t.PassengerId, t.SegmentIds, t.ETicketNumber }),
+                SharedJsonOptions.CamelCase);
+            await _orderServiceClient.UpdateOrderETicketsAsync(
+                confirmedOrder.BookingReference, eTicketsJson, cancellationToken);
         }
+
+        return issuedTickets;
     }
 
     private async Task RunCustomerLinkAsync(
