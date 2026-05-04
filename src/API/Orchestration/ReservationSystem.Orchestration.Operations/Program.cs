@@ -23,6 +23,7 @@ using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionRebo
 using ReservationSystem.Orchestration.Operations.Application.AdminCheckIn;
 using ReservationSystem.Orchestration.Operations.Application.CheckIn;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionTime;
+using ReservationSystem.Orchestration.Operations.Application.AutoAssignSeats;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Business.Middleware;
 
@@ -125,6 +126,7 @@ var host = new HostBuilder()
         services.AddScoped<AdminDisruptionTimeHandler>();
         services.AddScoped<AdminDisruptionGetOrdersHandler>();
         services.AddScoped<AdminDisruptionRebookOrderHandler>();
+        services.AddScoped<AutoAssignSeatsHandler>();
     })
     .Build();
 

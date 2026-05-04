@@ -13,6 +13,7 @@ import {
   IropsOrderItem,
   IropsOrdersResponse,
   IropsRebookOrderResponse,
+  AutoAssignSeatsResponse,
 } from '../../../services/inventory.service';
 
 type RebookStatus = 'pending' | 'loading' | 'rebooked' | 'failed';
@@ -185,6 +186,20 @@ export class FlightManagementDetailComponent implements OnInit {
 
       return { cabinCode: cabin.cabinCode, cabinName: cabin.cabinName, headers, rows };
     });
+  });
+
+  // Auto-assign seats state
+  autoAssignLoading = signal(false);
+  autoAssignError   = signal('');
+  autoAssignResult  = signal<AutoAssignSeatsResponse | null>(null);
+  autoAssignModalOpen = signal(false);
+
+  unassignedConfirmedCount = computed(() => {
+    const m = this.manifest();
+    if (!m) return 0;
+    return m.entries.filter(
+      e => !e.seatNumber && e.bookingType !== 'Standby'
+    ).length;
   });
 
   // Operational data modal state
@@ -565,5 +580,33 @@ export class FlightManagementDetailComponent implements OnInit {
 
   formatDate(iso: string): string {
     return iso.slice(0, 10);
+  }
+
+  async autoAssign(): Promise<void> {
+    if (this.autoAssignLoading() || this.unassignedConfirmedCount() === 0) return;
+    this.autoAssignLoading.set(true);
+    this.autoAssignError.set('');
+    this.autoAssignResult.set(null);
+    try {
+      const result = await this.#inventoryService.autoAssignSeats(
+        this.#inventoryId,
+        this.#flightNumber,
+        this.#departureDate,
+        this.#aircraftType,
+      );
+      this.autoAssignResult.set(result);
+      this.autoAssignModalOpen.set(true);
+      await this.#silentRefresh();
+    } catch {
+      this.autoAssignError.set('Auto-assign failed. Please try again.');
+    } finally {
+      this.autoAssignLoading.set(false);
+    }
+  }
+
+  closeAutoAssignModal(): void {
+    this.autoAssignModalOpen.set(false);
+    this.autoAssignResult.set(null);
+    this.autoAssignError.set('');
   }
 }

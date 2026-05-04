@@ -210,6 +210,20 @@ export interface FlightInventoryWithPinned {
   pinnedFlights: FlightInventoryGroup[];
 }
 
+export interface AutoAssignSeatOutcome {
+  bookingReference: string;
+  eTicketNumber: string;
+  seatNumber: string | null;
+  status: 'Assigned' | 'Failed';
+  failureReason: string | null;
+}
+
+export interface AutoAssignSeatsResponse {
+  assigned: number;
+  failed: number;
+  outcomes: AutoAssignSeatOutcome[];
+}
+
 export interface AircraftType {
   aircraftTypeCode: string;
   manufacturer: string;
@@ -346,6 +360,20 @@ export class InventoryService {
   async getAircraftTypes(): Promise<AircraftType[]> {
     return firstValueFrom(
       this.#http.get<AircraftType[]>(`${this.#baseUrl}/aircraft-types`)
+    );
+  }
+
+  async autoAssignSeats(
+    inventoryId: string,
+    flightNumber: string,
+    departureDate: string,
+    aircraftType: string,
+  ): Promise<AutoAssignSeatsResponse> {
+    return firstValueFrom(
+      this.#http.post<AutoAssignSeatsResponse>(
+        `${this.#operationsBaseUrl}/flights/${inventoryId}/auto-assign-seats`,
+        { flightNumber, departureDate, aircraftType },
+      )
     );
   }
 

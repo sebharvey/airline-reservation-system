@@ -131,7 +131,27 @@
             <button class="filter-btn" [class.filter-btn-active]="paxFilter() === 'confirmed'" (click)="setFilter('confirmed')">Confirmed</button>
             <button class="filter-btn" [class.filter-btn-active]="paxFilter() === 'standby'" (click)="setFilter('standby')">Standby</button>
           </span>
+          <button
+            class="auto-assign-btn"
+            [disabled]="autoAssignLoading() || unassignedConfirmedCount() === 0"
+            (click)="autoAssign()"
+            [title]="unassignedConfirmedCount() === 0 ? 'All confirmed passengers already have seats' : 'Auto-assign seats to ' + unassignedConfirmedCount() + ' unassigned passenger(s)'">
+            @if (autoAssignLoading()) {
+              <span class="btn-spinner"></span> Assigning…
+            } @else {
+              <lucide-icon name="armchair" [size]="13" /> Auto Assign Seats
+              @if (unassignedConfirmedCount() > 0) {
+                <span class="auto-assign-count">{{ unassignedConfirmedCount() }}</span>
+              }
+            }
+          </button>
         </div>
+
+        @if (autoAssignError()) {
+          <div class="error-banner" role="alert">
+            <lucide-icon name="triangle-alert" [size]="14" /> {{ autoAssignError() }}
+          </div>
+        }
 
         @if (manifest() && groupedEntries().length === 0) {
           <p class="pax-empty">
@@ -673,6 +693,65 @@
           <button class="modal-btn modal-btn-save" (click)="saveReg()" [disabled]="regOpLoading()">
             @if (regOpLoading()) { <span class="btn-spinner"></span> } Save
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Auto-assign seats result modal -->
+  @if (autoAssignModalOpen() && autoAssignResult()) {
+    <div class="modal-backdrop" (click)="closeAutoAssignModal()">
+      <div class="modal-card modal-card-wide" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span class="modal-title">Auto Assign Seats — Complete</span>
+          <button class="modal-close-btn" (click)="closeAutoAssignModal()">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="auto-assign-summary">
+            <div class="auto-assign-stat auto-assign-stat-ok">
+              <span class="auto-assign-stat-value">{{ autoAssignResult()!.assigned }}</span>
+              <span class="auto-assign-stat-label">Assigned</span>
+            </div>
+            <div class="auto-assign-stat auto-assign-stat-fail">
+              <span class="auto-assign-stat-value">{{ autoAssignResult()!.failed }}</span>
+              <span class="auto-assign-stat-label">Failed</span>
+            </div>
+          </div>
+          @if (autoAssignResult()!.outcomes.length > 0) {
+            <div class="auto-assign-outcomes-wrap">
+              <table class="auto-assign-outcomes-table">
+                <thead>
+                  <tr>
+                    <th>Booking Ref</th>
+                    <th>E-Ticket</th>
+                    <th>Seat</th>
+                    <th>Status</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (outcome of autoAssignResult()!.outcomes; track outcome.eTicketNumber) {
+                    <tr [class.auto-assign-row-fail]="outcome.status === 'Failed'">
+                      <td class="mono">{{ outcome.bookingReference }}</td>
+                      <td class="mono muted">{{ outcome.eTicketNumber }}</td>
+                      <td class="mono">{{ outcome.seatNumber ?? '—' }}</td>
+                      <td>
+                        <span class="badge" [class]="outcome.status === 'Assigned' ? 'badge-active' : 'badge-inactive'">
+                          {{ outcome.status }}
+                        </span>
+                      </td>
+                      <td class="muted">{{ outcome.failureReason ?? '' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-save" (click)="closeAutoAssignModal()">Done</button>
         </div>
       </div>
     </div>

@@ -143,6 +143,21 @@ public sealed class DeliveryServiceClient
                 $"Failed to rebook manifest for {bookingReference}/{fromFlightNumber}/{fromDepartureDate}: {await response.ReadErrorMessageAsync(ct)}");
     }
 
+    /// <summary>
+    /// Updates the seat number on a manifest entry via Delivery MS PATCH /v1/manifest/{eTicketNumber}/seat.
+    /// Pass null for newSeatNumber to clear the seat. Returns false when the entry is not found.
+    /// </summary>
+    public async Task<bool> UpdateManifestSeatAsync(
+        string eTicketNumber, Guid inventoryId, string? newSeatNumber, CancellationToken ct)
+    {
+        var payload = new { seatNumber = newSeatNumber, inventoryId };
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/manifest/{Uri.EscapeDataString(eTicketNumber)}/seat", content, ct);
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<IReadOnlyList<BookingTicketDto>> GetTicketsByBookingAsync(string bookingReference, CancellationToken ct)
     {
         var url = $"/api/v1/tickets?bookingRef={Uri.EscapeDataString(bookingReference)}";
