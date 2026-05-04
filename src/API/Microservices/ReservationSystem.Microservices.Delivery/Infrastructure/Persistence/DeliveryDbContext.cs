@@ -97,7 +97,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(m => m.GivenName).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
             entity.Property(m => m.Surname).HasColumnType("varchar(100)").HasMaxLength(100).IsRequired();
             entity.Property(m => m.SsrCodes).HasColumnType("nvarchar(500)").HasMaxLength(500).IsRequired(false);
-            entity.Property(m => m.Gender).HasColumnType("varchar(10)").HasMaxLength(10).IsRequired(false);
+            entity.Property(m => m.Gender).HasColumnType("char(1)").HasMaxLength(1).IsRequired(false);
             entity.Property(m => m.DateOfBirth).HasColumnType("date").IsRequired(false);
             entity.Property(m => m.PtcCode).HasColumnType("varchar(10)").HasMaxLength(10).IsRequired();
             entity.Property(m => m.BookingType).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
