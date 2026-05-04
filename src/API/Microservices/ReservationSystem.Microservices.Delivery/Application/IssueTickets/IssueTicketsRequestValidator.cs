@@ -22,7 +22,7 @@ public sealed class IssueTicketsRequestValidator : AbstractValidator<IssueTicket
 
         RuleForEach(r => r.Passengers).ChildRules(pax =>
         {
-            pax.RuleFor(p => p.PassengerId).NotEmpty().WithMessage("passengerId is required on each passenger.");
+            pax.RuleFor(p => p.PassengerId).GreaterThan(0).WithMessage("passengerId must be a positive integer on each passenger.");
             pax.RuleFor(p => p.GivenName).NotEmpty().WithMessage("givenName is required on each passenger.");
             pax.RuleFor(p => p.Surname).NotEmpty().WithMessage("surname is required on each passenger.");
 

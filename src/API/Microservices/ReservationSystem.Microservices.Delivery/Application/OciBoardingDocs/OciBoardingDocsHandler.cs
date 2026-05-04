@@ -8,7 +8,7 @@ public sealed record OciBoardingDocsCommand(string DepartureAirport, IReadOnlyLi
 
 public sealed record BoardingCard(
     string TicketNumber,
-    string PassengerId,
+    int PassengerId,
     string GivenName,
     string Surname,
     string FlightNumber,
