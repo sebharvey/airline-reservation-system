@@ -78,10 +78,20 @@ public sealed class OciFunction
             var docIssuingCountry = t.TryGetProperty("docIssuingCountry", out var ic) ? ic.GetString() : null;
             var docExpiryDate = t.TryGetProperty("docExpiryDate", out var ed) ? ed.GetString() : null;
 
-            // Optional baggage array — stored as raw JSON string on the manifest
+            // Optional baggage array — bag tags generated per IATA Resolution 740 and stored on the manifest
             string? baggageJson = null;
             if (t.TryGetProperty("baggage", out var baggageEl) && baggageEl.ValueKind == JsonValueKind.Array)
-                baggageJson = baggageEl.GetRawText();
+            {
+                var bags = new List<object>();
+                foreach (var bag in baggageEl.EnumerateArray())
+                {
+                    var bagNumber = bag.TryGetProperty("bagNumber", out var bn) ? bn.GetInt32() : 0;
+                    decimal? weightKg = bag.TryGetProperty("weightKg", out var wk) && wk.ValueKind != JsonValueKind.Null
+                        ? wk.GetDecimal() : null;
+                    bags.Add(new { bagNumber, weightKg, bagTag = GenerateBagTag() });
+                }
+                baggageJson = JsonSerializer.Serialize(bags, JsonOptions);
+            }
 
             tickets.Add(new OciCheckInTicket(
                 ticketNumber, passengerId, givenName, surname,
@@ -227,5 +237,19 @@ public sealed class OciFunction
             _logger.LogError(ex, "OCI boarding-docs failed for departure airport {DepartureAirport}", departureAirport);
             return await req.InternalServerErrorAsync();
         }
+    }
+
+    /// <summary>
+    /// Generates a 10-digit IATA Resolution 740 bag tag license plate number.
+    /// Format: [3-digit airline numeric prefix][6-digit sequence][1-digit mod-7 check digit].
+    /// </summary>
+    private static string GenerateBagTag()
+    {
+        const string airlinePrefix = "001"; // Apex Air IATA numeric airline code
+        // TODO: In future, this 6-digit sequence number needs to be auto-incremented from a persistent counter rather than generated randomly.
+        var sequence = Random.Shared.Next(0, 1_000_000).ToString("D6");
+        var nineDigits = airlinePrefix + sequence;
+        var checkDigit = (int)(long.Parse(nineDigits) % 7);
+        return nineDigits + checkDigit;
     }
 }
