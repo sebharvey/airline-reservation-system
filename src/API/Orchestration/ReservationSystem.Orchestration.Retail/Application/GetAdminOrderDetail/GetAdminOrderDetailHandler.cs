@@ -101,6 +101,9 @@ public sealed class GetAdminOrderDetailHandler
 
         // Build segment description lookup (inventoryId → "AX001 LHR→JFK") for use by seat items below.
         var segmentDescriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // Build basketItemId → inventoryId lookup so bag items (which store basketItemId as segmentId) can
+        // be resolved to the inventory GUID that flightSegments uses as its segmentId.
+        var basketItemIdToInventoryId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         for (var n = 0; n < orderItemsNode.Count; n++)
         {
@@ -145,6 +148,7 @@ public sealed class GetAdminOrderDetailHandler
 
             var segDesc = $"{flightDetail.FlightNumber} {flightDetail.Origin}→{flightDetail.Destination}";
             segmentDescriptions[inventoryIdStr] = segDesc;
+            basketItemIdToInventoryId[basketItemId] = inventoryIdStr;
 
             // Build one enriched Flight orderItem per passenger eTicket for this segment.
             // If no eTickets exist yet (pre-ticketing), emit a single item with no passenger/eTicket
@@ -371,7 +375,11 @@ public sealed class GetAdminOrderDetailHandler
                 var addBags  = rawItem["additionalBags"] is JsonNode abNode ? abNode.GetValue<int>() : 1;
                 var paxId    = rawItem["passengerId"]?.GetValue<string>();
                 var segRef   = rawItem["segmentId"]?.GetValue<string>();
-                var segDesc  = segRef is not null && segmentDescriptions.TryGetValue(segRef, out var bsd)
+                // Bag items store the basketItemId as segmentId; resolve to the inventory GUID so the
+                // Terminal can match it against flightSegments[].segmentId (which uses the inventory GUID).
+                var resolvedSegRef = segRef is not null && basketItemIdToInventoryId.TryGetValue(segRef, out var invIdForBag)
+                    ? invIdForBag : segRef;
+                var segDesc  = resolvedSegRef is not null && segmentDescriptions.TryGetValue(resolvedSegRef, out var bsd)
                                ? $" — {bsd}" : string.Empty;
                 var bagPrice = rawItem["price"] is JsonNode bagPriceNode ? bagPriceNode.GetValue<decimal>() : 0m;
                 var bagTax   = rawItem["tax"]   is JsonNode bagTaxNode   ? bagTaxNode.GetValue<decimal>()   : 0m;
@@ -381,7 +389,7 @@ public sealed class GetAdminOrderDetailHandler
                     ["itemType"]       = "Bag",
                     ["description"]    = $"+{addBags} bag{(addBags == 1 ? "" : "s")}{segDesc}",
                     ["passengerId"]    = paxId,
-                    ["segmentId"]      = segRef,
+                    ["segmentId"]      = resolvedSegRef,
                     ["status"]         = "Confirmed",
                     ["eTicketNumber"]  = null,
                     ["seatNumber"]     = null,

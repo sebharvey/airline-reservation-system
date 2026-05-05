@@ -250,12 +250,20 @@
   min-width: 0;
 }
 
-/* Two-column layout inside the detail panel: form left, OCI notes right */
+/* Two-column layout inside the detail panel: left col (form+baggage+action) and OCI notes */
 .pax-detail-inner {
   display: grid;
   grid-template-columns: 1fr 280px;
   gap: 16px;
   align-items: start;
+}
+
+/* Left column stacks form-card, baggage-panel, and action bar vertically */
+.pax-detail-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
 }
 
 /* OCI notes panel */
@@ -777,24 +785,18 @@ select.field-input { cursor: pointer; }
   letter-spacing: 0.3px;
 }
 
-/* Baggage panel — spans full width of pax-detail-panel (outside pax-detail-inner grid) */
+/* Baggage panel — same width as form-card (inside pax-detail-left column) */
 .baggage-panel {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 16px;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 20px 24px;
 }
 
-/* Check-in action bar — full width, right-aligned */
+/* Check-in action bar — right-aligned within the left column */
 .checkin-action-bar {
-  width: 100%;
-  box-sizing: border-box;
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px;
 }
 
 .baggage-heading {
