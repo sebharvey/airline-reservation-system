@@ -23,6 +23,7 @@ The test harness is a single-page web application that drives end-to-end API jou
 | `admin-auth-guard-journey.json` | Admin — auth guard 401 checks |
 | `flight-order-ax001-journey.json` | Bookflow — AX001 with seat selection |
 | `flight-order-ax001-no-seats-journey.json` | Bookflow — AX001 without seats |
+| `flight-order-ax001-return-bags-no-seats-journey.json` | Bookflow — AX001, return, with bags, without seats |
 | `multi-segment-oneway-journey.json` | Bookflow — one-way connecting DEL → LHR → JFK |
 | `multi-segment-return-journey.json` | Bookflow — return connecting DEL → LHR → JFK |
 | `bookflow-journey.json` | Bookflow — search, basket, seats, bags & SSR |
