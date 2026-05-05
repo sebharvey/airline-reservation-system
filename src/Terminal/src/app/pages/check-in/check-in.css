@@ -777,6 +777,103 @@ select.field-input { cursor: pointer; }
   letter-spacing: 0.3px;
 }
 
+/* Baggage panel */
+.baggage-panel {
+  margin-top: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px 24px;
+}
+
+.baggage-heading {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 0 0 10px;
+}
+
+.baggage-allowance {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+
+.baggage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bag-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid rgba(63, 185, 80, 0.5);
+  border-radius: var(--radius-sm);
+  background: rgba(63, 185, 80, 0.03);
+}
+
+.bag-row-purchased {
+  border-left-color: var(--grad-start);
+  background: rgba(102, 126, 234, 0.03);
+}
+
+.bag-name {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.bag-check-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bag-checkbox {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--grad-start);
+}
+
+.bag-weight-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.bag-weight-input {
+  width: 70px;
+  padding: 7px 10px;
+  text-align: right;
+}
+
+.bag-weight-unit {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.baggage-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+  padding: 12px 0;
+}
+
 /* Mobile */
 @media (max-width: 720px) {
   .pax-split { grid-template-columns: 1fr; }
