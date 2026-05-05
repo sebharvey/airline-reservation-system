@@ -13,9 +13,12 @@ public sealed record AdminCheckInTravelDocument(
     string IssueDate,
     string ExpiryDate);
 
+public sealed record AdminCheckInBaggageItem(int BagNumber, decimal? WeightKg);
+
 public sealed record AdminCheckInPassenger(
     string TicketNumber,
-    AdminCheckInTravelDocument TravelDocument);
+    AdminCheckInTravelDocument TravelDocument,
+    IReadOnlyList<AdminCheckInBaggageItem>? Baggage = null);
 
 public sealed record AdminCheckInCommand(
     string BookingReference,
@@ -125,6 +128,7 @@ public sealed class AdminCheckInHandler
                 DocNumber         = pax.TravelDocument.Number,
                 DocIssuingCountry = pax.TravelDocument.IssuingCountry,
                 DocExpiryDate     = pax.TravelDocument.ExpiryDate,
+                Baggage           = pax.Baggage?.Select(b => new OciCheckInBaggageItem { BagNumber = b.BagNumber, WeightKg = b.WeightKg }).ToList(),
             };
         }).ToList();
 

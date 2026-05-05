@@ -777,13 +777,20 @@ select.field-input { cursor: pointer; }
   letter-spacing: 0.3px;
 }
 
-/* Baggage panel */
+/* Baggage panel — spans full width of pax-detail-panel (outside pax-detail-inner grid) */
 .baggage-panel {
   margin-top: 16px;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 20px 24px;
+}
+
+/* Check-in action bar — full width, right-aligned */
+.checkin-action-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .baggage-heading {

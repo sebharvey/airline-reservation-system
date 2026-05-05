@@ -12,7 +12,8 @@ public sealed record OciCheckInTicket(
     string? DocNationality = null,
     string? DocNumber = null,
     string? DocIssuingCountry = null,
-    string? DocExpiryDate = null);
+    string? DocExpiryDate = null,
+    string? BaggageJson = null);
 
 /// <summary>Column layout and row range for one cabin, sourced from the active seatmap.</summary>
 public sealed record SeatCabinConfig(
@@ -252,7 +253,7 @@ public sealed class OciCheckInHandler
 
                 var checkedInAt = DateTime.UtcNow;
                 await _manifestRepository.CheckInByETicketAndOriginAsync(
-                    ticketRequest.TicketNumber, command.DepartureAirport, checkedInAt, cancellationToken);
+                    ticketRequest.TicketNumber, command.DepartureAirport, checkedInAt, ticketRequest.BaggageJson, cancellationToken);
 
                 // Check whether the freshly checked-in coupon already has a seat.
                 var unseatedCoupon = ticket.GetCheckedInCouponsForOrigin(command.DepartureAirport)

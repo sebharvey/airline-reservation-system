@@ -32,16 +32,18 @@ public sealed class Manifest
     public TimeOnly ArrivalTime { get; private set; }
     public bool CheckedIn { get; private set; }
     public DateTime? CheckedInAt { get; private set; }
+    public string? Baggage { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public int Version { get; private set; }
 
     private Manifest() { }
 
-    public void CheckIn(DateTime checkedInAt)
+    public void CheckIn(DateTime checkedInAt, string? baggageJson = null)
     {
         CheckedIn   = true;
         CheckedInAt = checkedInAt;
+        Baggage     = baggageJson;
         UpdatedAt   = checkedInAt;
         Version++;
     }

@@ -225,19 +225,6 @@
                     Scan Passport
                   </button>
                 }
-                <button
-                  class="primary-btn complete-btn"
-                  (click)="checkInPax(selectedPaxIndex()!)"
-                  [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in' || !docComplete()"
-                >
-                  @if (checkingInIndex() === selectedPaxIndex()) {
-                    <span class="btn-spinner"></span> Checking in…
-                  } @else if (paxStatuses()[selectedPaxIndex()!] === 'checked-in') {
-                    ✓ Checked In
-                  } @else {
-                    ✓ Check In {{ selectedPax() | passengerName }}
-                  }
-                </button>
               </div>
             </div>
 
@@ -307,6 +294,23 @@
             } @else {
               <p class="baggage-empty">No bags on this booking for this passenger.</p>
             }
+          </div>
+
+          <!-- Check In action bar -->
+          <div class="checkin-action-bar">
+            <button
+              class="primary-btn complete-btn"
+              (click)="checkInPax(selectedPaxIndex()!)"
+              [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in' || !docComplete()"
+            >
+              @if (checkingInIndex() === selectedPaxIndex()) {
+                <span class="btn-spinner"></span> Checking in…
+              } @else if (paxStatuses()[selectedPaxIndex()!] === 'checked-in') {
+                ✓ Checked In
+              } @else {
+                ✓ Check In
+              }
+            </button>
           </div>
 
         } @else if (!allAttempted()) {

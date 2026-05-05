@@ -80,9 +80,23 @@ public sealed class AdminCheckInFunction
             var issueDate      = docEl.TryGetProperty("issueDate",      out var isEl)   ? isEl.GetString()   ?? ""         : "";
             var expiryDate     = docEl.TryGetProperty("expiryDate",     out var exEl)   ? exEl.GetString()   ?? ""         : "";
 
+            List<AdminCheckInBaggageItem>? baggage = null;
+            if (p.TryGetProperty("baggage", out var baggageEl) && baggageEl.ValueKind == JsonValueKind.Array)
+            {
+                baggage = [];
+                foreach (var b in baggageEl.EnumerateArray())
+                {
+                    var bagNumber = b.TryGetProperty("bagNumber", out var bnEl) ? bnEl.GetInt32() : 0;
+                    decimal? weightKg = b.TryGetProperty("weightKg", out var wkEl) && wkEl.ValueKind != JsonValueKind.Null
+                        ? wkEl.GetDecimal() : null;
+                    baggage.Add(new AdminCheckInBaggageItem(bagNumber, weightKg));
+                }
+            }
+
             passengers.Add(new AdminCheckInPassenger(
                 ticketNumber,
-                new AdminCheckInTravelDocument(type, number, issuingCountry, nationality, issueDate, expiryDate)));
+                new AdminCheckInTravelDocument(type, number, issuingCountry, nationality, issueDate, expiryDate),
+                baggage));
         }
 
         if (passengers.Count == 0)

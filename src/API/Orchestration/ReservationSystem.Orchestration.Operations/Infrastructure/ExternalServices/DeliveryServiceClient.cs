@@ -237,6 +237,15 @@ public sealed class DeliveryServiceClient
     }
 }
 
+public sealed class OciCheckInBaggageItem
+{
+    [JsonPropertyName("bagNumber")]
+    public int BagNumber { get; init; }
+
+    [JsonPropertyName("weightKg")]
+    public decimal? WeightKg { get; init; }
+}
+
 public sealed class OciCheckInTicket
 {
     [JsonPropertyName("ticketNumber")]
@@ -262,6 +271,9 @@ public sealed class OciCheckInTicket
 
     [JsonPropertyName("docExpiryDate")]
     public string? DocExpiryDate { get; init; }
+
+    [JsonPropertyName("baggage")]
+    public IReadOnlyList<OciCheckInBaggageItem>? Baggage { get; init; }
 }
 
 public sealed class OciCheckInResult

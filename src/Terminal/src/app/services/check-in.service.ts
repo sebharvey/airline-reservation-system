@@ -73,6 +73,11 @@ export interface CheckInPaxEntry {
   } | null;
 }
 
+export interface BaggageSubmissionItem {
+  bagNumber: number;
+  weightKg: number | null;
+}
+
 export interface PaxSubmission {
   ticketNumber: string;
   travelDocument: {
@@ -83,6 +88,7 @@ export interface PaxSubmission {
     issueDate: string;
     expiryDate: string;
   };
+  baggage?: BaggageSubmissionItem[];
 }
 
 export interface TimaticNote {
