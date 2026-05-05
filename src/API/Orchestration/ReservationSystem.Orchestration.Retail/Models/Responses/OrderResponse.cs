@@ -56,6 +56,7 @@ public sealed class ConfirmedTravelDoc
 public sealed class ConfirmedFlightSegment
 {
     public string SegmentId { get; init; } = string.Empty;
+    public string InventoryId { get; init; } = string.Empty;
     public string FlightNumber { get; init; } = string.Empty;
     public string Origin { get; init; } = string.Empty;
     public string Destination { get; init; } = string.Empty;
