@@ -232,7 +232,7 @@ The operational source of truth for who is on a given flight. One row per passen
 | ArrivalTime | TIME | No | | | Local arrival time; updated by Operations API on delay |
 | CheckedIn | BIT | No | `0` | | |
 | CheckedInAt | DATETIME2 | Yes | | | Null until check-in is completed |
-| Baggage | NVARCHAR(MAX) | Yes | | | JSON array of confirmed-travelling bags recorded at check-in, e.g. `[{"bagNumber":1,"weightKg":18.5}]`; null if no baggage was recorded |
+| Baggage | JSON | Yes | | | JSON array of confirmed-travelling bags recorded at check-in, e.g. `[{"bagNumber":1,"weightKg":18.5}]`; null if no baggage was recorded |
 | CreatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | UpdatedAt | DATETIME2 | No | SYSUTCDATETIME() | | |
 | Version | INT | No | `1` | | Optimistic concurrency version counter; incremented on every write |
