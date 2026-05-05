@@ -78,24 +78,23 @@ public sealed class OciFunction
             var docIssuingCountry = t.TryGetProperty("docIssuingCountry", out var ic) ? ic.GetString() : null;
             var docExpiryDate = t.TryGetProperty("docExpiryDate", out var ed) ? ed.GetString() : null;
 
-            // Optional baggage array — bag tags generated per IATA Resolution 740 and stored on the manifest
-            string? baggageJson = null;
+            // Optional baggage array — parsed into typed items; bag tag generation happens in the handler
+            List<OciCheckInBaggageItem>? baggage = null;
             if (t.TryGetProperty("baggage", out var baggageEl) && baggageEl.ValueKind == JsonValueKind.Array)
             {
-                var bags = new List<object>();
+                baggage = [];
                 foreach (var bag in baggageEl.EnumerateArray())
                 {
                     var bagNumber = bag.TryGetProperty("bagNumber", out var bn) ? bn.GetInt32() : 0;
                     decimal? weightKg = bag.TryGetProperty("weightKg", out var wk) && wk.ValueKind != JsonValueKind.Null
                         ? wk.GetDecimal() : null;
-                    bags.Add(new { bagNumber, weightKg, bagTag = GenerateBagTag() });
+                    baggage.Add(new OciCheckInBaggageItem(bagNumber, weightKg));
                 }
-                baggageJson = JsonSerializer.Serialize(bags, JsonOptions);
             }
 
             tickets.Add(new OciCheckInTicket(
                 ticketNumber, passengerId, givenName, surname,
-                docNationality, docNumber, docIssuingCountry, docExpiryDate, baggageJson));
+                docNationality, docNumber, docIssuingCountry, docExpiryDate, baggage));
         }
 
         if (tickets.Count == 0)
@@ -239,17 +238,4 @@ public sealed class OciFunction
         }
     }
 
-    /// <summary>
-    /// Generates a 10-digit IATA Resolution 740 bag tag license plate number.
-    /// Format: [3-digit airline numeric prefix][6-digit sequence][1-digit mod-7 check digit].
-    /// </summary>
-    private static string GenerateBagTag()
-    {
-        const string airlinePrefix = "001"; // Apex Air IATA numeric airline code
-        // TODO: In future, this 6-digit sequence number needs to be auto-incremented from a persistent counter rather than generated randomly.
-        var sequence = Random.Shared.Next(0, 1_000_000).ToString("D6");
-        var nineDigits = airlinePrefix + sequence;
-        var checkDigit = (int)(long.Parse(nineDigits) % 7);
-        return nineDigits + checkDigit;
-    }
 }
