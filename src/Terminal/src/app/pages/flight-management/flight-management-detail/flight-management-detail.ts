@@ -11,6 +11,7 @@ import {
   ManifestEntry,
   SeatmapSeat,
   AutoAssignSeatsResponse,
+  AircraftType,
 } from '../../../services/inventory.service';
 
 interface SeatCell {
@@ -187,6 +188,100 @@ export class FlightManagementDetailComponent implements OnInit {
     this.disruptionModalOpen.set(false);
   }
 
+  // Aircraft swap modal state
+  acSwapModalOpen = signal(false);
+  acSwapTypes = signal<AircraftType[]>([]);
+  acSwapTypesLoading = signal(false);
+  acSwapTypesError = signal('');
+  acSwapSelectedType = signal('');
+  acSwapLoading = signal(false);
+  acSwapError = signal('');
+  acSwapSeatsProcessing = signal(false);
+  needsReassignment = signal(new Set<string>());
+
+  startAircraftSwap(): void {
+    this.closeDisruptionModal();
+    this.acSwapSelectedType.set('');
+    this.acSwapError.set('');
+    this.acSwapTypesError.set('');
+    this.acSwapModalOpen.set(true);
+    void this.#loadAircraftTypes();
+  }
+
+  closeAcSwapModal(): void {
+    if (this.acSwapLoading()) return;
+    this.acSwapModalOpen.set(false);
+  }
+
+  async #loadAircraftTypes(): Promise<void> {
+    this.acSwapTypesLoading.set(true);
+    this.acSwapTypesError.set('');
+    try {
+      const types = await this.#inventoryService.getAircraftTypes();
+      this.acSwapTypes.set(types.filter(t => t.isActive));
+    } catch {
+      this.acSwapTypesError.set('Failed to load aircraft types. Please try again.');
+    } finally {
+      this.acSwapTypesLoading.set(false);
+    }
+  }
+
+  async confirmAircraftSwap(): Promise<void> {
+    const newType = this.acSwapSelectedType();
+    if (!newType || this.acSwapLoading()) return;
+
+    this.acSwapLoading.set(true);
+    this.acSwapError.set('');
+    try {
+      const [newSeatmap] = await Promise.all([
+        this.#inventoryService.getFlightSeatmap(this.#inventoryId, this.#flightNumber, newType),
+        this.#inventoryService.changeAircraftType(this.#flightNumber, this.#departureDate, newType),
+      ]);
+
+      // Update the flight type and seatmap immediately, close modal, clear seat selection
+      this.flight.update(f => f ? { ...f, aircraftType: newType } : f);
+      this.seatmap.set(newSeatmap);
+      this.selectedEntry.set(null);
+      this.pendingSeat.set(null);
+      this.seatOpError.set('');
+      this.acSwapModalOpen.set(false);
+
+      // Build the set of valid seat numbers on the new aircraft
+      const validSeats = new Set<string>(
+        newSeatmap.cabins.flatMap(c => c.seats.map(s => s.seatNumber))
+      );
+
+      // Release seats that do not exist on the new aircraft
+      const entriesToRelease = (this.manifest()?.entries ?? []).filter(
+        e => e.seatNumber && !validSeats.has(e.seatNumber)
+      );
+
+      if (entriesToRelease.length > 0) {
+        this.acSwapSeatsProcessing.set(true);
+        try {
+          await Promise.allSettled(
+            entriesToRelease.map(e => this.#inventoryService.releaseSeat(
+              e.eTicketNumber,
+              e.bookingReference,
+              e.passengerId,
+              this.#inventoryId,
+              e.orderId,
+              e.cabinCode,
+            ))
+          );
+          this.needsReassignment.set(new Set(entriesToRelease.map(e => e.eTicketNumber)));
+          await this.#silentRefresh();
+        } finally {
+          this.acSwapSeatsProcessing.set(false);
+        }
+      }
+    } catch {
+      this.acSwapError.set('Failed to change aircraft type. Please try again.');
+    } finally {
+      this.acSwapLoading.set(false);
+    }
+  }
+
   // Operational data modal state
   gateModalOpen = signal(false);
   gateInput = signal('');
@@ -251,6 +346,7 @@ export class FlightManagementDetailComponent implements OnInit {
     this.selectedEntry.set(null);
     this.pendingSeat.set(null);
     this.seatOpError.set('');
+    this.needsReassignment.set(new Set());
     await this.#loadData();
   }
 

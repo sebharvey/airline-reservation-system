@@ -1445,6 +1445,129 @@
 }
 .disruption-action-btn-primary:not(:disabled):hover { opacity: 0.88; }
 
+/* ── Passenger needs-reassignment highlight ─────────────────────────────── */
+.pax-row-needs-reassignment {
+  background: rgba(248, 81, 73, 0.07) !important;
+}
+.pax-row-needs-reassignment td {
+  color: #f85149;
+}
+.pax-row-needs-reassignment .pax-name {
+  color: #f85149;
+}
+.pax-row-needs-reassignment:hover {
+  background: rgba(248, 81, 73, 0.13) !important;
+}
+
+/* ── Pax panel notices (ac-swap) ────────────────────────────────────────── */
+.ac-swap-processing-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
+
+.btn-spinner-dark {
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--border);
+  border-top-color: var(--text-muted);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.ac-swap-reassign-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #f85149;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
+
+/* ── Aircraft swap modal ────────────────────────────────────────────────── */
+.modal-card-ac-swap {
+  width: min(460px, calc(100vw - 32px));
+}
+
+.ac-swap-modal-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+}
+
+.ac-swap-modal-body {
+  gap: 14px;
+}
+
+.ac-swap-current-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.ac-swap-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--grad-start, #6366f1);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ac-swap-types-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.ac-swap-select {
+  font-family: inherit;
+  font-size: 0.875rem;
+  text-transform: none;
+  cursor: pointer;
+}
+.ac-swap-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ac-swap-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: rgba(88, 166, 255, 0.06);
+  border: 1px solid rgba(88, 166, 255, 0.2);
+  border-radius: 8px;
+}
+.ac-swap-note lucide-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #58a6ff;
+}
+
 /* ── Desktop ────────────────────────────────────────────────────────────── */
 @media (min-width: 901px) {
   .fd-detail-page {

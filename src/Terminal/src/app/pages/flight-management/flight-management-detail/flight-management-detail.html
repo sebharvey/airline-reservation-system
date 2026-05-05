@@ -112,6 +112,18 @@
       <div class="pax-panel">
         <div class="panel-title">
           Passengers
+          @if (acSwapSeatsProcessing()) {
+            <span class="ac-swap-processing-notice">
+              <span class="btn-spinner-dark"></span>
+              Validating seats…
+            </span>
+          }
+          @if (!acSwapSeatsProcessing() && needsReassignment().size > 0) {
+            <span class="ac-swap-reassign-notice">
+              <lucide-icon name="triangle-alert" [size]="12" />
+              {{ needsReassignment().size }} seat{{ needsReassignment().size !== 1 ? 's' : '' }} need reassignment
+            </span>
+          }
           <span class="pax-filter-btns">
             <button class="filter-btn" [class.filter-btn-active]="paxFilter() === 'all'" (click)="setFilter('all')">All</button>
             <button class="filter-btn" [class.filter-btn-active]="paxFilter() === 'confirmed'" (click)="setFilter('confirmed')">Confirmed</button>
@@ -189,6 +201,7 @@
                     <tr
                       [class.pax-checked-in]="entry.checkedIn"
                       [class.pax-row-selected]="selectedEntry()?.eTicketNumber === entry.eTicketNumber"
+                      [class.pax-row-needs-reassignment]="needsReassignment().has(entry.eTicketNumber)"
                       (click)="selectEntry(entry)">
                       <td>
                         <span class="pax-seat-badge" [class]="'cabin-' + entry.cabinCode.toLowerCase()">
@@ -514,13 +527,94 @@
                   <div class="disruption-action-desc">Switch the aircraft type for this flight. Seat assignments will be validated against the new aircraft configuration and any that cannot be transferred will be highlighted for manual reassignment.</div>
                 </div>
               </div>
-              <button class="disruption-action-btn disruption-action-btn-primary" disabled>Review passengers</button>
+              <button class="disruption-action-btn disruption-action-btn-primary" (click)="startAircraftSwap()">Select aircraft type</button>
             </div>
 
           </div>
         </div>
         <div class="modal-footer">
           <button class="modal-btn modal-btn-cancel" (click)="closeDisruptionModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Aircraft swap modal -->
+  @if (acSwapModalOpen()) {
+    <div class="modal-backdrop" (click)="closeAcSwapModal()">
+      <div class="modal-card modal-card-ac-swap" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="ac-swap-modal-title">
+        <div class="modal-header">
+          <div>
+            <span class="modal-title" id="ac-swap-modal-title">Equipment Change</span>
+            @if (flight()) {
+              <p class="ac-swap-modal-subtitle">
+                {{ flight()!.flightNumber }} &nbsp;·&nbsp;
+                {{ flight()!.origin }} → {{ flight()!.destination }}
+              </p>
+            }
+          </div>
+          <button class="modal-close-btn" (click)="closeAcSwapModal()" [disabled]="acSwapLoading()" aria-label="Close">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+        <div class="modal-body ac-swap-modal-body">
+
+          <!-- Current aircraft -->
+          <div class="ac-swap-current-row">
+            <span class="modal-label">Current aircraft</span>
+            <span class="ac-swap-type-badge mono">{{ flight()!.aircraftType }}</span>
+          </div>
+
+          <!-- Aircraft type selector -->
+          @if (acSwapTypesLoading()) {
+            <div class="ac-swap-types-loading">
+              <span class="loading-spinner btn-spinner-dark"></span>
+              Loading aircraft types…
+            </div>
+          } @else if (acSwapTypesError()) {
+            <div class="error-banner" role="alert">
+              <lucide-icon name="triangle-alert" [size]="14" /> {{ acSwapTypesError() }}
+            </div>
+          } @else {
+            <label class="modal-label" for="ac-swap-select">New aircraft type</label>
+            <select
+              id="ac-swap-select"
+              class="modal-input ac-swap-select"
+              [ngModel]="acSwapSelectedType()"
+              (ngModelChange)="acSwapSelectedType.set($event)"
+              [disabled]="acSwapLoading()">
+              <option value="">Select aircraft type…</option>
+              @for (type of acSwapTypes(); track type.aircraftTypeCode) {
+                <option
+                  [value]="type.aircraftTypeCode"
+                  [disabled]="type.aircraftTypeCode === flight()!.aircraftType">
+                  {{ type.aircraftTypeCode }}{{ type.friendlyName ? ' — ' + type.friendlyName : '' }}{{ type.aircraftTypeCode === flight()!.aircraftType ? ' (current)' : '' }}
+                </option>
+              }
+            </select>
+          }
+
+          @if (acSwapError()) {
+            <p class="modal-error">{{ acSwapError() }}</p>
+          }
+
+          <div class="ac-swap-note">
+            <lucide-icon name="info" [size]="13" />
+            Seat assignments that do not exist on the new aircraft will be cleared automatically. Affected passengers will be highlighted in the manifest for manual reassignment.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" (click)="closeAcSwapModal()" [disabled]="acSwapLoading()">Cancel</button>
+          <button
+            class="modal-btn modal-btn-save"
+            (click)="confirmAircraftSwap()"
+            [disabled]="acSwapLoading() || acSwapTypesLoading() || !acSwapSelectedType() || acSwapSelectedType() === flight()!.aircraftType">
+            @if (acSwapLoading()) {
+              <span class="btn-spinner"></span> Confirming…
+            } @else {
+              <lucide-icon name="check" [size]="14" /> Confirm change
+            }
+          </button>
         </div>
       </div>
     </div>
