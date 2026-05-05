@@ -96,6 +96,12 @@ export interface FlightSeatmap {
   cabins: CabinSeatmap[];
 }
 
+export interface BaggageItem {
+  bagNumber: number;
+  weightKg: number | null;
+  bagTag: string | null;
+}
+
 export interface ManifestEntry {
   orderId: string;
   bookingReference: string;
@@ -112,6 +118,7 @@ export interface ManifestEntry {
   gender: string | null;
   dateOfBirth: string | null;
   ptcCode: string;
+  baggage: BaggageItem[];
 }
 
 export interface FlightManifest {

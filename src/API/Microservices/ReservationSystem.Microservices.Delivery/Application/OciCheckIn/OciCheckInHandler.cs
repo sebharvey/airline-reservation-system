@@ -1,8 +1,11 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Infrastructure.ExternalServices;
 
 namespace ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
+
+public sealed record OciCheckInBaggageItem(int BagNumber, decimal? WeightKg);
 
 public sealed record OciCheckInTicket(
     string TicketNumber,
@@ -13,7 +16,7 @@ public sealed record OciCheckInTicket(
     string? DocNumber = null,
     string? DocIssuingCountry = null,
     string? DocExpiryDate = null,
-    string? BaggageJson = null);
+    IReadOnlyList<OciCheckInBaggageItem>? Baggage = null);
 
 /// <summary>Column layout and row range for one cabin, sourced from the active seatmap.</summary>
 public sealed record SeatCabinConfig(
@@ -28,6 +31,8 @@ public sealed record OciCheckInCommand(
     IReadOnlyDictionary<string, SeatCabinConfig>? CabinConfigs = null);
 
 public sealed record OciCheckInTicketResult(string TicketNumber, string Status, string? SeatNumber = null);
+
+public sealed record CheckedInBag(string TicketNumber, int BagNumber, decimal? WeightKg, string BagTag);
 
 public sealed record TimaticNote(
     string CheckType,    // "DOC" or "APIS"
@@ -47,7 +52,8 @@ public sealed class TimaticValidationException : Exception
 public sealed record OciCheckInResult(
     int CheckedIn,
     IReadOnlyList<OciCheckInTicketResult> Tickets,
-    IReadOnlyList<TimaticNote> TimaticNotes);
+    IReadOnlyList<TimaticNote> TimaticNotes,
+    IReadOnlyList<CheckedInBag> CheckedInBags);
 
 public sealed class OciCheckInHandler
 {
@@ -73,6 +79,7 @@ public sealed class OciCheckInHandler
         var checkedInCount = 0;
         var results = new List<OciCheckInTicketResult>();
         var timaticNotes = new List<TimaticNote>();
+        var checkedInBags = new List<CheckedInBag>();
 
         // Tickets that were checked in but have no seat yet — collected for group allocation.
         var pendingAssignment = new List<(Domain.Entities.Ticket Ticket, string FlightNumber, string CabinCode, string ETicketNumber)>();
@@ -252,8 +259,10 @@ public sealed class OciCheckInHandler
                 checkedInCount++;
 
                 var checkedInAt = DateTime.UtcNow;
+                var (baggageJson, taggedBags) = BuildBaggageData(ticketRequest.TicketNumber, ticketRequest.Baggage);
+                checkedInBags.AddRange(taggedBags);
                 await _manifestRepository.CheckInByETicketAndOriginAsync(
-                    ticketRequest.TicketNumber, command.DepartureAirport, checkedInAt, ticketRequest.BaggageJson, cancellationToken);
+                    ticketRequest.TicketNumber, command.DepartureAirport, checkedInAt, baggageJson, cancellationToken);
 
                 // Check whether the freshly checked-in coupon already has a seat.
                 var unseatedCoupon = ticket.GetCheckedInCouponsForOrigin(command.DepartureAirport)
@@ -306,7 +315,7 @@ public sealed class OciCheckInHandler
                 continue;
             }
 
-            var takenSeats = await _ticketRepository.GetAssignedSeatsForFlightAsync(
+            var takenSeats = await _manifestRepository.GetAssignedSeatsByFlightAsync(
                 flightGroup.Key.FlightNumber, command.DepartureAirport, cancellationToken);
 
             var seats = SeatAllocator.AllocateGroupSeats(
@@ -343,7 +352,37 @@ public sealed class OciCheckInHandler
             .Select(r => assignedSeats.TryGetValue(r.TicketNumber, out var s) ? r with { SeatNumber = s } : r)
             .ToList();
 
-        return new OciCheckInResult(checkedInCount, finalResults, timaticNotes);
+        return new OciCheckInResult(checkedInCount, finalResults, timaticNotes, checkedInBags);
+    }
+
+    /// <summary>
+    /// Assigns an IATA Resolution 740 bag tag to each bag. Returns the manifest JSON
+    /// and a typed list of <see cref="CheckedInBag"/> records for surfacing in the response.
+    /// </summary>
+    private static (string? Json, IReadOnlyList<CheckedInBag> TaggedBags) BuildBaggageData(
+        string ticketNumber, IReadOnlyList<OciCheckInBaggageItem>? bags)
+    {
+        if (bags is null || bags.Count == 0)
+            return (null, []);
+
+        var tagged = bags.Select(b => new { b.BagNumber, b.WeightKg, BagTag = GenerateBagTag() }).ToList();
+        var json = JsonSerializer.Serialize(tagged, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var checkedInBags = tagged.Select(t => new CheckedInBag(ticketNumber, t.BagNumber, t.WeightKg, t.BagTag)).ToList();
+        return (json, checkedInBags);
+    }
+
+    /// <summary>
+    /// Generates a 10-digit IATA Resolution 740 bag tag license plate number.
+    /// Format: [3-digit airline numeric prefix][6-digit sequence][1-digit mod-7 check digit].
+    /// </summary>
+    private static string GenerateBagTag()
+    {
+        const string airlinePrefix = "001"; // Apex Air IATA numeric airline code
+        // TODO: In future, this 6-digit sequence number needs to be auto-incremented from a persistent counter rather than generated randomly.
+        var sequence = Random.Shared.Next(0, 1_000_000).ToString("D6");
+        var nineDigits = airlinePrefix + sequence;
+        var checkDigit = (int)(long.Parse(nineDigits) % 7);
+        return nineDigits + checkDigit;
     }
 
     private static string NormaliseDate(string raw)

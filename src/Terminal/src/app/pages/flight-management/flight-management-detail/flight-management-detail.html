@@ -172,13 +172,14 @@
                   <th>PTC</th>
                   <th>E-Ticket</th>
                   <th>SSR</th>
+                  <th>Bags</th>
                   <th>CI</th>
                 </tr>
               </thead>
               <tbody>
                 @for (group of groupedEntries(); track group.bookingReference) {
                   <tr class="booking-group-header">
-                    <td colspan="10">
+                    <td colspan="11">
                       <span class="pnr-copy-wrap">
                         <span class="booking-ref-text mono">{{ group.bookingReference }}</span>
                         <button class="copy-btn" [class.copied]="copiedRef() === group.bookingReference" (click)="copyBookingRef(group.bookingReference, $event)" [title]="copiedRef() === group.bookingReference ? 'Copied!' : 'Copy booking reference'">
@@ -224,6 +225,16 @@
                               <span class="ssr-tag" [title]="ssr">{{ ssr }}</span>
                             }
                           </span>
+                        }
+                      </td>
+                      <td>
+                        @if (entry.baggage.length > 0) {
+                          <button class="bag-count-btn" (click)="openBaggageModal(entry, $event)">
+                            <lucide-icon name="luggage" [size]="11" />
+                            {{ entry.baggage.length }}
+                          </button>
+                        } @else {
+                          <span class="mono muted">—</span>
                         }
                       </td>
                       <td>
@@ -487,17 +498,47 @@
           <div class="disruption-actions">
 
             <!-- Cancel flight -->
-            <div class="disruption-action-card">
+            <div class="disruption-action-card" [class.disruption-action-card-confirm]="cancelConfirmMode()">
               <div class="disruption-action-header">
                 <div class="disruption-action-icon disruption-icon-cancel">
                   <lucide-icon name="circle-x" [size]="20" />
                 </div>
                 <div class="disruption-action-text">
                   <div class="disruption-action-title">Cancel flight</div>
-                  <div class="disruption-action-desc">Take the flight off sale immediately, then rebook affected passengers one by one from the IROPS rebooking screen.</div>
+                  @if (flight()?.status === 'Cancelled') {
+                    <div class="disruption-action-desc">This flight has already been cancelled. Open the IROPS rebooking screen to manage affected passengers.</div>
+                  } @else if (cancelConfirmMode()) {
+                    <div class="disruption-action-desc disruption-confirm-text">
+                      <lucide-icon name="triangle-alert" [size]="13" />
+                      This will immediately take the flight off sale. All passengers must then be rebooked individually from the IROPS screen.
+                    </div>
+                    @if (cancelError()) {
+                      <p class="disruption-cancel-error">{{ cancelError() }}</p>
+                    }
+                  } @else {
+                    <div class="disruption-action-desc">Take the flight off sale immediately, then rebook affected passengers one by one from the IROPS rebooking screen.</div>
+                  }
                 </div>
               </div>
-              <button class="disruption-action-btn disruption-action-btn-danger" disabled>Cancel this flight</button>
+              @if (flight()?.status === 'Cancelled') {
+                <button class="disruption-action-btn disruption-action-btn-primary" (click)="goToIrops()">
+                  <lucide-icon name="list" [size]="14" />
+                  IROPS screen
+                </button>
+              } @else if (cancelConfirmMode()) {
+                <div class="disruption-confirm-btns">
+                  <button class="disruption-action-btn disruption-action-btn-ghost" [disabled]="cancelLoading()" (click)="cancelConfirmMode.set(false)">Back</button>
+                  <button class="disruption-action-btn disruption-action-btn-danger" [disabled]="cancelLoading()" (click)="cancelFlight()">
+                    @if (cancelLoading()) {
+                      <span class="btn-spinner"></span> Cancelling…
+                    } @else {
+                      Confirm cancellation
+                    }
+                  </button>
+                </div>
+              } @else {
+                <button class="disruption-action-btn disruption-action-btn-danger" (click)="cancelConfirmMode.set(true)">Cancel this flight</button>
+              }
             </div>
 
             <!-- Time change — coming soon -->
@@ -527,7 +568,10 @@
                   <div class="disruption-action-desc">Switch the aircraft type for this flight. Seat assignments will be validated against the new aircraft configuration and any that cannot be transferred will be highlighted for manual reassignment.</div>
                 </div>
               </div>
-              <button class="disruption-action-btn disruption-action-btn-primary" (click)="startAircraftSwap()">Select aircraft type</button>
+              <button class="disruption-action-btn disruption-action-btn-primary" (click)="startAircraftSwap()">
+                <lucide-icon name="plane" [size]="14" />
+                Select aircraft type
+              </button>
             </div>
 
           </div>
@@ -615,6 +659,57 @@
               <lucide-icon name="check" [size]="14" /> Confirm change
             }
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Baggage details modal -->
+  @if (baggageModalEntry()) {
+    <div class="modal-backdrop" (click)="closeBaggageModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span class="modal-title">Checked Baggage</span>
+            <p class="baggage-modal-pax">
+              {{ baggageModalEntry()!.givenName | uppercase }} {{ baggageModalEntry()!.surname | uppercase }}
+              &nbsp;·&nbsp; {{ baggageModalEntry()!.eTicketNumber }}
+            </p>
+          </div>
+          <button class="modal-close-btn" (click)="closeBaggageModal()">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+        <div class="baggage-modal-body">
+          <table class="baggage-table">
+            <thead>
+              <tr>
+                <th>Bag #</th>
+                <th>Bag Tag</th>
+                <th>Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (bag of baggageModalEntry()!.baggage; track bag.bagNumber) {
+                <tr>
+                  <td class="mono">{{ bag.bagNumber }}</td>
+                  <td class="mono">{{ bag.bagTag ?? '—' }}</td>
+                  <td class="mono">{{ bag.weightKg != null ? bag.weightKg + ' kg' : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="baggage-total-row">
+                <td colspan="2">Total</td>
+                <td class="mono">
+                  {{ baggageTotalKg(baggageModalEntry()!) != null ? baggageTotalKg(baggageModalEntry()!) + ' kg' : '—' }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" (click)="closeBaggageModal()">Close</button>
         </div>
       </div>
     </div>

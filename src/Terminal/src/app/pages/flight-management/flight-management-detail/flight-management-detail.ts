@@ -177,15 +177,67 @@ export class FlightManagementDetailComponent implements OnInit {
     ).length;
   });
 
+  // Baggage details modal state
+  baggageModalEntry = signal<ManifestEntry | null>(null);
+
+  openBaggageModal(entry: ManifestEntry, event: Event): void {
+    event.stopPropagation();
+    this.baggageModalEntry.set(entry);
+  }
+
+  closeBaggageModal(): void {
+    this.baggageModalEntry.set(null);
+  }
+
+  baggageTotalKg(entry: ManifestEntry): number | null {
+    if (entry.baggage.every(b => b.weightKg === null)) return null;
+    return entry.baggage.reduce((sum, b) => sum + (b.weightKg ?? 0), 0);
+  }
+
   // Disruption modal state
   disruptionModalOpen = signal(false);
+  cancelConfirmMode = signal(false);
+  cancelLoading = signal(false);
+  cancelError = signal('');
 
   openDisruptionModal(): void {
+    this.cancelConfirmMode.set(false);
+    this.cancelError.set('');
     this.disruptionModalOpen.set(true);
   }
 
   closeDisruptionModal(): void {
     this.disruptionModalOpen.set(false);
+    this.cancelConfirmMode.set(false);
+    this.cancelError.set('');
+  }
+
+  async cancelFlight(): Promise<void> {
+    if (this.cancelLoading()) return;
+    this.cancelLoading.set(true);
+    this.cancelError.set('');
+    try {
+      await this.#inventoryService.cancelFlightInventoryOnly(this.#flightNumber, this.#departureDate);
+      this.disruptionModalOpen.set(false);
+      void this.#router.navigate(['/disruption', this.#flightNumber, this.#departureDate]);
+    } catch {
+      this.cancelError.set('Failed to cancel flight. Please try again.');
+    } finally {
+      this.cancelLoading.set(false);
+    }
+  }
+
+  goToIrops(): void {
+    this.closeDisruptionModal();
+    void this.#router.navigate(['/disruption', this.#flightNumber, this.#departureDate]);
+  }
+
+  equipmentChangeClick(): void {
+    this.closeDisruptionModal();
+    void this.#router.navigate(
+      ['/aircraft-swap', this.#flightNumber, this.#departureDate],
+      { state: { flight: this.flight() } }
+    );
   }
 
   // Aircraft swap modal state

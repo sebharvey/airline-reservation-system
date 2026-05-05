@@ -119,10 +119,18 @@ export interface BoardingCard {
   bcbpString: string;
 }
 
+export interface CheckedInBag {
+  ticketNumber: string;
+  bagNumber: number;
+  weightKg: number | null;
+  bagTag: string;
+}
+
 export interface AdminCheckInResponse {
   bookingReference: string;
   timaticNotes: TimaticNote[];
   boardingCards: BoardingCard[];
+  checkedInBags: CheckedInBag[];
 }
 
 @Injectable({ providedIn: 'root' })

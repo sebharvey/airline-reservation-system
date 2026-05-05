@@ -148,87 +148,155 @@
           </p>
           <div class="pax-detail-inner">
 
-            <!-- Travel document form -->
-            <div class="form-card">
-              <div class="doc-stack">
-                <div class="form-group">
-                  <label class="field-label">Document type</label>
-                  <select
-                    class="field-input"
-                    [value]="selectedPax()!.docType"
-                    (change)="updateDoc(selectedPaxIndex()!, 'docType', $any($event.target).value)"
-                  >
-                    <option value="PASSPORT">Passport</option>
-                    <option value="NATIONAL_ID">National ID</option>
-                    <option value="VISA">Visa</option>
-                  </select>
+            <!-- Left column: travel document form + baggage + action -->
+            <div class="pax-detail-left">
+
+              <div class="form-card">
+                <div class="doc-stack">
+                  <div class="form-group">
+                    <label class="field-label">Document type</label>
+                    <select
+                      class="field-input"
+                      [value]="selectedPax()!.docType"
+                      (change)="updateDoc(selectedPaxIndex()!, 'docType', $any($event.target).value)"
+                    >
+                      <option value="PASSPORT">Passport</option>
+                      <option value="NATIONAL_ID">National ID</option>
+                      <option value="VISA">Visa</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="field-label">Document number</label>
+                    <input
+                      class="field-input mono-input"
+                      type="text"
+                      placeholder="e.g. PA1234567"
+                      [value]="selectedPax()!.docNumber"
+                      (input)="updateDoc(selectedPaxIndex()!, 'docNumber', $any($event.target).value)"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="field-label">Issuing country <span class="label-hint">(ISO 3)</span></label>
+                    <input
+                      class="field-input mono-input"
+                      type="text"
+                      placeholder="e.g. GBR"
+                      maxlength="3"
+                      [value]="selectedPax()!.issuingCountry"
+                      (input)="updateDoc(selectedPaxIndex()!, 'issuingCountry', $any($event.target).value.toUpperCase())"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="field-label">Nationality <span class="label-hint">(ISO 3)</span></label>
+                    <input
+                      class="field-input mono-input"
+                      type="text"
+                      placeholder="e.g. GBR"
+                      maxlength="3"
+                      [value]="selectedPax()!.nationality"
+                      (input)="updateDoc(selectedPaxIndex()!, 'nationality', $any($event.target).value.toUpperCase())"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="field-label">Issue date</label>
+                    <input
+                      class="field-input"
+                      type="date"
+                      [value]="selectedPax()!.issueDate"
+                      (change)="updateDoc(selectedPaxIndex()!, 'issueDate', $any($event.target).value)"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label class="field-label">Expiry date</label>
+                    <input
+                      class="field-input"
+                      type="date"
+                      [value]="selectedPax()!.expiryDate"
+                      (change)="updateDoc(selectedPaxIndex()!, 'expiryDate', $any($event.target).value)"
+                    />
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label class="field-label">Document number</label>
-                  <input
-                    class="field-input mono-input"
-                    type="text"
-                    placeholder="e.g. PA1234567"
-                    [value]="selectedPax()!.docNumber"
-                    (input)="updateDoc(selectedPaxIndex()!, 'docNumber', $any($event.target).value)"
-                  />
-                </div>
-                <div class="form-group">
-                  <label class="field-label">Issuing country <span class="label-hint">(ISO 3)</span></label>
-                  <input
-                    class="field-input mono-input"
-                    type="text"
-                    placeholder="e.g. GBR"
-                    maxlength="3"
-                    [value]="selectedPax()!.issuingCountry"
-                    (input)="updateDoc(selectedPaxIndex()!, 'issuingCountry', $any($event.target).value.toUpperCase())"
-                  />
-                </div>
-                <div class="form-group">
-                  <label class="field-label">Nationality <span class="label-hint">(ISO 3)</span></label>
-                  <input
-                    class="field-input mono-input"
-                    type="text"
-                    placeholder="e.g. GBR"
-                    maxlength="3"
-                    [value]="selectedPax()!.nationality"
-                    (input)="updateDoc(selectedPaxIndex()!, 'nationality', $any($event.target).value.toUpperCase())"
-                  />
-                </div>
-                <div class="form-group">
-                  <label class="field-label">Issue date</label>
-                  <input
-                    class="field-input"
-                    type="date"
-                    [value]="selectedPax()!.issueDate"
-                    (change)="updateDoc(selectedPaxIndex()!, 'issueDate', $any($event.target).value)"
-                  />
-                </div>
-                <div class="form-group">
-                  <label class="field-label">Expiry date</label>
-                  <input
-                    class="field-input"
-                    type="date"
-                    [value]="selectedPax()!.expiryDate"
-                    (change)="updateDoc(selectedPaxIndex()!, 'expiryDate', $any($event.target).value)"
-                  />
+
+                <div class="form-actions" style="margin-top: 20px;">
+                  @if (paxStatuses()[selectedPaxIndex()!] !== 'checked-in') {
+                    <button
+                      class="secondary-btn"
+                      (click)="scanPassport(selectedPaxIndex()!)"
+                      [disabled]="checkingInIndex() !== null || scanning()"
+                    >
+                      Scan Passport
+                    </button>
+                  }
                 </div>
               </div>
 
-              <div class="form-actions" style="margin-top: 20px;">
-                @if (paxStatuses()[selectedPaxIndex()!] !== 'checked-in') {
-                  <button
-                    class="secondary-btn"
-                    (click)="scanPassport(selectedPaxIndex()!)"
-                    [disabled]="checkingInIndex() !== null || scanning()"
-                  >
-                    Scan Passport
-                  </button>
+              <!-- Baggage section -->
+              <div class="baggage-panel">
+                <p class="baggage-heading">Baggage</p>
+
+                @if (selectedPax()!.freeBagCount > 0) {
+                  <p class="baggage-allowance">
+                    Free allowance: {{ selectedPax()!.freeBagCount }} {{ selectedPax()!.freeBagCount === 1 ? 'bag' : 'bags' }}
+                    @if (selectedPax()!.freeBagMaxKg > 0) {
+                      &middot; up to {{ selectedPax()!.freeBagMaxKg }} kg each
+                    }
+                  </p>
+                }
+
+                @if (selectedPaxBagItems().length > 0) {
+                  <div class="baggage-list">
+                    @for (bag of selectedPaxBagItems(); track bag.id) {
+                      <div class="bag-row" [class.bag-row-purchased]="!bag.isFreeAllowance">
+                        <span class="bag-name">{{ bag.label }}</span>
+                        <label class="bag-check-label">
+                          <input
+                            type="checkbox"
+                            class="bag-checkbox"
+                            [checked]="bag.isChecked"
+                            (change)="updateBagChecked(selectedPaxIndex()!, bag.id, $any($event.target).checked)"
+                          />
+                          Travelling
+                        </label>
+                        <div class="bag-weight-group">
+                          <input
+                            type="number"
+                            class="field-input bag-weight-input"
+                            placeholder="—"
+                            min="0"
+                            max="999"
+                            [value]="bag.weightKg"
+                            (input)="updateBagWeight(selectedPaxIndex()!, bag.id, $any($event.target).value)"
+                          />
+                          <span class="bag-weight-unit">kg</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="baggage-empty">No bags on this booking for this passenger.</p>
                 }
               </div>
+
+              <!-- Check In action bar -->
+              <div class="checkin-action-bar">
+                <button
+                  class="primary-btn complete-btn"
+                  (click)="checkInPax(selectedPaxIndex()!)"
+                  [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in' || !docComplete()"
+                >
+                  @if (checkingInIndex() === selectedPaxIndex()) {
+                    <span class="btn-spinner"></span> Checking in…
+                  } @else if (paxStatuses()[selectedPaxIndex()!] === 'checked-in') {
+                    ✓ Checked In
+                  } @else {
+                    ✓ Check In
+                  }
+                </button>
+              </div>
+
             </div>
 
-            <!-- OCI notes panel -->
+            <!-- Right column: OCI notes -->
             <div class="oci-notes-panel">
               <p class="oci-notes-heading">Previous check-in activity</p>
               @if (selectedPaxOciNotes().length > 0) {
@@ -247,70 +315,6 @@
               }
             </div>
 
-          </div>
-
-          <!-- Baggage section -->
-          <div class="baggage-panel">
-            <p class="baggage-heading">Baggage</p>
-
-            @if (selectedPax()!.freeBagCount > 0) {
-              <p class="baggage-allowance">
-                Free allowance: {{ selectedPax()!.freeBagCount }} {{ selectedPax()!.freeBagCount === 1 ? 'bag' : 'bags' }}
-                @if (selectedPax()!.freeBagMaxKg > 0) {
-                  &middot; up to {{ selectedPax()!.freeBagMaxKg }} kg each
-                }
-              </p>
-            }
-
-            @if (selectedPaxBagItems().length > 0) {
-              <div class="baggage-list">
-                @for (bag of selectedPaxBagItems(); track bag.id) {
-                  <div class="bag-row" [class.bag-row-purchased]="!bag.isFreeAllowance">
-                    <span class="bag-name">{{ bag.label }}</span>
-                    <label class="bag-check-label">
-                      <input
-                        type="checkbox"
-                        class="bag-checkbox"
-                        [checked]="bag.isChecked"
-                        (change)="updateBagChecked(selectedPaxIndex()!, bag.id, $any($event.target).checked)"
-                      />
-                      Travelling
-                    </label>
-                    <div class="bag-weight-group">
-                      <input
-                        type="number"
-                        class="field-input bag-weight-input"
-                        placeholder="—"
-                        min="0"
-                        max="999"
-                        [value]="bag.weightKg"
-                        (input)="updateBagWeight(selectedPaxIndex()!, bag.id, $any($event.target).value)"
-                      />
-                      <span class="bag-weight-unit">kg</span>
-                    </div>
-                  </div>
-                }
-              </div>
-            } @else {
-              <p class="baggage-empty">No bags on this booking for this passenger.</p>
-            }
-          </div>
-
-          <!-- Check In action bar -->
-          <div class="checkin-action-bar">
-            <button
-              class="primary-btn complete-btn"
-              (click)="checkInPax(selectedPaxIndex()!)"
-              [disabled]="checkingInIndex() !== null || paxStatuses()[selectedPaxIndex()!] === 'checked-in' || !docComplete()"
-            >
-              @if (checkingInIndex() === selectedPaxIndex()) {
-                <span class="btn-spinner"></span> Checking in…
-              } @else if (paxStatuses()[selectedPaxIndex()!] === 'checked-in') {
-                ✓ Checked In
-              } @else {
-                ✓ Check In
-              }
-            </button>
           </div>
 
         } @else if (!allAttempted()) {
@@ -383,6 +387,23 @@
           }
         </div>
       </div>
+
+      @if (checkInResult()!.checkedInBags.length > 0) {
+        <div class="modal-baggage">
+          <p class="confirm-label" style="margin-bottom: 8px;">Checked bags</p>
+          <div class="baggage-tag-list">
+            @for (bag of checkInResult()!.checkedInBags; track bag.bagNumber) {
+              <div class="baggage-tag-row">
+                <span class="baggage-tag-num">Bag {{ bag.bagNumber }}</span>
+                @if (bag.weightKg !== null) {
+                  <span class="baggage-tag-weight">{{ bag.weightKg }} kg</span>
+                }
+                <span class="baggage-tag-code">{{ bag.bagTag }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
 
       <div class="modal-timatic">
         <p class="confirm-label" style="margin-bottom: 8px;">Security checks</p>
