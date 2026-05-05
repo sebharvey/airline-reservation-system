@@ -286,6 +286,24 @@ public sealed class OciCheckInResult
 
     [JsonPropertyName("timaticNotes")]
     public List<OciTimaticNote> TimaticNotes { get; init; } = [];
+
+    [JsonPropertyName("checkedInBags")]
+    public List<OciCheckedInBag> CheckedInBags { get; init; } = [];
+}
+
+public sealed class OciCheckedInBag
+{
+    [JsonPropertyName("ticketNumber")]
+    public string TicketNumber { get; init; } = string.Empty;
+
+    [JsonPropertyName("bagNumber")]
+    public int BagNumber { get; init; }
+
+    [JsonPropertyName("weightKg")]
+    public decimal? WeightKg { get; init; }
+
+    [JsonPropertyName("bagTag")]
+    public string BagTag { get; init; } = string.Empty;
 }
 
 public sealed class OciCheckedInTicket

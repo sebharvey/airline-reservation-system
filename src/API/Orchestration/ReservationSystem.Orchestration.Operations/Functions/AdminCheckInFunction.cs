@@ -142,6 +142,13 @@ public sealed class AdminCheckInFunction
                     origin         = c.Origin,
                     destination    = c.Destination,
                     bcbpString     = c.BcbpString,
+                }),
+                checkedInBags = result.CheckedInBags.Select(b => new
+                {
+                    ticketNumber = b.TicketNumber,
+                    bagNumber    = b.BagNumber,
+                    weightKg     = b.WeightKg,
+                    bagTag       = b.BagTag,
                 })
             });
         }
