@@ -23,13 +23,14 @@ interface AdminOrderItem {
   passengerId?: string;
   segmentId?: string;
   eTicketNumber?: string;
+  additionalBags?: number;
 }
 
 interface AdminOrderDetail {
   bookingReference: string;
   orderData: {
     dataLists: {
-      flightSegments: { segmentId: string; origin: string }[];
+      flightSegments: { segmentId: string; origin: string; cabinClass?: string }[];
       passengers: AdminOrderPassenger[];
     };
     orderItems: AdminOrderItem[];

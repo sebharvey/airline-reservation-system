@@ -7,7 +7,16 @@ import {
   PaxSubmission,
   TimaticNote,
 } from '../../services/check-in.service';
+import { BagPolicy, BagPolicyService } from '../../services/bag-policy.service';
 import { PassengerNamePipe } from '../../pipes/passenger-name.pipe';
+
+interface BagLineItem {
+  id: string;
+  label: string;
+  isFreeAllowance: boolean;
+  isChecked: boolean;
+  weightKg: string;
+}
 
 interface PaxFormData {
   passengerId: string;
@@ -22,6 +31,10 @@ interface PaxFormData {
   nationality: string;
   issueDate: string;
   expiryDate: string;
+  cabinCode: string;
+  freeBagCount: number;
+  freeBagMaxKg: number;
+  bagItems: BagLineItem[];
 }
 
 type PaxStatus = 'pending' | 'checked-in' | 'failed';
@@ -45,9 +58,11 @@ interface CheckInResult {
 })
 export class CheckInComponent {
   #svc = inject(CheckInService);
+  #bagPolicySvc = inject(BagPolicyService);
 
   loading = signal(false);
   error = signal('');
+  bagPolicies = signal<BagPolicy[]>([]);
 
   searchMode = signal<'bookingRef' | 'eTicket'>('bookingRef');
   bookingRef = signal('');
@@ -167,7 +182,7 @@ export class CheckInComponent {
     }
   }
 
-  selectDeparture(airport: string): void {
+  async selectDeparture(airport: string): Promise<void> {
     if (!airport) return;
     this.departureAirport.set(airport);
     this.error.set('');
@@ -188,21 +203,41 @@ export class CheckInComponent {
       return;
     }
 
+    if (!this.bagPolicies().length) {
+      try {
+        const policies = await this.#bagPolicySvc.getAll();
+        this.bagPolicies.set(policies);
+      } catch {
+        // bag allowance will show as 0 if policies fail to load
+      }
+    }
+
     this.paxForms.set(
-      passengers.map(p => ({
-        passengerId: p.passengerId,
-        ticketNumber: p.ticketNumber,
-        segmentIds: p.segmentIds,
-        givenName: p.givenName,
-        surname: p.surname,
-        passengerTypeCode: p.passengerTypeCode,
-        docType: p.existingDoc?.type ?? 'PASSPORT',
-        docNumber: p.existingDoc?.number ?? '',
-        issuingCountry: p.existingDoc?.issuingCountry ?? '',
-        nationality: p.existingDoc?.nationality ?? '',
-        issueDate: p.existingDoc?.issueDate ?? '',
-        expiryDate: p.existingDoc?.expiryDate ?? '',
-      })),
+      passengers.map(p => {
+        const { cabinCode, freeBagCount, freeBagMaxKg } = this.#cabinBagAllowance(
+          p.passengerId,
+          lookupResult.orderDetail,
+          airport,
+        );
+        return {
+          passengerId: p.passengerId,
+          ticketNumber: p.ticketNumber,
+          segmentIds: p.segmentIds,
+          givenName: p.givenName,
+          surname: p.surname,
+          passengerTypeCode: p.passengerTypeCode,
+          docType: p.existingDoc?.type ?? 'PASSPORT',
+          docNumber: p.existingDoc?.number ?? '',
+          issuingCountry: p.existingDoc?.issuingCountry ?? '',
+          nationality: p.existingDoc?.nationality ?? '',
+          issueDate: p.existingDoc?.issueDate ?? '',
+          expiryDate: p.existingDoc?.expiryDate ?? '',
+          cabinCode,
+          freeBagCount,
+          freeBagMaxKg,
+          bagItems: this.#buildBagItems(p.passengerId, lookupResult.orderDetail, airport, freeBagCount, freeBagMaxKg),
+        };
+      }),
     );
 
     const statuses: PaxStatus[] = passengers.map(p => p.alreadyCheckedIn ? 'checked-in' : 'pending');
@@ -337,6 +372,99 @@ export class CheckInComponent {
       expiryDate: pax.expiryDate || expiryDate,
     };
     this.paxForms.set(forms);
+  }
+
+  selectedPaxBagItems = computed((): BagLineItem[] => {
+    const i = this.selectedPaxIndex();
+    return i !== null ? (this.paxForms()[i]?.bagItems ?? []) : [];
+  });
+
+  updateBagChecked(paxIndex: number, bagId: string, checked: boolean): void {
+    const forms = this.paxForms().slice();
+    const form = forms[paxIndex];
+    if (!form) return;
+    forms[paxIndex] = {
+      ...form,
+      bagItems: form.bagItems.map(b => b.id === bagId ? { ...b, isChecked: checked } : b),
+    };
+    this.paxForms.set(forms);
+  }
+
+  updateBagWeight(paxIndex: number, bagId: string, value: string): void {
+    const forms = this.paxForms().slice();
+    const form = forms[paxIndex];
+    if (!form) return;
+    forms[paxIndex] = {
+      ...form,
+      bagItems: form.bagItems.map(b => b.id === bagId ? { ...b, weightKg: value } : b),
+    };
+    this.paxForms.set(forms);
+  }
+
+  #cabinBagAllowance(
+    passengerId: string,
+    orderDetail: LookupResponse['orderDetail'],
+    departureAirport: string,
+  ): { cabinCode: string; freeBagCount: number; freeBagMaxKg: number } {
+    const orderData = orderDetail.orderData;
+    const segments = orderData?.dataLists?.flightSegments ?? [];
+    const matchingSegments = segments.filter(s => s.origin === departureAirport);
+    const matchingIds = new Set(matchingSegments.map(s => s.segmentId));
+
+    const flightItem = (orderData?.orderItems ?? []).find(
+      item => item.itemType === 'Flight' && item.passengerId === passengerId && item.segmentId != null && matchingIds.has(item.segmentId),
+    );
+    const cabinCode = flightItem
+      ? (matchingSegments.find(s => s.segmentId === flightItem.segmentId)?.cabinClass ?? '')
+      : (matchingSegments[0]?.cabinClass ?? '');
+
+    const policy = this.bagPolicies().find(p => p.cabinCode === cabinCode);
+    return {
+      cabinCode,
+      freeBagCount: policy?.freeBagsIncluded ?? 0,
+      freeBagMaxKg: policy?.maxWeightKgPerBag ?? 0,
+    };
+  }
+
+  #buildBagItems(
+    passengerId: string,
+    orderDetail: LookupResponse['orderDetail'],
+    departureAirport: string,
+    freeBagCount: number,
+    freeBagMaxKg: number,
+  ): BagLineItem[] {
+    const orderData = orderDetail.orderData;
+    const segments = orderData?.dataLists?.flightSegments ?? [];
+    const matchingIds = new Set(segments.filter(s => s.origin === departureAirport).map(s => s.segmentId));
+
+    const purchasedBagItems = (orderData?.orderItems ?? []).filter(
+      item => item.itemType === 'Bag' && item.passengerId === passengerId && item.segmentId != null && matchingIds.has(item.segmentId),
+    );
+
+    const bags: BagLineItem[] = [];
+
+    for (let i = 1; i <= freeBagCount; i++) {
+      bags.push({
+        id: `free-${i}`,
+        label: freeBagMaxKg > 0 ? `Bag ${i} — free allowance (up to ${freeBagMaxKg} kg)` : `Bag ${i} — free allowance`,
+        isFreeAllowance: true,
+        isChecked: false,
+        weightKg: '',
+      });
+    }
+
+    purchasedBagItems.forEach((item, idx) => {
+      const bagNum = freeBagCount + idx + 1;
+      bags.push({
+        id: `purchased-${idx}`,
+        label: `Bag ${bagNum} — purchased`,
+        isFreeAllowance: false,
+        isChecked: false,
+        weightKg: '',
+      });
+    });
+
+    return bags;
   }
 
   #parsePaxIdInt(passengerId: string): number | null {

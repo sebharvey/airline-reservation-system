@@ -261,6 +261,54 @@
             </div>
 
           </div>
+
+          <!-- Baggage section -->
+          <div class="baggage-panel">
+            <p class="baggage-heading">Baggage</p>
+
+            @if (selectedPax()!.freeBagCount > 0) {
+              <p class="baggage-allowance">
+                Free allowance: {{ selectedPax()!.freeBagCount }} {{ selectedPax()!.freeBagCount === 1 ? 'bag' : 'bags' }}
+                @if (selectedPax()!.freeBagMaxKg > 0) {
+                  &middot; up to {{ selectedPax()!.freeBagMaxKg }} kg each
+                }
+              </p>
+            }
+
+            @if (selectedPaxBagItems().length > 0) {
+              <div class="baggage-list">
+                @for (bag of selectedPaxBagItems(); track bag.id) {
+                  <div class="bag-row" [class.bag-row-purchased]="!bag.isFreeAllowance">
+                    <span class="bag-name">{{ bag.label }}</span>
+                    <label class="bag-check-label">
+                      <input
+                        type="checkbox"
+                        class="bag-checkbox"
+                        [checked]="bag.isChecked"
+                        (change)="updateBagChecked(selectedPaxIndex()!, bag.id, $any($event.target).checked)"
+                      />
+                      Travelling
+                    </label>
+                    <div class="bag-weight-group">
+                      <input
+                        type="number"
+                        class="field-input bag-weight-input"
+                        placeholder="—"
+                        min="0"
+                        max="999"
+                        [value]="bag.weightKg"
+                        (input)="updateBagWeight(selectedPaxIndex()!, bag.id, $any($event.target).value)"
+                      />
+                      <span class="bag-weight-unit">kg</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="baggage-empty">No bags on this booking for this passenger.</p>
+            }
+          </div>
+
         } @else if (!allAttempted()) {
           <div class="pax-detail-empty">
             <p>Select a passenger from the list to view and edit their travel documents</p>
