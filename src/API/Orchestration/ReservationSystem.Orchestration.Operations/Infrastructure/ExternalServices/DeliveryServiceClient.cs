@@ -299,6 +299,7 @@ public sealed class OciBoardingCard
     [JsonPropertyName("ticketNumber")]
     public string TicketNumber { get; init; } = string.Empty;
 
+    [JsonConverter(typeof(PassengerIdAsStringConverter))]
     [JsonPropertyName("passengerId")]
     public string PassengerId { get; init; } = string.Empty;
 
