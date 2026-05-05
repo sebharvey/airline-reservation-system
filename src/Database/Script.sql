@@ -833,6 +833,7 @@ CREATE TABLE [delivery].[Manifest] (
     BookingType      VARCHAR(20)      NOT NULL CONSTRAINT DF_Manifest_BookingType DEFAULT 'Confirmed',
     CheckedIn        BIT              NOT NULL CONSTRAINT DF_Manifest_Checked DEFAULT 0,
     CheckedInAt      DATETIME2            NULL,
+    Baggage          JSON                 NULL,
     CreatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Manifest_Created DEFAULT SYSUTCDATETIME(),
     UpdatedAt        DATETIME2        NOT NULL CONSTRAINT DF_Manifest_Updated DEFAULT SYSUTCDATETIME(),
     Version          INT              NOT NULL CONSTRAINT DF_Manifest_Version DEFAULT 1,

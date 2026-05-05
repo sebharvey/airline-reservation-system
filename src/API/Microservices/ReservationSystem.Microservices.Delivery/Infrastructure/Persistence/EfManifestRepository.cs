@@ -103,7 +103,7 @@ public sealed class EfManifestRepository : IManifestRepository
     }
 
     public async Task<bool> CheckInByETicketAndOriginAsync(
-        string eTicketNumber, string origin, DateTime checkedInAt, CancellationToken cancellationToken = default)
+        string eTicketNumber, string origin, DateTime checkedInAt, string? baggageJson = null, CancellationToken cancellationToken = default)
     {
         var entry = await _context.Manifests
             .FirstOrDefaultAsync(
@@ -118,7 +118,7 @@ public sealed class EfManifestRepository : IManifestRepository
             return false;
         }
 
-        entry.CheckIn(checkedInAt);
+        entry.CheckIn(checkedInAt, baggageJson);
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogDebug(

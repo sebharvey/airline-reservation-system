@@ -16,7 +16,7 @@ public interface IManifestRepository
 
     Task<int> DeleteByBookingAndFlightAsync(string bookingReference, string flightNumber, DateOnly departureDate, CancellationToken cancellationToken = default);
 
-    Task<bool> CheckInByETicketAndOriginAsync(string eTicketNumber, string origin, DateTime checkedInAt, CancellationToken cancellationToken = default);
+    Task<bool> CheckInByETicketAndOriginAsync(string eTicketNumber, string origin, DateTime checkedInAt, string? baggageJson = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Updates the seat on the manifest entry matching <paramref name="eTicketNumber"/> and

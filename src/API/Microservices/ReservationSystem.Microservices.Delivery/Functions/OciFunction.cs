@@ -78,9 +78,14 @@ public sealed class OciFunction
             var docIssuingCountry = t.TryGetProperty("docIssuingCountry", out var ic) ? ic.GetString() : null;
             var docExpiryDate = t.TryGetProperty("docExpiryDate", out var ed) ? ed.GetString() : null;
 
+            // Optional baggage array — stored as raw JSON string on the manifest
+            string? baggageJson = null;
+            if (t.TryGetProperty("baggage", out var baggageEl) && baggageEl.ValueKind == JsonValueKind.Array)
+                baggageJson = baggageEl.GetRawText();
+
             tickets.Add(new OciCheckInTicket(
                 ticketNumber, passengerId, givenName, surname,
-                docNationality, docNumber, docIssuingCountry, docExpiryDate));
+                docNationality, docNumber, docIssuingCountry, docExpiryDate, baggageJson));
         }
 
         if (tickets.Count == 0)

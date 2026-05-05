@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import {
+  BaggageSubmissionItem,
   BoardingCard,
   CheckInService,
   LookupResponse,
@@ -257,6 +258,17 @@ export class CheckInComponent {
     this.paxForms.set(forms);
   }
 
+  #buildBaggageSubmission(bagItems: BagLineItem[]): BaggageSubmissionItem[] | undefined {
+    const travelling = bagItems
+      .map((b, i) => ({ b, bagNumber: i + 1 }))
+      .filter(({ b }) => b.isChecked)
+      .map(({ b, bagNumber }) => ({
+        bagNumber,
+        weightKg: b.weightKg !== '' ? Number(b.weightKg) : null,
+      }));
+    return travelling.length > 0 ? travelling : undefined;
+  }
+
   async checkInPax(index: number): Promise<void> {
     const pax = this.paxForms()[index];
     if (!pax) return;
@@ -275,6 +287,7 @@ export class CheckInComponent {
         issueDate: pax.issueDate,
         expiryDate: pax.expiryDate,
       },
+      baggage: this.#buildBaggageSubmission(pax.bagItems),
     };
 
     try {
@@ -525,6 +538,7 @@ export class CheckInComponent {
         issueDate: pax.issueDate,
         expiryDate: pax.expiryDate,
       },
+      baggage: this.#buildBaggageSubmission(pax.bagItems),
     };
 
     try {

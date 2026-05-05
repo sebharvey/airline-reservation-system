@@ -105,6 +105,7 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(m => m.ArrivalTime).HasColumnType("time").IsRequired();
             entity.Property(m => m.CheckedIn).HasColumnType("bit").IsRequired();
             entity.Property(m => m.CheckedInAt).HasColumnType("datetime2").IsRequired(false);
+            entity.Property(m => m.Baggage).HasColumnType("json").IsRequired(false);
             entity.Property(m => m.CreatedAt).HasColumnType("datetime2").IsRequired();
             entity.Property(m => m.UpdatedAt).HasColumnType("datetime2").IsRequired();
             entity.Property(m => m.Version).HasColumnType("int").IsRequired();
