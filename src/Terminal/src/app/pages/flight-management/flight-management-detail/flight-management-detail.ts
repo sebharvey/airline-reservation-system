@@ -10,20 +10,8 @@ import {
   FlightSeatmap,
   ManifestEntry,
   SeatmapSeat,
-  IropsOrderItem,
-  IropsOrdersResponse,
-  IropsRebookOrderResponse,
   AutoAssignSeatsResponse,
 } from '../../../services/inventory.service';
-
-type RebookStatus = 'pending' | 'loading' | 'rebooked' | 'failed';
-
-interface OrderRow {
-  order: IropsOrderItem;
-  priority: number;
-  rebookStatus: RebookStatus;
-  rebookResult?: IropsRebookOrderResponse;
-}
 
 interface SeatCell {
   seat: SeatmapSeat | null;
@@ -63,21 +51,7 @@ export class FlightManagementDetailComponent implements OnInit {
   selectedEntry = signal<ManifestEntry | null>(null);
   paxFilter = signal<'all' | 'confirmed' | 'standby'>('all');
 
-  activeTab = signal<'details' | 'disruption'>('details');
-
-  // IROPS / disruption tab state
-  iropsFlightInfo = signal<IropsOrdersResponse | null>(null);
-  iropsRows = signal<OrderRow[]>([]);
-  iropsLoading = signal(false);
-  iropsError = signal('');
-  rebookResultModal = signal<OrderRow | null>(null);
   copiedRef = signal<string | null>(null);
-  runningAll = signal(false);
-  #iropsLoaded = false;
-
-  rebookedCount = computed(() => this.iropsRows().filter(r => r.rebookStatus === 'rebooked').length);
-  pendingCount  = computed(() => this.iropsRows().filter(r => r.rebookStatus === 'pending').length);
-  failedCount   = computed(() => this.iropsRows().filter(r => r.rebookStatus === 'failed').length);
 
   // Seat action state
   pendingSeat = signal<SeatmapSeat | null>(null);
@@ -467,95 +441,6 @@ export class FlightManagementDetailComponent implements OnInit {
     this.seatOpError.set('');
   }
 
-  activateTab(tab: 'details' | 'disruption'): void {
-    this.activeTab.set(tab);
-    if (tab === 'disruption' && !this.#iropsLoaded) {
-      void this.loadIropsOrders();
-    }
-  }
-
-  async loadIropsOrders(): Promise<void> {
-    this.iropsLoading.set(true);
-    this.iropsError.set('');
-    try {
-      const result = await this.#inventoryService.getIropsOrders(
-        this.#flightNumber,
-        this.#departureDate,
-      );
-      this.iropsFlightInfo.set(result);
-      this.iropsRows.set(
-        result.orders.map((order, index) => ({
-          order,
-          priority: index + 1,
-          rebookStatus: 'pending',
-        })),
-      );
-      this.#iropsLoaded = true;
-    } catch {
-      this.iropsError.set('Failed to load affected orders. Please try again.');
-    } finally {
-      this.iropsLoading.set(false);
-    }
-  }
-
-  async rebookOrder(row: OrderRow): Promise<void> {
-    await this.#rebookSingle(row.order.bookingReference);
-    const updated = this.iropsRows().find(r => r.order.bookingReference === row.order.bookingReference);
-    if (updated) this.rebookResultModal.set(updated);
-  }
-
-  async runAll(): Promise<void> {
-    this.runningAll.set(true);
-    try {
-      const pendingRefs = this.iropsRows()
-        .filter(r => r.rebookStatus === 'pending')
-        .map(r => r.order.bookingReference);
-      for (const ref of pendingRefs) {
-        await this.#rebookSingle(ref);
-      }
-    } finally {
-      this.runningAll.set(false);
-    }
-  }
-
-  async #rebookSingle(bookingReference: string): Promise<void> {
-    this.iropsRows.update(rows =>
-      rows.map(r => r.order.bookingReference === bookingReference
-        ? { ...r, rebookStatus: 'loading' as RebookStatus }
-        : r,
-      ),
-    );
-    try {
-      const result = await this.#inventoryService.rebookIropsOrder(
-        bookingReference,
-        this.#flightNumber,
-        this.#departureDate,
-      );
-      const status: RebookStatus = result.outcome === 'Rebooked' ? 'rebooked' : 'failed';
-      this.iropsRows.update(rows =>
-        rows.map(r => r.order.bookingReference === bookingReference
-          ? { ...r, rebookStatus: status, rebookResult: result }
-          : r,
-        ),
-      );
-    } catch {
-      this.iropsRows.update(rows =>
-        rows.map(r => r.order.bookingReference === bookingReference
-          ? {
-              ...r,
-              rebookStatus: 'failed' as RebookStatus,
-              rebookResult: {
-                bookingReference,
-                outcome: 'Failed',
-                failureReason: 'An unexpected error occurred. Please try again.',
-              },
-            }
-          : r,
-        ),
-      );
-    }
-  }
-
   copyBookingRef(text: string, event?: Event): void {
     event?.stopPropagation();
     navigator.clipboard.writeText(text).then(() => {
@@ -567,19 +452,6 @@ export class FlightManagementDetailComponent implements OnInit {
   navigateToOrder(bookingReference: string, event?: Event): void {
     event?.stopPropagation();
     void this.#router.navigate(['/order', bookingReference]);
-  }
-
-  closeRebookModal(): void {
-    this.rebookResultModal.set(null);
-  }
-
-  tierClass(tier?: string): string {
-    if (!tier) return 'tier-none';
-    return `tier-${tier.toLowerCase()}`;
-  }
-
-  formatDate(iso: string): string {
-    return iso.slice(0, 10);
   }
 
   async autoAssign(): Promise<void> {
