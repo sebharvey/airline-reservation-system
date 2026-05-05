@@ -143,6 +143,13 @@ public sealed class OciFunction
                     status       = n.Status,
                     detail       = n.Detail,
                     timestamp    = n.Timestamp
+                }),
+                checkedInBags = result.CheckedInBags.Select(b => new
+                {
+                    ticketNumber = b.TicketNumber,
+                    bagNumber    = b.BagNumber,
+                    weightKg     = b.WeightKg,
+                    bagTag       = b.BagTag
                 })
             });
         }

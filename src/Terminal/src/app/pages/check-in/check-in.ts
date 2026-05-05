@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import {
   BaggageSubmissionItem,
   BoardingCard,
+  CheckedInBag,
   CheckInService,
   LookupResponse,
   OciNote,
@@ -49,6 +50,7 @@ interface CheckInResult {
   ticketNumber: string;
   boardingCard: BoardingCard | null;
   timaticNotes: TimaticNote[];
+  checkedInBags: CheckedInBag[];
 }
 
 @Component({
@@ -303,7 +305,8 @@ export class CheckInComponent {
 
       const boardingCard = response.boardingCards.find(c => c.ticketNumber === pax.ticketNumber) ?? response.boardingCards[0] ?? null;
       const timaticNotes = (response.timaticNotes ?? []).filter(n => n.ticketNumber === pax.ticketNumber);
-      this.checkInResult.set({ success: true, errorMessage: '', givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard, timaticNotes });
+      const checkedInBags = (response.checkedInBags ?? []).filter(b => b.ticketNumber === pax.ticketNumber);
+      this.checkInResult.set({ success: true, errorMessage: '', givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard, timaticNotes, checkedInBags });
 
       const nextPending = this.paxForms().findIndex((_, i) => i !== index && this.paxStatuses()[i] === 'pending');
       this.selectedPaxIndex.set(nextPending >= 0 ? nextPending : null);
@@ -315,7 +318,7 @@ export class CheckInComponent {
       const message = this.#extractErrorMessage(err);
       const timaticNotes = this.#extractTimaticNotes(err).filter(n => n.ticketNumber === pax.ticketNumber);
       const errorMessage = message || 'Check-in failed. Please verify the document details and try again.';
-      this.checkInResult.set({ success: false, errorMessage, givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard: null, timaticNotes });
+      this.checkInResult.set({ success: false, errorMessage, givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard: null, timaticNotes, checkedInBags: [] });
     } finally {
       this.checkingInIndex.set(null);
     }
@@ -561,7 +564,8 @@ export class CheckInComponent {
 
       const boardingCard = response.boardingCards.find(c => c.ticketNumber === pax.ticketNumber) ?? response.boardingCards[0] ?? null;
       const timaticNotes = (response.timaticNotes ?? []).filter(n => n.ticketNumber === pax.ticketNumber);
-      this.checkInResult.set({ success: true, errorMessage: '', givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard, timaticNotes });
+      const checkedInBags = (response.checkedInBags ?? []).filter(b => b.ticketNumber === pax.ticketNumber);
+      this.checkInResult.set({ success: true, errorMessage: '', givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard, timaticNotes, checkedInBags });
       this.overrideMode.set(false);
       this.overrideReason.set('');
 
@@ -571,7 +575,7 @@ export class CheckInComponent {
       const message = this.#extractErrorMessage(err);
       const timaticNotes = this.#extractTimaticNotes(err).filter(n => n.ticketNumber === pax.ticketNumber);
       const errorMessage = message || 'Override check-in failed. Please contact a supervisor.';
-      this.checkInResult.set({ success: false, errorMessage, givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard: null, timaticNotes });
+      this.checkInResult.set({ success: false, errorMessage, givenName: pax.givenName, surname: pax.surname, passengerTypeCode: pax.passengerTypeCode, ticketNumber: pax.ticketNumber, boardingCard: null, timaticNotes, checkedInBags: [] });
       this.overrideMode.set(false);
     } finally {
       this.overridingIndex.set(null);

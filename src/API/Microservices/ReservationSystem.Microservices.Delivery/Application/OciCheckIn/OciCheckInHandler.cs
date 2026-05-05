@@ -32,6 +32,8 @@ public sealed record OciCheckInCommand(
 
 public sealed record OciCheckInTicketResult(string TicketNumber, string Status, string? SeatNumber = null);
 
+public sealed record CheckedInBag(string TicketNumber, int BagNumber, decimal? WeightKg, string BagTag);
+
 public sealed record TimaticNote(
     string CheckType,    // "DOC" or "APIS"
     string TicketNumber,
@@ -50,7 +52,8 @@ public sealed class TimaticValidationException : Exception
 public sealed record OciCheckInResult(
     int CheckedIn,
     IReadOnlyList<OciCheckInTicketResult> Tickets,
-    IReadOnlyList<TimaticNote> TimaticNotes);
+    IReadOnlyList<TimaticNote> TimaticNotes,
+    IReadOnlyList<CheckedInBag> CheckedInBags);
 
 public sealed class OciCheckInHandler
 {
@@ -76,6 +79,7 @@ public sealed class OciCheckInHandler
         var checkedInCount = 0;
         var results = new List<OciCheckInTicketResult>();
         var timaticNotes = new List<TimaticNote>();
+        var checkedInBags = new List<CheckedInBag>();
 
         // Tickets that were checked in but have no seat yet — collected for group allocation.
         var pendingAssignment = new List<(Domain.Entities.Ticket Ticket, string FlightNumber, string CabinCode, string ETicketNumber)>();
@@ -255,7 +259,8 @@ public sealed class OciCheckInHandler
                 checkedInCount++;
 
                 var checkedInAt = DateTime.UtcNow;
-                var baggageJson = BuildBaggageJson(ticketRequest.Baggage);
+                var (baggageJson, taggedBags) = BuildBaggageData(ticketRequest.TicketNumber, ticketRequest.Baggage);
+                checkedInBags.AddRange(taggedBags);
                 await _manifestRepository.CheckInByETicketAndOriginAsync(
                     ticketRequest.TicketNumber, command.DepartureAirport, checkedInAt, baggageJson, cancellationToken);
 
@@ -347,20 +352,23 @@ public sealed class OciCheckInHandler
             .Select(r => assignedSeats.TryGetValue(r.TicketNumber, out var s) ? r with { SeatNumber = s } : r)
             .ToList();
 
-        return new OciCheckInResult(checkedInCount, finalResults, timaticNotes);
+        return new OciCheckInResult(checkedInCount, finalResults, timaticNotes, checkedInBags);
     }
 
     /// <summary>
-    /// Assigns an IATA Resolution 740 bag tag to each bag and serialises the list to JSON
-    /// for storage on the manifest. Returns null when no bags are present.
+    /// Assigns an IATA Resolution 740 bag tag to each bag. Returns the manifest JSON
+    /// and a typed list of <see cref="CheckedInBag"/> records for surfacing in the response.
     /// </summary>
-    private static string? BuildBaggageJson(IReadOnlyList<OciCheckInBaggageItem>? bags)
+    private static (string? Json, IReadOnlyList<CheckedInBag> TaggedBags) BuildBaggageData(
+        string ticketNumber, IReadOnlyList<OciCheckInBaggageItem>? bags)
     {
         if (bags is null || bags.Count == 0)
-            return null;
+            return (null, []);
 
-        var tagged = bags.Select(b => new { b.BagNumber, b.WeightKg, BagTag = GenerateBagTag() });
-        return JsonSerializer.Serialize(tagged, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var tagged = bags.Select(b => new { b.BagNumber, b.WeightKg, BagTag = GenerateBagTag() }).ToList();
+        var json = JsonSerializer.Serialize(tagged, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var checkedInBags = tagged.Select(t => new CheckedInBag(ticketNumber, t.BagNumber, t.WeightKg, t.BagTag)).ToList();
+        return (json, checkedInBags);
     }
 
     /// <summary>

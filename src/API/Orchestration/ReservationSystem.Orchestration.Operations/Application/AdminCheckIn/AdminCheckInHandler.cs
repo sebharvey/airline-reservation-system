@@ -30,7 +30,8 @@ public sealed record AdminCheckInCommand(
 public sealed record AdminCheckInResult(
     string BookingReference,
     IReadOnlyList<OciBoardingCard> BoardingCards,
-    IReadOnlyList<OciTimaticNote> TimaticNotes);
+    IReadOnlyList<OciTimaticNote> TimaticNotes,
+    IReadOnlyList<OciCheckedInBag> CheckedInBags);
 
 public sealed class AdminCheckInHandler
 {
@@ -231,13 +232,13 @@ public sealed class AdminCheckInHandler
             _logger.LogWarning(
                 "Admin check-in: no tickets checked in for {BookingReference} from {DepartureAirport}",
                 command.BookingReference, command.DepartureAirport);
-            return new AdminCheckInResult(command.BookingReference, [], checkInResult.TimaticNotes);
+            return new AdminCheckInResult(command.BookingReference, [], checkInResult.TimaticNotes, []);
         }
 
         var boardingDocsResult = await _deliveryServiceClient.GetBoardingDocsAsync(
             command.DepartureAirport, checkedInTickets, ct);
 
-        return new AdminCheckInResult(command.BookingReference, boardingDocsResult.BoardingCards, checkInResult.TimaticNotes);
+        return new AdminCheckInResult(command.BookingReference, boardingDocsResult.BoardingCards, checkInResult.TimaticNotes, checkInResult.CheckedInBags);
     }
 
     private static List<OrderTimaticNote> BuildWatchlistOverrideNotes(
