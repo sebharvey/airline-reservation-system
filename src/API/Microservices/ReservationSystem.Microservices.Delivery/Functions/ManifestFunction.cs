@@ -89,7 +89,10 @@ public sealed class ManifestFunction
                     : System.Text.Json.JsonSerializer.Deserialize<List<string>>(e.SsrCodes) ?? [],
                 gender           = e.Gender,
                 dateOfBirth      = e.DateOfBirth,
-                ptcCode          = e.PtcCode
+                ptcCode          = e.PtcCode,
+                baggage          = string.IsNullOrEmpty(e.Baggage)
+                    ? []
+                    : System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(e.Baggage) ?? []
             })
         });
     }

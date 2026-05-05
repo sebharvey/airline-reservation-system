@@ -160,13 +160,14 @@
                   <th>PTC</th>
                   <th>E-Ticket</th>
                   <th>SSR</th>
+                  <th>Bags</th>
                   <th>CI</th>
                 </tr>
               </thead>
               <tbody>
                 @for (group of groupedEntries(); track group.bookingReference) {
                   <tr class="booking-group-header">
-                    <td colspan="10">
+                    <td colspan="11">
                       <span class="pnr-copy-wrap">
                         <span class="booking-ref-text mono">{{ group.bookingReference }}</span>
                         <button class="copy-btn" [class.copied]="copiedRef() === group.bookingReference" (click)="copyBookingRef(group.bookingReference, $event)" [title]="copiedRef() === group.bookingReference ? 'Copied!' : 'Copy booking reference'">
@@ -213,6 +214,7 @@
                           </span>
                         }
                       </td>
+                      <td class="mono">{{ entry.baggage.length > 0 ? entry.baggage.length : '—' }}</td>
                       <td>
                         @if (entry.checkedIn) {
                           <span class="ci-badge">CI</span>

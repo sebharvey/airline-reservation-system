@@ -484,11 +484,12 @@ public sealed class AdminManifestEntry
     [JsonPropertyName("seatNumber")]       public string? SeatNumber      { get; init; }
     [JsonPropertyName("cabinCode")]        public string CabinCode        { get; init; } = string.Empty;
     [JsonPropertyName("bookingType")]      public string BookingType      { get; init; } = string.Empty;
-    [JsonPropertyName("checkedIn")]        public bool CheckedIn          { get; init; }
-    [JsonPropertyName("ssrCodes")]         public List<string> SsrCodes   { get; init; } = [];
-    [JsonPropertyName("gender")]           public string? Gender          { get; init; }
-    [JsonPropertyName("dateOfBirth")]      public DateOnly? DateOfBirth   { get; init; }
-    [JsonPropertyName("ptcCode")]          public string PtcCode          { get; init; } = "ADT";
+    [JsonPropertyName("checkedIn")]        public bool CheckedIn                              { get; init; }
+    [JsonPropertyName("ssrCodes")]         public List<string> SsrCodes                       { get; init; } = [];
+    [JsonPropertyName("gender")]           public string? Gender                              { get; init; }
+    [JsonPropertyName("dateOfBirth")]      public DateOnly? DateOfBirth                       { get; init; }
+    [JsonPropertyName("ptcCode")]          public string PtcCode                              { get; init; } = "ADT";
+    [JsonPropertyName("baggage")]          public List<System.Text.Json.JsonElement> Baggage  { get; init; } = [];
 }
 
 public sealed class ManifestPassengerEntry
