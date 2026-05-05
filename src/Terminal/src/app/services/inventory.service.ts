@@ -99,6 +99,7 @@ export interface FlightSeatmap {
 export interface BaggageItem {
   bagNumber: number;
   weightKg: number | null;
+  bagTag: string | null;
 }
 
 export interface ManifestEntry {

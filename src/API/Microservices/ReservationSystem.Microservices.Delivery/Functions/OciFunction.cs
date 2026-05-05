@@ -78,14 +78,23 @@ public sealed class OciFunction
             var docIssuingCountry = t.TryGetProperty("docIssuingCountry", out var ic) ? ic.GetString() : null;
             var docExpiryDate = t.TryGetProperty("docExpiryDate", out var ed) ? ed.GetString() : null;
 
-            // Optional baggage array — stored as raw JSON string on the manifest
-            string? baggageJson = null;
+            // Optional baggage array — parsed into typed items; bag tag generation happens in the handler
+            List<OciCheckInBaggageItem>? baggage = null;
             if (t.TryGetProperty("baggage", out var baggageEl) && baggageEl.ValueKind == JsonValueKind.Array)
-                baggageJson = baggageEl.GetRawText();
+            {
+                baggage = [];
+                foreach (var bag in baggageEl.EnumerateArray())
+                {
+                    var bagNumber = bag.TryGetProperty("bagNumber", out var bn) ? bn.GetInt32() : 0;
+                    decimal? weightKg = bag.TryGetProperty("weightKg", out var wk) && wk.ValueKind != JsonValueKind.Null
+                        ? wk.GetDecimal() : null;
+                    baggage.Add(new OciCheckInBaggageItem(bagNumber, weightKg));
+                }
+            }
 
             tickets.Add(new OciCheckInTicket(
                 ticketNumber, passengerId, givenName, surname,
-                docNationality, docNumber, docIssuingCountry, docExpiryDate, baggageJson));
+                docNationality, docNumber, docIssuingCountry, docExpiryDate, baggage));
         }
 
         if (tickets.Count == 0)
@@ -228,4 +237,5 @@ public sealed class OciFunction
             return await req.InternalServerErrorAsync();
         }
     }
+
 }

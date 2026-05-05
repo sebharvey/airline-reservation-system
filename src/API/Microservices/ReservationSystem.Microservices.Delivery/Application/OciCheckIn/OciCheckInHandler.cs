@@ -1,8 +1,11 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Domain.Repositories;
 using ReservationSystem.Microservices.Delivery.Infrastructure.ExternalServices;
 
 namespace ReservationSystem.Microservices.Delivery.Application.OciCheckIn;
+
+public sealed record OciCheckInBaggageItem(int BagNumber, decimal? WeightKg);
 
 public sealed record OciCheckInTicket(
     string TicketNumber,
@@ -13,7 +16,7 @@ public sealed record OciCheckInTicket(
     string? DocNumber = null,
     string? DocIssuingCountry = null,
     string? DocExpiryDate = null,
-    string? BaggageJson = null);
+    IReadOnlyList<OciCheckInBaggageItem>? Baggage = null);
 
 /// <summary>Column layout and row range for one cabin, sourced from the active seatmap.</summary>
 public sealed record SeatCabinConfig(
@@ -252,8 +255,9 @@ public sealed class OciCheckInHandler
                 checkedInCount++;
 
                 var checkedInAt = DateTime.UtcNow;
+                var baggageJson = BuildBaggageJson(ticketRequest.Baggage);
                 await _manifestRepository.CheckInByETicketAndOriginAsync(
-                    ticketRequest.TicketNumber, command.DepartureAirport, checkedInAt, ticketRequest.BaggageJson, cancellationToken);
+                    ticketRequest.TicketNumber, command.DepartureAirport, checkedInAt, baggageJson, cancellationToken);
 
                 // Check whether the freshly checked-in coupon already has a seat.
                 var unseatedCoupon = ticket.GetCheckedInCouponsForOrigin(command.DepartureAirport)
@@ -344,6 +348,33 @@ public sealed class OciCheckInHandler
             .ToList();
 
         return new OciCheckInResult(checkedInCount, finalResults, timaticNotes);
+    }
+
+    /// <summary>
+    /// Assigns an IATA Resolution 740 bag tag to each bag and serialises the list to JSON
+    /// for storage on the manifest. Returns null when no bags are present.
+    /// </summary>
+    private static string? BuildBaggageJson(IReadOnlyList<OciCheckInBaggageItem>? bags)
+    {
+        if (bags is null || bags.Count == 0)
+            return null;
+
+        var tagged = bags.Select(b => new { b.BagNumber, b.WeightKg, BagTag = GenerateBagTag() });
+        return JsonSerializer.Serialize(tagged, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    }
+
+    /// <summary>
+    /// Generates a 10-digit IATA Resolution 740 bag tag license plate number.
+    /// Format: [3-digit airline numeric prefix][6-digit sequence][1-digit mod-7 check digit].
+    /// </summary>
+    private static string GenerateBagTag()
+    {
+        const string airlinePrefix = "001"; // Apex Air IATA numeric airline code
+        // TODO: In future, this 6-digit sequence number needs to be auto-incremented from a persistent counter rather than generated randomly.
+        var sequence = Random.Shared.Next(0, 1_000_000).ToString("D6");
+        var nineDigits = airlinePrefix + sequence;
+        var checkDigit = (int)(long.Parse(nineDigits) % 7);
+        return nineDigits + checkDigit;
     }
 
     private static string NormaliseDate(string raw)

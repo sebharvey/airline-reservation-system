@@ -591,6 +591,7 @@
             <thead>
               <tr>
                 <th>Bag #</th>
+                <th>Bag Tag</th>
                 <th>Weight</th>
               </tr>
             </thead>
@@ -598,13 +599,14 @@
               @for (bag of baggageModalEntry()!.baggage; track bag.bagNumber) {
                 <tr>
                   <td class="mono">{{ bag.bagNumber }}</td>
+                  <td class="mono">{{ bag.bagTag ?? '—' }}</td>
                   <td class="mono">{{ bag.weightKg != null ? bag.weightKg + ' kg' : '—' }}</td>
                 </tr>
               }
             </tbody>
             <tfoot>
               <tr class="baggage-total-row">
-                <td>Total</td>
+                <td colspan="2">Total</td>
                 <td class="mono">
                   {{ baggageTotalKg(baggageModalEntry()!) != null ? baggageTotalKg(baggageModalEntry()!) + ' kg' : '—' }}
                 </td>
