@@ -212,24 +212,24 @@ public static class CheckInHelper
     }
 
     /// <summary>
-    /// Parses the inventory ID from order items whose origin matches <paramref name="departureAirport"/>.
-    /// Returns null when no matching item is found.
+    /// Parses the inventory ID from flight segments whose origin matches <paramref name="departureAirport"/>.
+    /// Returns null when no matching segment is found.
     /// </summary>
     public static Guid? ParseInventoryIdForDeparture(JsonElement? orderData, string departureAirport)
     {
         if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
             return null;
 
-        if (!el.TryGetProperty("orderItems", out var orderItems) || orderItems.ValueKind != JsonValueKind.Array)
+        if (!el.TryGetProperty("flightSegments", out var flightSegments) || flightSegments.ValueKind != JsonValueKind.Array)
             return null;
 
-        foreach (var item in orderItems.EnumerateArray())
+        foreach (var segment in flightSegments.EnumerateArray())
         {
-            var origin = item.TryGetProperty("origin", out var orig) ? orig.GetString() : null;
+            var origin = segment.TryGetProperty("origin", out var orig) ? orig.GetString() : null;
             if (!string.Equals(origin, departureAirport, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            if (item.TryGetProperty("inventoryId", out var invEl) && Guid.TryParse(invEl.GetString(), out var id))
+            if (segment.TryGetProperty("inventoryId", out var invEl) && Guid.TryParse(invEl.GetString(), out var id))
                 return id;
         }
 

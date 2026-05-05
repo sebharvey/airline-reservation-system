@@ -196,6 +196,19 @@ public sealed class EfManifestRepository : IManifestRepository
         return entries.Count;
     }
 
+    public async Task<IReadOnlyList<string>> GetAssignedSeatsByFlightAsync(
+        string flightNumber, string origin, CancellationToken cancellationToken = default)
+    {
+        return await _context.Manifests
+            .Where(m => m.FlightNumber == flightNumber
+                     && m.Origin      == origin
+                     && m.SeatNumber  != null
+                     && m.SeatNumber  != "")
+            .Select(m => m.SeatNumber!)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<int> DeleteExpiredManifestItemsAsync(CancellationToken cancellationToken = default)
     {
         var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(-48));

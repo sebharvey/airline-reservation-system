@@ -448,6 +448,7 @@ public sealed class ConfirmBasketHandler
                 segments.Add(new ConfirmedFlightSegment
                 {
                     SegmentId         = basketItemId,
+                    InventoryId       = offer.TryGetProperty("inventoryId",  out var inv) ? inv.GetString() ?? "" : "",
                     FlightNumber      = flightNumber,
                     Origin            = offer.TryGetProperty("origin",       out var o) ? o.GetString() ?? "" : "",
                     Destination       = offer.TryGetProperty("destination",  out var d) ? d.GetString() ?? "" : "",

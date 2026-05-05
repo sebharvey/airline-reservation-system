@@ -306,7 +306,7 @@ public sealed class OciCheckInHandler
                 continue;
             }
 
-            var takenSeats = await _ticketRepository.GetAssignedSeatsForFlightAsync(
+            var takenSeats = await _manifestRepository.GetAssignedSeatsByFlightAsync(
                 flightGroup.Key.FlightNumber, command.DepartureAirport, cancellationToken);
 
             var seats = SeatAllocator.AllocateGroupSeats(
