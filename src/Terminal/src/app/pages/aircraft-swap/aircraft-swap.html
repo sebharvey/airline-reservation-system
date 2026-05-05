@@ -90,6 +90,13 @@
           <lucide-icon name="triangle-alert" [size]="14" /> {{ seatmapError() }}
         </div>
       }
+
+      @if (typeUpdateFailed()) {
+        <div class="warning-banner" role="alert" style="margin-top:12px">
+          <lucide-icon name="triangle-alert" [size]="14" />
+          Aircraft type updated locally — the schedule record could not be updated automatically. Please update it manually in the schedule administration screen.
+        </div>
+      }
     </div>
 
   </div>
