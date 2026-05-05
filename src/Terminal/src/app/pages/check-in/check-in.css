@@ -690,6 +690,54 @@ select.field-input { cursor: pointer; }
   line-height: 1.4;
 }
 
+/* Checked bags section */
+.modal-baggage {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.baggage-tag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.baggage-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.83rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(63, 185, 80, 0.06);
+}
+
+.baggage-tag-num {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 48px;
+  flex-shrink: 0;
+}
+
+.baggage-tag-weight {
+  color: var(--text-muted);
+  min-width: 48px;
+  flex-shrink: 0;
+}
+
+.baggage-tag-code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #2a7d3b;
+  margin-left: auto;
+}
+
 /* Override section */
 .modal-override {
   padding: 16px 24px;

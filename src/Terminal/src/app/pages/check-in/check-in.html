@@ -388,6 +388,23 @@
         </div>
       </div>
 
+      @if (checkInResult()!.checkedInBags.length > 0) {
+        <div class="modal-baggage">
+          <p class="confirm-label" style="margin-bottom: 8px;">Checked bags</p>
+          <div class="baggage-tag-list">
+            @for (bag of checkInResult()!.checkedInBags; track bag.bagNumber) {
+              <div class="baggage-tag-row">
+                <span class="baggage-tag-num">Bag {{ bag.bagNumber }}</span>
+                @if (bag.weightKg !== null) {
+                  <span class="baggage-tag-weight">{{ bag.weightKg }} kg</span>
+                }
+                <span class="baggage-tag-code">{{ bag.bagTag }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <div class="modal-timatic">
         <p class="confirm-label" style="margin-bottom: 8px;">Security checks</p>
         @if (checkInResult()!.timaticNotes.length > 0) {
