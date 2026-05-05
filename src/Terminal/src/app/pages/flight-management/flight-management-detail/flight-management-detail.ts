@@ -176,6 +176,23 @@ export class FlightManagementDetailComponent implements OnInit {
     ).length;
   });
 
+  // Baggage details modal state
+  baggageModalEntry = signal<ManifestEntry | null>(null);
+
+  openBaggageModal(entry: ManifestEntry, event: Event): void {
+    event.stopPropagation();
+    this.baggageModalEntry.set(entry);
+  }
+
+  closeBaggageModal(): void {
+    this.baggageModalEntry.set(null);
+  }
+
+  baggageTotalKg(entry: ManifestEntry): number | null {
+    if (entry.baggage.every(b => b.weightKg === null)) return null;
+    return entry.baggage.reduce((sum, b) => sum + (b.weightKg ?? 0), 0);
+  }
+
   // Disruption modal state
   disruptionModalOpen = signal(false);
 
