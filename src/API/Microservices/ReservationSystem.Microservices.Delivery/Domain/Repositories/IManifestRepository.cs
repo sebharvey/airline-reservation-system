@@ -46,6 +46,13 @@ public interface IManifestRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns all non-null seat numbers already assigned to passengers on a given flight,
+    /// sourced from the manifest (the authoritative record of seat assignments across all bookings).
+    /// Used by the seat allocator to avoid double-assigning a seat at check-in.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetAssignedSeatsByFlightAsync(string flightNumber, string origin, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes all manifest entries whose <c>DepartureDate</c> is more than 48 hours in the past.
     /// Returns the number of rows deleted.
     /// </summary>
