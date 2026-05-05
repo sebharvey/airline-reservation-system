@@ -466,16 +466,21 @@ export class CheckInComponent {
       });
     }
 
-    purchasedBagItems.forEach((item, idx) => {
-      const bagNum = freeBagCount + idx + 1;
-      bags.push({
-        id: `purchased-${idx}`,
-        label: `Bag ${bagNum} — purchased`,
-        isFreeAllowance: false,
-        isChecked: false,
-        weightKg: '',
-      });
-    });
+    let purchasedCount = 0;
+    for (const item of purchasedBagItems) {
+      const qty = item.additionalBags ?? 1;
+      for (let i = 0; i < qty; i++) {
+        purchasedCount++;
+        const bagNum = freeBagCount + purchasedCount;
+        bags.push({
+          id: `purchased-${purchasedCount}`,
+          label: `Bag ${bagNum} — purchased`,
+          isFreeAllowance: false,
+          isChecked: false,
+          weightKg: '',
+        });
+      }
+    }
 
     return bags;
   }

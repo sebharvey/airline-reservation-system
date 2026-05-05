@@ -779,6 +779,8 @@ select.field-input { cursor: pointer; }
 
 /* Baggage panel — spans full width of pax-detail-panel (outside pax-detail-inner grid) */
 .baggage-panel {
+  width: 100%;
+  box-sizing: border-box;
   margin-top: 16px;
   background: var(--white);
   border: 1px solid var(--border);
@@ -788,6 +790,8 @@ select.field-input { cursor: pointer; }
 
 /* Check-in action bar — full width, right-aligned */
 .checkin-action-bar {
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   justify-content: flex-end;
   margin-top: 12px;
