@@ -36,6 +36,10 @@
               Set Reg
             }
           </button>
+          <button class="op-data-btn op-data-btn-disruption" (click)="openDisruptionModal()">
+            <lucide-icon name="triangle-alert" [size]="13" />
+            Disruption
+          </button>
         </div>
       </div>
     }
@@ -441,6 +445,82 @@
           <button class="modal-btn modal-btn-save" (click)="saveReg()" [disabled]="regOpLoading()">
             @if (regOpLoading()) { <span class="btn-spinner"></span> } Save
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Disruption modal -->
+  @if (disruptionModalOpen()) {
+    <div class="modal-backdrop" (click)="closeDisruptionModal()">
+      <div class="modal-card modal-card-disruption" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="disruption-modal-title">
+        <div class="modal-header">
+          <div>
+            <span class="modal-title" id="disruption-modal-title">Flight Disruption</span>
+            @if (flight()) {
+              <p class="disruption-modal-subtitle">
+                {{ flight()!.flightNumber }} &nbsp;·&nbsp;
+                {{ flight()!.origin }} → {{ flight()!.destination }} &nbsp;·&nbsp;
+                {{ flight()!.departureDate }}
+              </p>
+            }
+          </div>
+          <button class="modal-close-btn" (click)="closeDisruptionModal()" aria-label="Close">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+        <div class="modal-body disruption-modal-body">
+          <p class="disruption-intro">Select the disruption action to apply to this flight.</p>
+          <div class="disruption-actions">
+
+            <!-- Cancel flight -->
+            <div class="disruption-action-card">
+              <div class="disruption-action-header">
+                <div class="disruption-action-icon disruption-icon-cancel">
+                  <lucide-icon name="circle-x" [size]="20" />
+                </div>
+                <div class="disruption-action-text">
+                  <div class="disruption-action-title">Cancel flight</div>
+                  <div class="disruption-action-desc">Take the flight off sale immediately, then rebook affected passengers one by one from the IROPS rebooking screen.</div>
+                </div>
+              </div>
+              <button class="disruption-action-btn disruption-action-btn-danger" disabled>Cancel this flight</button>
+            </div>
+
+            <!-- Time change — coming soon -->
+            <div class="disruption-action-card disruption-action-disabled">
+              <div class="disruption-action-header">
+                <div class="disruption-action-icon disruption-icon-delay">
+                  <lucide-icon name="clock" [size]="20" />
+                </div>
+                <div class="disruption-action-text">
+                  <div class="disruption-action-title">
+                    Change departure time
+                    <span class="badge-coming-soon">Coming soon</span>
+                  </div>
+                  <div class="disruption-action-desc">Update the scheduled departure and arrival times and notify affected passengers.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Equipment change -->
+            <div class="disruption-action-card">
+              <div class="disruption-action-header">
+                <div class="disruption-action-icon disruption-icon-equipment">
+                  <lucide-icon name="plane" [size]="20" />
+                </div>
+                <div class="disruption-action-text">
+                  <div class="disruption-action-title">Equipment change</div>
+                  <div class="disruption-action-desc">Switch the aircraft type for this flight. Seat assignments will be validated against the new aircraft configuration and any that cannot be transferred will be highlighted for manual reassignment.</div>
+                </div>
+              </div>
+              <button class="disruption-action-btn disruption-action-btn-primary" disabled>Review passengers</button>
+            </div>
+
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" (click)="closeDisruptionModal()">Close</button>
         </div>
       </div>
     </div>
