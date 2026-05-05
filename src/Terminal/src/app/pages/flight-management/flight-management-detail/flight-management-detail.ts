@@ -176,6 +176,17 @@ export class FlightManagementDetailComponent implements OnInit {
     ).length;
   });
 
+  // Disruption modal state
+  disruptionModalOpen = signal(false);
+
+  openDisruptionModal(): void {
+    this.disruptionModalOpen.set(true);
+  }
+
+  closeDisruptionModal(): void {
+    this.disruptionModalOpen.set(false);
+  }
+
   // Operational data modal state
   gateModalOpen = signal(false);
   gateInput = signal('');
