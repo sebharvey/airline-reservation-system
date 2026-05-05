@@ -214,7 +214,16 @@
                           </span>
                         }
                       </td>
-                      <td class="mono">{{ entry.baggage.length > 0 ? entry.baggage.length : '—' }}</td>
+                      <td>
+                        @if (entry.baggage.length > 0) {
+                          <button class="bag-count-btn" (click)="openBaggageModal(entry, $event)">
+                            <lucide-icon name="luggage" [size]="11" />
+                            {{ entry.baggage.length }}
+                          </button>
+                        } @else {
+                          <span class="mono muted">—</span>
+                        }
+                      </td>
                       <td>
                         @if (entry.checkedIn) {
                           <span class="ci-badge">CI</span>
@@ -523,6 +532,55 @@
         </div>
         <div class="modal-footer">
           <button class="modal-btn modal-btn-cancel" (click)="closeDisruptionModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Baggage details modal -->
+  @if (baggageModalEntry()) {
+    <div class="modal-backdrop" (click)="closeBaggageModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span class="modal-title">Checked Baggage</span>
+            <p class="baggage-modal-pax">
+              {{ baggageModalEntry()!.givenName | uppercase }} {{ baggageModalEntry()!.surname | uppercase }}
+              &nbsp;·&nbsp; {{ baggageModalEntry()!.eTicketNumber }}
+            </p>
+          </div>
+          <button class="modal-close-btn" (click)="closeBaggageModal()">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+        <div class="baggage-modal-body">
+          <table class="baggage-table">
+            <thead>
+              <tr>
+                <th>Bag #</th>
+                <th>Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (bag of baggageModalEntry()!.baggage; track bag.bagNumber) {
+                <tr>
+                  <td class="mono">{{ bag.bagNumber }}</td>
+                  <td class="mono">{{ bag.weightKg != null ? bag.weightKg + ' kg' : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="baggage-total-row">
+                <td>Total</td>
+                <td class="mono">
+                  {{ baggageTotalKg(baggageModalEntry()!) != null ? baggageTotalKg(baggageModalEntry()!) + ' kg' : '—' }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" (click)="closeBaggageModal()">Close</button>
         </div>
       </div>
     </div>
