@@ -9,6 +9,7 @@
         { value: 'admin-auth-guard',            label: 'admin - auth guard 401 checks' },
         { value: 'flight-order-ax001',          label: 'bookflow - AX001 with seat selection' },
         { value: 'flight-order-ax001-no-seats', label: 'bookflow - AX001 without seats' },
+        { value: 'flight-order-ax001-return-bags-no-seats', label: 'bookflow - AX001, return, with bags, without seats' },
         { value: 'multi-segment-oneway',        label: 'bookflow - one-way connecting DEL → LHR → JFK' },
         { value: 'multi-segment-return',        label: 'bookflow - return connecting DEL → LHR → JFK' },
         { value: 'bookflow',                    label: 'bookflow - search, basket, seats, bags & SSR' },
@@ -453,6 +454,9 @@
         const tomorrowDateObj = new Date(today); tomorrowDateObj.setDate(today.getDate() + 1);
         const tomorrowDate    = isoDate(tomorrowDateObj);
 
+        const tomorrowPlus2DateObj = new Date(today); tomorrowPlus2DateObj.setDate(today.getDate() + 3);
+        const tomorrowPlus2Date    = isoDate(tomorrowPlus2DateObj);
+
         const gdsRefChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const gdsRef = Array.from({ length: 6 }, () => gdsRefChars[Math.floor(Math.random() * gdsRefChars.length)]).join('');
 
@@ -479,7 +483,7 @@
             pax6GivenName: pax6.givenName, pax6Surname: pax6.surname, pax6Gender: pax6.gender,
             pax6DateOfBirth: pax6.dateOfBirth, pax6Email: pax6.email, pax6Phone: pax6.phone,
             outboundOrigin, outboundDest, returnOrigin, returnDest, departDate, returnDate,
-            tomorrowDate, gdsRef
+            tomorrowDate, tomorrowPlus2Date, gdsRef
         };
         journeyRuntimeVars[forConfig !== undefined ? forConfig : config] = runtimeVars;
     }
@@ -544,6 +548,7 @@
                 .replace(/__RAND_RETURN_DEST__/g,     runtimeVars.returnDest)
                 .replace(/__RAND_DEPART_DATE__/g,     runtimeVars.departDate)
                 .replace(/__RAND_RETURN_DATE__/g,     runtimeVars.returnDate)
+                .replace(/__TOMORROW_PLUS_2_DATE__/g,  runtimeVars.tomorrowPlus2Date)
                 .replace(/__TOMORROW_DATE__/g,         runtimeVars.tomorrowDate)
                 .replace(/__RAND_GDS_REF__/g,          runtimeVars.gdsRef);
         }
