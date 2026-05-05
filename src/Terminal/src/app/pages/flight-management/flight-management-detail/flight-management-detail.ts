@@ -195,13 +195,48 @@ export class FlightManagementDetailComponent implements OnInit {
 
   // Disruption modal state
   disruptionModalOpen = signal(false);
+  cancelConfirmMode = signal(false);
+  cancelLoading = signal(false);
+  cancelError = signal('');
 
   openDisruptionModal(): void {
+    this.cancelConfirmMode.set(false);
+    this.cancelError.set('');
     this.disruptionModalOpen.set(true);
   }
 
   closeDisruptionModal(): void {
     this.disruptionModalOpen.set(false);
+    this.cancelConfirmMode.set(false);
+    this.cancelError.set('');
+  }
+
+  async cancelFlight(): Promise<void> {
+    if (this.cancelLoading()) return;
+    this.cancelLoading.set(true);
+    this.cancelError.set('');
+    try {
+      await this.#inventoryService.cancelFlightInventoryOnly(this.#flightNumber, this.#departureDate);
+      this.disruptionModalOpen.set(false);
+      void this.#router.navigate(['/disruption', this.#flightNumber, this.#departureDate]);
+    } catch {
+      this.cancelError.set('Failed to cancel flight. Please try again.');
+    } finally {
+      this.cancelLoading.set(false);
+    }
+  }
+
+  goToIrops(): void {
+    this.closeDisruptionModal();
+    void this.#router.navigate(['/disruption', this.#flightNumber, this.#departureDate]);
+  }
+
+  equipmentChangeClick(): void {
+    this.closeDisruptionModal();
+    void this.#router.navigate(
+      ['/aircraft-swap', this.#flightNumber, this.#departureDate],
+      { state: { flight: this.flight() } }
+    );
   }
 
   // Operational data modal state

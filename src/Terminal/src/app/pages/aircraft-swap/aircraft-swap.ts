@@ -35,6 +35,7 @@ export class AircraftSwapComponent implements OnInit {
   seatmapLoading = signal(false);
   seatmapError = signal('');
   seatCheckDone = signal(false);
+  typeUpdateFailed = signal(false);
 
   newAircraftSeatNumbers = computed(() => {
     const sm = this.seatmap();
@@ -135,17 +136,22 @@ export class AircraftSwapComponent implements OnInit {
     const newType = this.selectedType();
     this.seatmapLoading.set(true);
     this.seatmapError.set('');
+    this.typeUpdateFailed.set(false);
     try {
-      const [sm] = await Promise.all([
-        this.#inventoryService.getFlightSeatmap(f.inventoryId, f.flightNumber, newType),
-        this.#inventoryService.changeAircraftType(f.flightNumber, f.departureDate, newType),
-      ]);
+      const sm = await this.#inventoryService.getFlightSeatmap(f.inventoryId, f.flightNumber, newType);
       this.seatmap.set(sm);
       this.confirmedType.set(newType);
       this.seatCheckDone.set(true);
       this.flight.update(fi => fi ? { ...fi, aircraftType: newType } : fi);
+
+      // Attempt to update the aircraft type on the inventory record; non-blocking
+      try {
+        await this.#inventoryService.changeAircraftType(f.flightNumber, f.departureDate, newType);
+      } catch {
+        this.typeUpdateFailed.set(true);
+      }
     } catch {
-      this.seatmapError.set('Failed to confirm aircraft change. Please try again.');
+      this.seatmapError.set('Failed to load seatmap for the selected aircraft type. Please try again.');
     } finally {
       this.seatmapLoading.set(false);
     }
