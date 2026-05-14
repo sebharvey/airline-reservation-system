@@ -34,7 +34,7 @@ public sealed record FlightManifestResponse(List<ManifestEntry> Entries);
 public sealed record ManifestEntry(
     string OrderId,
     string BookingReference,
-    string PassengerId,
+    int PassengerId,
     string GivenName,
     string Surname,
     string ETicketNumber,
