@@ -548,6 +548,7 @@ public sealed class RunSimulatorHandler
         var latest   = utcNow.AddHours(48);
 
         var validLegs = response.Itineraries
+            .Where(it => it.Legs != null)
             .SelectMany(it => it.Legs)
             .Select(leg => (Leg: leg, Departure: ParseDeparture(leg.DepartureDate, leg.DepartureTime)))
             .Where(x => x.Departure.HasValue && x.Departure.Value > earliest && x.Departure.Value <= latest)
