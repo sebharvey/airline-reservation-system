@@ -123,8 +123,8 @@ public sealed class NdcOrderCreateHandler
 
         // 5. Update named passengers on the basket.
         //    Body is a JSON array stored verbatim as BasketData.passengers by the Order MS.
-        //    PassengerId is set to the NDC PaxID so e-tickets reference it consistently.
-        var passengersPayload = command.Passengers.Select(p => BuildPassengerNode(p)).ToList();
+        //    PassengerId is stored as a positive integer so the Delivery MS validator accepts it.
+        var passengersPayload = command.Passengers.Select((p, idx) => BuildPassengerNode(p, idx + 1)).ToList();
         var passengersJson = JsonSerializer.Serialize(passengersPayload, JsonOpts);
 
         await _orderServiceClient.UpdatePassengersAsync(basket.BasketId, passengersJson, cancellationToken);
@@ -152,13 +152,16 @@ public sealed class NdcOrderCreateHandler
         return new NdcOrderCreateResult(NdcOrderCreateOutcome.Success, order, offerDetail);
     }
 
-    private static object BuildPassengerNode(NdcOrderCreatePassenger p)
+    private static object BuildPassengerNode(NdcOrderCreatePassenger p, int passengerIndex)
     {
+        // Convert NDC PaxID (e.g. "PAX1", "PAX-2") to a positive integer for Delivery MS compatibility.
+        var numericId = ParsePaxIdToInt(p.PaxId, passengerIndex);
+
         if (p.Email is not null || p.Phone is not null)
         {
             return new
             {
-                passengerId = p.PaxId,
+                passengerId = numericId,
                 type        = p.Ptc,
                 givenName   = p.GivenName,
                 surname     = p.Surname,
@@ -171,7 +174,7 @@ public sealed class NdcOrderCreateHandler
 
         return new
         {
-            passengerId = p.PaxId,
+            passengerId = numericId,
             type        = p.Ptc,
             givenName   = p.GivenName,
             surname     = p.Surname,
@@ -179,6 +182,14 @@ public sealed class NdcOrderCreateHandler
             gender      = p.GenderCode,
             docs        = Array.Empty<object>()
         };
+    }
+
+    private static int ParsePaxIdToInt(string paxId, int fallbackIndex)
+    {
+        var raw = paxId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) ? paxId[4..]
+                : paxId.StartsWith("PAX", StringComparison.OrdinalIgnoreCase)  ? paxId[3..]
+                : paxId;
+        return int.TryParse(raw, out var n) && n > 0 ? n : fallbackIndex;
     }
 
     private static (string? CardNumber, string? ExpiryDate, string? Cvv, string? CardholderName, string PaymentMethod)
