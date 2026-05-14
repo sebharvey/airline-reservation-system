@@ -43,7 +43,7 @@
       display: none;
     }
 
-    @media (max-width: 900px) {
+    @media (display-mode: standalone) and (max-width: 900px) {
       #splash {
         display: flex;
         position: fixed;
@@ -131,8 +131,8 @@
     (function () {
       var splash = document.getElementById('splash');
       if (!splash) return;
-      // Only run on mobile — CSS hides it on desktop but remove the timeout overhead too
-      if (window.innerWidth > 900) { splash.remove(); return; }
+      // Only run in PWA standalone mode — remove immediately in all browser contexts
+      if (!window.matchMedia('(display-mode: standalone)').matches) { splash.remove(); return; }
       setTimeout(function () {
         splash.classList.add('fade-out');
         setTimeout(function () { splash.remove(); }, 500);
