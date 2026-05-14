@@ -47,8 +47,9 @@ internal sealed class FlightUpdateClient : IFlightUpdateClient
         var response = await _retailApiClient.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<List<FlightInventoryItem>>(JsonOptions, ct);
-        return result ?? [];
+        var result = await response.Content.ReadFromJsonAsync<FlightInventoryResponse>(JsonOptions, ct);
+        if (result is null) return [];
+        return [..result.Flights, ..result.PinnedFlights];
     }
 
     public async Task SetOperationalDataAsync(
