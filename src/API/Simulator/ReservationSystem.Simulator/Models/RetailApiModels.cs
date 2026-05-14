@@ -13,7 +13,10 @@ public sealed record SearchSliceResponse(
     List<SearchItinerary> Itineraries);
 
 public sealed record SearchItinerary(
-    List<SearchLeg> Legs);
+    List<SearchSegment> Segments);
+
+public sealed record SearchSegment(
+    List<SearchLeg> Flights);
 
 public sealed record SearchLeg(
     string SessionId,
