@@ -2,6 +2,15 @@
   <div class="card">
 
     @if (!isBoardingPass()) {
+      <header class="pwa-top-banner">
+        <a routerLink="/" class="pwa-top-brand">✈ Apex Air</a>
+        @if (loyaltyState.isLoggedIn()) {
+          <span class="pwa-top-user">{{ loyaltyState.currentCustomer()?.givenName }}</span>
+        }
+      </header>
+    }
+
+    @if (!isBoardingPass()) {
       <nav class="nav">
         <div class="nav-inner">
           <a routerLink="/" class="nav-brand">✈ Apex Air</a>
