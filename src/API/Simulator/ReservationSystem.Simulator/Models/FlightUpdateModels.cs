@@ -19,6 +19,10 @@ public sealed record FlightInventoryItem(
     string Origin,
     string Destination);
 
+public sealed record FlightInventoryResponse(
+    List<FlightInventoryItem> Flights,
+    List<FlightInventoryItem> PinnedFlights);
+
 // ── Operations API operational data update ─────────────────────────────────────
 
 public sealed record SetFlightOperationalDataRequest(string? DepartureGate, string? AircraftRegistration);
