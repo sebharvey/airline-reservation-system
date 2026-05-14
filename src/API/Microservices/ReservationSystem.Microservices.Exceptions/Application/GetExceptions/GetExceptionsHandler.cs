@@ -34,25 +34,24 @@ public sealed class GetExceptionsHandler
         var from = to.AddHours(-1);
 
         const string query = """
-            exceptions
-            | where timestamp >= ago(1h)
+            AppExceptions
+            | where TimeGenerated >= ago(1h)
             | project
-                timestamp,
-                problemId,
-                type,
-                outerType,
-                outerMessage,
-                message = outerMessage,
-                innermostType,
-                innermostMessage,
-                details,
-                severityLevel,
-                operation_Name,
-                operation_Id,
-                cloud_RoleName,
-                assembly,
-                method
-            | order by timestamp desc
+                TimeGenerated,
+                ProblemId,
+                Type,
+                OuterType,
+                OuterMessage,
+                InnermostType,
+                InnermostMessage,
+                Details,
+                SeverityLevel,
+                OperationName,
+                OperationId,
+                AppRoleName,
+                Assembly,
+                Method
+            | order by TimeGenerated desc
             """;
 
         _logger.LogInformation("Querying Application Insights exceptions from {From} to {To}", from, to);
@@ -71,19 +70,19 @@ public sealed class GetExceptionsHandler
 
             entries.Add(new ExceptionEntry
             {
-                Timestamp = row.GetDateTimeOffset("timestamp") ?? from,
-                ProblemId = row.GetString("problemId") ?? string.Empty,
-                ExceptionType = row.GetString("innermostType") ?? row.GetString("type") ?? "Unknown",
-                Message = row.GetString("innermostMessage") ?? row.GetString("outerMessage") ?? string.Empty,
-                Method = row.GetString("method"),
-                Assembly = row.GetString("assembly"),
-                OuterType = row.GetString("outerType"),
-                OuterMessage = row.GetString("outerMessage"),
-                OperationName = row.GetString("operation_Name"),
-                OperationId = row.GetString("operation_Id"),
-                CloudRoleName = row.GetString("cloud_RoleName"),
+                Timestamp = row.GetDateTimeOffset("TimeGenerated") ?? from,
+                ProblemId = row.GetString("ProblemId") ?? string.Empty,
+                ExceptionType = row.GetString("InnermostType") ?? row.GetString("Type") ?? "Unknown",
+                Message = row.GetString("InnermostMessage") ?? row.GetString("OuterMessage") ?? string.Empty,
+                Method = row.GetString("Method"),
+                Assembly = row.GetString("Assembly"),
+                OuterType = row.GetString("OuterType"),
+                OuterMessage = row.GetString("OuterMessage"),
+                OperationName = row.GetString("OperationName"),
+                OperationId = row.GetString("OperationId"),
+                CloudRoleName = row.GetString("AppRoleName"),
                 CallStack = callStack,
-                SeverityLevel = row.GetInt32("severityLevel") ?? 3
+                SeverityLevel = row.GetInt32("SeverityLevel") ?? 3
             });
         }
 
@@ -103,7 +102,7 @@ public sealed class GetExceptionsHandler
         // The 'details' column contains the parsed exception details with call stacks.
         // It is a dynamic (JSON) column — an array of objects each with
         // "parsedStack" (array of frame objects) and "message"/"type" fields.
-        var details = row.GetString("details");
+        var details = row.GetString("Details");
         if (string.IsNullOrWhiteSpace(details))
             return string.Empty;
 
