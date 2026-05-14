@@ -157,9 +157,19 @@ public sealed class RunSimulatorHandler
             var isConnecting = Random.Shared.Next(100) < ConnectingProbabilityPct;
             try
             {
-                var (orderId, bookingRef, route, isReturn) = isConnecting
+                var result = isConnecting
                     ? await CreateConnectingOrderAsync(paxCount, channelCode, ct)
                     : await CreateOrderAsync(paxCount, channelCode, ct);
+
+                if (result is null)
+                {
+                    _logger.LogDebug(
+                        "Simulator: order {Index}/{Total} skipped — no flights available (pax={PaxCount})",
+                        i + 1, orderCount, paxCount);
+                    continue;
+                }
+
+                var (orderId, bookingRef, route, isReturn) = result.Value;
                 created++;
                 _logger.LogInformation(
                     "Simulator: order {Index}/{Total} created — orderId={OrderId} ref={BookingRef} " +
@@ -181,7 +191,7 @@ public sealed class RunSimulatorHandler
 
     // ── Order creation ─────────────────────────────────────────────────────────
 
-    private async Task<(string OrderId, string BookingRef, string Route, bool IsReturn)> CreateOrderAsync(
+    private async Task<(string OrderId, string BookingRef, string Route, bool IsReturn)?> CreateOrderAsync(
         int paxCount, string channelCode, CancellationToken ct)
     {
         var now   = DateTime.UtcNow;
@@ -195,9 +205,13 @@ public sealed class RunSimulatorHandler
         var outboundSearchReq = new SearchSliceRequest(route.Origin, route.Destination, outboundDate, paxCount, "Revenue");
         var outboundSearchRes = await _retailApiClient.SearchSliceAsync(outboundSearchReq, ct);
 
-        var outboundLeg = SelectValidLeg(outboundSearchRes, now)
-            ?? throw new InvalidOperationException(
-                $"No outbound flights within the valid window for {route.Origin}→{route.Destination} on {outboundDate}.");
+        var outboundLeg = SelectValidLeg(outboundSearchRes, now);
+        if (outboundLeg is null)
+        {
+            _logger.LogDebug("Simulator: no outbound flights within the valid window for {Origin}→{Dest} on {Date}",
+                route.Origin, route.Destination, outboundDate);
+            return null;
+        }
 
         var outboundCabin = SelectCabin(outboundLeg.Cabins);
         var outboundOffer = outboundCabin.FareFamilies[Random.Shared.Next(outboundCabin.FareFamilies.Count)].Offer;
@@ -363,7 +377,7 @@ public sealed class RunSimulatorHandler
 
     // ── Connecting order creation ──────────────────────────────────────────────
 
-    private async Task<(string OrderId, string BookingRef, string Route, bool IsReturn)> CreateConnectingOrderAsync(
+    private async Task<(string OrderId, string BookingRef, string Route, bool IsReturn)?> CreateConnectingOrderAsync(
         int paxCount, string channelCode, CancellationToken ct)
     {
         var now   = DateTime.UtcNow;
@@ -376,9 +390,13 @@ public sealed class RunSimulatorHandler
         var leg1SearchReq = new SearchSliceRequest(route.Origin, route.Hub, leg1Date, paxCount, "Revenue");
         var leg1SearchRes = await _retailApiClient.SearchSliceAsync(leg1SearchReq, ct);
 
-        var leg1 = SelectValidLeg(leg1SearchRes, now)
-            ?? throw new InvalidOperationException(
-                $"No leg 1 flights within the valid window for {route.Origin}→{route.Hub} on {leg1Date}.");
+        var leg1 = SelectValidLeg(leg1SearchRes, now);
+        if (leg1 is null)
+        {
+            _logger.LogDebug("Simulator: no leg 1 flights within the valid window for {Origin}→{Hub} on {Date}",
+                route.Origin, route.Hub, leg1Date);
+            return null;
+        }
 
         var leg1Cabin = SelectCabin(leg1.Cabins);
         var leg1Offer = leg1Cabin.FareFamilies[Random.Shared.Next(leg1Cabin.FareFamilies.Count)].Offer;
@@ -395,8 +413,11 @@ public sealed class RunSimulatorHandler
 
         var leg2Legs = leg2SearchRes.Itineraries.SelectMany(it => it.Segments).SelectMany(seg => seg.Flights).ToList();
         if (leg2Legs.Count == 0)
-            throw new InvalidOperationException(
-                $"No leg 2 flights for {route.Hub}→{route.Destination} on {leg2Date}.");
+        {
+            _logger.LogDebug("Simulator: no leg 2 flights for {Hub}→{Dest} on {Date}",
+                route.Hub, route.Destination, leg2Date);
+            return null;
+        }
 
         var leg2       = leg2Legs[Random.Shared.Next(leg2Legs.Count)];
         var leg2Cabin  = SelectCabin(leg2.Cabins);
