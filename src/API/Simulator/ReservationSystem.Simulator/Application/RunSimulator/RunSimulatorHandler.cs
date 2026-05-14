@@ -220,7 +220,7 @@ public sealed class RunSimulatorHandler
                 var returnSearchReq = new SearchSliceRequest(route.Destination, route.Origin, returnDate, paxCount, "Revenue");
                 var returnSearchRes = await _retailApiClient.SearchSliceAsync(returnSearchReq, ct);
 
-                var returnLegs = returnSearchRes.Itineraries.SelectMany(it => it.Legs).ToList();
+                var returnLegs = returnSearchRes.Itineraries.SelectMany(it => it.Segments).SelectMany(seg => seg.Flights).ToList();
                 if (returnLegs.Count > 0)
                 {
                     var returnLeg   = returnLegs[Random.Shared.Next(returnLegs.Count)];
@@ -393,7 +393,7 @@ public sealed class RunSimulatorHandler
         var leg2SearchReq = new SearchSliceRequest(route.Hub, route.Destination, leg2Date, paxCount, "Revenue");
         var leg2SearchRes = await _retailApiClient.SearchSliceAsync(leg2SearchReq, ct);
 
-        var leg2Legs = leg2SearchRes.Itineraries.SelectMany(it => it.Legs).ToList();
+        var leg2Legs = leg2SearchRes.Itineraries.SelectMany(it => it.Segments).SelectMany(seg => seg.Flights).ToList();
         if (leg2Legs.Count == 0)
             throw new InvalidOperationException(
                 $"No leg 2 flights for {route.Hub}→{route.Destination} on {leg2Date}.");
@@ -548,7 +548,8 @@ public sealed class RunSimulatorHandler
         var latest   = utcNow.AddHours(48);
 
         var validLegs = response.Itineraries
-            .SelectMany(it => it.Legs)
+            .SelectMany(it => it.Segments)
+            .SelectMany(seg => seg.Flights)
             .Select(leg => (Leg: leg, Departure: ParseDeparture(leg.DepartureDate, leg.DepartureTime)))
             .Where(x => x.Departure.HasValue && x.Departure.Value > earliest && x.Departure.Value <= latest)
             .ToList();
