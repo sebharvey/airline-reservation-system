@@ -12,8 +12,10 @@ public sealed record SearchSliceRequest(
 public sealed record SearchSliceResponse(
     List<SearchItinerary> Itineraries);
 
-public sealed record SearchItinerary(
-    List<SearchLeg> Legs);
+public sealed record SearchItinerary(List<SearchLeg> Legs)
+{
+    public List<SearchLeg> Legs { get; init; } = Legs ?? [];
+}
 
 public sealed record SearchLeg(
     string SessionId,
