@@ -1093,12 +1093,25 @@ public sealed class ConfirmBasketHandler
             if (root.TryGetProperty("passengers", out var passengersEl) &&
                 passengersEl.ValueKind == JsonValueKind.Array)
             {
+                var paxIndex = 0;
                 foreach (var p in passengersEl.EnumerateArray())
                 {
+                    paxIndex++;
+                    var passengerId = string.Empty;
+                    if (p.TryGetProperty("passengerId", out var pidEl))
+                    {
+                        if (pidEl.ValueKind == JsonValueKind.String)
+                            passengerId = pidEl.GetString() ?? string.Empty;
+                        else if (pidEl.ValueKind == JsonValueKind.Number)
+                            passengerId = $"PAX-{pidEl.GetInt32()}";
+                    }
+                    if (string.IsNullOrEmpty(passengerId))
+                        passengerId = $"PAX-{paxIndex}";
+
                     passengers.Add(new TicketPassenger
                     {
-                        PassengerId = p.TryGetProperty("passengerId", out var v) ? v.GetString() ?? string.Empty : string.Empty,
-                        GivenName = p.TryGetProperty("givenName", out v) ? v.GetString() ?? string.Empty : string.Empty,
+                        PassengerId = passengerId,
+                        GivenName = p.TryGetProperty("givenName", out var v) ? v.GetString() ?? string.Empty : string.Empty,
                         Surname = p.TryGetProperty("surname", out v) ? v.GetString() ?? string.Empty : string.Empty,
                         Dob = p.TryGetProperty("dob", out v) ? v.GetString() : null,
                         Gender = p.TryGetProperty("gender", out v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null,
@@ -1114,7 +1127,9 @@ public sealed class ConfirmBasketHandler
                 foreach (var ssr in ssrsEl.EnumerateArray())
                 {
                     var segRef  = ssr.TryGetProperty("segmentRef",   out var sr) ? sr.GetString() ?? "" : "";
-                    var paxRef  = ssr.TryGetProperty("passengerRef", out var pr) ? pr.GetString() ?? "" : "";
+                    var paxRef  = ssr.TryGetProperty("passengerRef", out var pr)
+                        ? pr.ValueKind == JsonValueKind.Number ? $"PAX-{pr.GetInt32()}" : pr.GetString() ?? ""
+                        : "";
                     var code    = ssr.TryGetProperty("ssrCode",      out var sc) ? sc.GetString() ?? "" : "";
                     var desc    = ssr.TryGetProperty("description",  out var dv) ? dv.GetString() ?? "" : "";
                     if (string.IsNullOrEmpty(segRef) || string.IsNullOrEmpty(code)) continue;
@@ -1137,7 +1152,9 @@ public sealed class ConfirmBasketHandler
             {
                 foreach (var seat in seatsEl.EnumerateArray())
                 {
-                    var paxId   = seat.TryGetProperty("passengerId",  out var spid) ? spid.GetString() ?? "" : "";
+                    var paxId   = seat.TryGetProperty("passengerId",  out var spid)
+                        ? spid.ValueKind == JsonValueKind.Number ? $"PAX-{spid.GetInt32()}" : spid.GetString() ?? ""
+                        : "";
                     var segId   = seat.TryGetProperty("segmentId",    out var ssid) ? ssid.GetString() ?? "" : "";
                     var seatNum = DecodeSeatNumber(seat.TryGetProperty("seatOfferId", out var soi) ? soi.GetString() : null) ?? "";
                     if (!string.IsNullOrEmpty(paxId) && !string.IsNullOrEmpty(segId) && !string.IsNullOrEmpty(seatNum))
