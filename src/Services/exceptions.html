@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exception Viewer — Apex Air</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #1a1d27;
+            border-bottom: 1px solid #2d3148;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        header .subtitle {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .controls {
+            background: #1a1d27;
+            border-bottom: 1px solid #2d3148;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .controls select {
+            background: #0f1117;
+            border: 1px solid #2d3148;
+            color: #e2e8f0;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .controls select:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .refresh-btn {
+            background: #6366f1;
+            color: #fff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.15s;
+        }
+
+        .refresh-btn:hover {
+            background: #4f46e5;
+        }
+
+        .refresh-btn:disabled {
+            background: #374151;
+            cursor: not-allowed;
+        }
+
+        .meta {
+            margin-left: auto;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .filter-input {
+            background: #0f1117;
+            border: 1px solid #2d3148;
+            color: #e2e8f0;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            width: 240px;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .filter-input::placeholder {
+            color: #4b5563;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .status-bar {
+            padding: 12px 24px;
+            font-size: 13px;
+        }
+
+        .status-bar.loading {
+            color: #94a3b8;
+        }
+
+        .status-bar.error {
+            color: #f87171;
+            background: #1f1515;
+            border-left: 3px solid #ef4444;
+        }
+
+        .exception-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .exception-card {
+            background: #1a1d27;
+            border: 1px solid #2d3148;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.15s;
+        }
+
+        .exception-card:hover {
+            border-color: #4b5563;
+        }
+
+        .exception-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .severity-badge {
+            flex-shrink: 0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .severity-3 { background: #7f1d1d; color: #fca5a5; }
+        .severity-2 { background: #713f12; color: #fde68a; }
+        .severity-1 { background: #1e3a5f; color: #93c5fd; }
+        .severity-0 { background: #1f2937; color: #9ca3af; }
+
+        .exception-title {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .exception-type {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f87171;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .exception-message {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .exception-meta {
+            font-size: 11px;
+            color: #4b5563;
+            margin-top: 4px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .exception-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .exception-actions {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .copy-btn {
+            background: none;
+            border: 1px solid #374151;
+            color: #9ca3af;
+            padding: 5px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            border-color: #6366f1;
+            color: #a5b4fc;
+        }
+
+        .copy-btn.copied {
+            border-color: #10b981;
+            color: #34d399;
+        }
+
+        .chevron {
+            color: #4b5563;
+            transition: transform 0.2s;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .exception-card.expanded .chevron {
+            transform: rotate(90deg);
+        }
+
+        .exception-body {
+            display: none;
+            border-top: 1px solid #2d3148;
+        }
+
+        .exception-card.expanded .exception-body {
+            display: block;
+        }
+
+        .exception-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1px;
+            background: #2d3148;
+        }
+
+        .field {
+            background: #1a1d27;
+            padding: 10px 16px;
+        }
+
+        .field-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #4b5563;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .field-value {
+            font-size: 13px;
+            color: #cbd5e1;
+            word-break: break-all;
+        }
+
+        .field-value.mono {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+            font-size: 12px;
+        }
+
+        .field-value.empty {
+            color: #374151;
+            font-style: italic;
+        }
+
+        .callstack-section {
+            padding: 12px 16px;
+            border-top: 1px solid #2d3148;
+        }
+
+        .callstack-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #4b5563;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .callstack-content {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+            font-size: 11.5px;
+            line-height: 1.6;
+            color: #8b949e;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .callstack-content .frame-app {
+            color: #79c0ff;
+        }
+
+        .callstack-content .frame-exception {
+            color: #f87171;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: #4b5563;
+        }
+
+        .empty-state svg {
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+
+        .empty-state h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #374151;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .count-badge {
+            background: #374151;
+            color: #9ca3af;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <div>
+        <h1>Exception Viewer</h1>
+        <div class="subtitle">reservation-system-microservice-exception</div>
+    </div>
+</header>
+
+<div class="controls">
+    <label for="timeRange">Time range</label>
+    <select id="timeRange">
+        <option value="1">Last 1 hour</option>
+        <option value="3">Last 3 hours</option>
+        <option value="6">Last 6 hours</option>
+        <option value="12">Last 12 hours</option>
+        <option value="24">Last 24 hours</option>
+    </select>
+
+    <input type="text" class="filter-input" id="filterInput" placeholder="Filter by type, message, method...">
+
+    <button class="refresh-btn" id="refreshBtn" onclick="loadExceptions()">
+        <span id="refreshIcon">&#8635;</span>
+        Refresh
+    </button>
+
+    <div class="meta" id="metaInfo"></div>
+</div>
+
+<div id="statusBar"></div>
+
+<div class="container">
+    <div id="exceptionList" class="exception-list"></div>
+</div>
+
+<script>
+const API_BASE = 'https://reservation-system-microservice-exception-h2bzhegcfnhja4fq.uksouth-01.azurewebsites.net/api/v1/exceptions';
+
+let allExceptions = [];
+
+function severityLabel(level) {
+    const map = { 0: 'Verbose', 1: 'Info', 2: 'Warning', 3: 'Error', 4: 'Critical' };
+    return map[level] ?? `Level ${level}`;
+}
+
+function formatTimestamp(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' });
+}
+
+function shortType(fullType) {
+    if (!fullType) return '—';
+    const parts = fullType.split('.');
+    return parts[parts.length - 1] || fullType;
+}
+
+function highlightCallstack(text) {
+    if (!text) return '';
+    return text
+        .split('\n')
+        .map(line => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('at ') && trimmed.includes('ReservationSystem.')) {
+                return `<span class="frame-app">${escapeHtml(line)}</span>`;
+            }
+            if (/^[A-Za-z].*Exception:/.test(trimmed)) {
+                return `<span class="frame-exception">${escapeHtml(line)}</span>`;
+            }
+            return escapeHtml(line);
+        })
+        .join('\n');
+}
+
+function escapeHtml(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function fieldVal(val) {
+    if (!val || val.trim() === '') return '<span class="field-value empty">—</span>';
+    return `<span class="field-value">${escapeHtml(val)}</span>`;
+}
+
+function fieldMono(val) {
+    if (!val || val.trim() === '') return '<span class="field-value empty">—</span>';
+    return `<span class="field-value mono">${escapeHtml(val)}</span>`;
+}
+
+function buildExceptionText(ex) {
+    const lines = [
+        `Timestamp:      ${ex.timestamp || ''}`,
+        `Severity:       ${severityLabel(ex.severityLevel)}`,
+        `Outer Type:     ${ex.outerType || ''}`,
+        `Outer Message:  ${ex.outerMessage || ''}`,
+        `Exception Type: ${ex.exceptionType || ''}`,
+        `Message:        ${ex.message || ''}`,
+        `Method:         ${ex.method || ''}`,
+        `Assembly:       ${ex.assembly || ''}`,
+        `Operation Name: ${ex.operationName || ''}`,
+        `Operation ID:   ${ex.operationId || ''}`,
+        `Cloud Role:     ${ex.cloudRoleName || ''}`,
+        `Problem ID:     ${ex.problemId || ''}`,
+        ``,
+        `--- Call Stack ---`,
+        ex.callStack || '',
+    ];
+    return lines.join('\n');
+}
+
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.innerHTML = '&#128203; Copy';
+            btn.classList.remove('copied');
+        }, 2000);
+    }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.innerHTML = '&#128203; Copy';
+            btn.classList.remove('copied');
+        }, 2000);
+    });
+}
+
+function renderCard(ex, index) {
+    const outerType = ex.outerType || ex.exceptionType || 'Unknown Exception';
+    const message = ex.outerMessage || ex.message || '';
+    const shortMsg = message.length > 160 ? message.substring(0, 160) + '…' : message;
+    const sev = ex.severityLevel ?? 3;
+
+    return `
+        <div class="exception-card" id="card-${index}">
+            <div class="exception-header" onclick="toggleCard(${index})">
+                <span class="severity-badge severity-${sev}">${severityLabel(sev)}</span>
+                <div class="exception-title">
+                    <div class="exception-type">${escapeHtml(outerType)}</div>
+                    ${shortMsg ? `<div class="exception-message">${escapeHtml(shortMsg)}</div>` : ''}
+                    <div class="exception-meta">
+                        <span>&#128337; ${formatTimestamp(ex.timestamp)}</span>
+                        ${ex.cloudRoleName ? `<span>&#9729; ${escapeHtml(ex.cloudRoleName)}</span>` : ''}
+                        ${ex.operationId ? `<span>&#128269; ${escapeHtml(ex.operationId.substring(0, 16))}…</span>` : ''}
+                    </div>
+                </div>
+                <div class="exception-actions">
+                    <button class="copy-btn" onclick="event.stopPropagation(); copyToClipboard(buildExceptionText(window.__exceptions[${index}]), this)">
+                        &#128203; Copy
+                    </button>
+                    <span class="chevron">&#9656;</span>
+                </div>
+            </div>
+            <div class="exception-body">
+                <div class="exception-fields">
+                    <div class="field">
+                        <div class="field-label">Outer Type</div>
+                        ${fieldVal(ex.outerType)}
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Exception Type</div>
+                        ${fieldVal(ex.exceptionType)}
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Timestamp</div>
+                        ${fieldVal(formatTimestamp(ex.timestamp))}
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Severity</div>
+                        ${fieldVal(severityLabel(ex.severityLevel))}
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Operation ID</div>
+                        ${fieldMono(ex.operationId)}
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Operation Name</div>
+                        ${fieldVal(ex.operationName)}
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Cloud Role</div>
+                        ${fieldVal(ex.cloudRoleName)}
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Assembly</div>
+                        ${fieldMono(ex.assembly)}
+                    </div>
+                    <div class="field" style="grid-column: 1 / -1;">
+                        <div class="field-label">Method</div>
+                        ${fieldMono(ex.method)}
+                    </div>
+                    <div class="field" style="grid-column: 1 / -1;">
+                        <div class="field-label">Message</div>
+                        ${fieldVal(ex.message || ex.outerMessage)}
+                    </div>
+                    <div class="field" style="grid-column: 1 / -1;">
+                        <div class="field-label">Problem ID</div>
+                        ${fieldMono(ex.problemId)}
+                    </div>
+                </div>
+                ${ex.outerMessage ? `
+                <div class="callstack-section">
+                    <div class="callstack-label">Outer Message</div>
+                    <div class="callstack-content">${escapeHtml(ex.outerMessage)}</div>
+                </div>` : ''}
+                ${ex.callStack ? `
+                <div class="callstack-section">
+                    <div class="callstack-label">Call Stack</div>
+                    <div class="callstack-content">${highlightCallstack(ex.callStack)}</div>
+                </div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function toggleCard(index) {
+    const card = document.getElementById(`card-${index}`);
+    card.classList.toggle('expanded');
+}
+
+function applyFilter() {
+    const q = document.getElementById('filterInput').value.toLowerCase();
+    const filtered = q
+        ? allExceptions.filter(ex => {
+            const haystack = [
+                ex.outerType, ex.exceptionType, ex.message, ex.outerMessage,
+                ex.method, ex.cloudRoleName, ex.operationId, ex.problemId
+            ].join(' ').toLowerCase();
+            return haystack.includes(q);
+        })
+        : allExceptions;
+
+    renderList(filtered);
+}
+
+function renderList(exceptions) {
+    const list = document.getElementById('exceptionList');
+    if (exceptions.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <h3>No exceptions found</h3>
+                <p>Try adjusting the time range or filter.</p>
+            </div>`;
+        return;
+    }
+    list.innerHTML = exceptions.map((ex, i) => renderCard(ex, allExceptions.indexOf(ex))).join('');
+}
+
+async function loadExceptions() {
+    const btn = document.getElementById('refreshBtn');
+    const statusBar = document.getElementById('statusBar');
+    const metaInfo = document.getElementById('metaInfo');
+    const hours = document.getElementById('timeRange').value;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Loading…';
+    statusBar.className = 'status-bar loading';
+    statusBar.textContent = 'Fetching exceptions…';
+
+    try {
+        const url = hours === '1' ? API_BASE : `${API_BASE}?hours=${hours}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        const data = await res.json();
+
+        allExceptions = data.exceptions || [];
+        window.__exceptions = allExceptions;
+
+        const from = data.queryFrom ? new Date(data.queryFrom).toLocaleTimeString() : '?';
+        const to = data.queryTo ? new Date(data.queryTo).toLocaleTimeString() : '?';
+        metaInfo.innerHTML = `
+            <span class="count-badge">${allExceptions.length} exception${allExceptions.length !== 1 ? 's' : ''}</span>
+            &nbsp; ${from} – ${to}`;
+
+        statusBar.textContent = '';
+        statusBar.className = 'status-bar';
+        applyFilter();
+    } catch (err) {
+        statusBar.className = 'status-bar error';
+        statusBar.textContent = `Failed to load exceptions: ${err.message}`;
+        metaInfo.textContent = '';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '&#8635; Refresh';
+    }
+}
+
+document.getElementById('filterInput').addEventListener('input', applyFilter);
+document.getElementById('timeRange').addEventListener('change', loadExceptions);
+
+loadExceptions();
+</script>
+
+</body>
+</html>
