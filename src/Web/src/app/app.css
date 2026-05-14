@@ -712,6 +712,11 @@
   }
 }
 
+/* ── PWA top banner (brand header — hidden in browser, shown in PWA) ── */
+.pwa-top-banner {
+  display: none;
+}
+
 /* ── PWA bottom navigation bar ── */
 .pwa-bottom-nav {
   display: none;
@@ -728,9 +733,32 @@
     display: none;
   }
 
-  /* Safe area inset at top (notch / Dynamic Island) */
+  /* Brand banner at top */
+  .pwa-top-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px 14px;
+    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+    flex-shrink: 0;
+  }
+
+  .pwa-top-brand {
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+
+  .pwa-top-user {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  /* Card no longer needs manual top padding — banner handles the safe area */
   .card {
-    padding-top: env(safe-area-inset-top, 0px);
     /* Reserve space for the fixed bottom bar + home indicator */
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
