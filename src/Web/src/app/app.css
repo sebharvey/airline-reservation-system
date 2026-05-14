@@ -712,6 +712,81 @@
   }
 }
 
+/* ── PWA bottom navigation bar ── */
+.pwa-bottom-nav {
+  display: none;
+}
+
+@media (display-mode: standalone) and (max-width: 900px) {
+  /* Top nav hidden — bottom bar takes over navigation */
+  .nav {
+    display: none;
+  }
+
+  /* Footer not needed in mobile app context */
+  .footer {
+    display: none;
+  }
+
+  /* Safe area inset at top (notch / Dynamic Island) */
+  .card {
+    padding-top: env(safe-area-inset-top, 0px);
+    /* Reserve space for the fixed bottom bar + home indicator */
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Fixed bottom navigation bar */
+  .pwa-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+    align-items: stretch;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.1), 0 -4px 24px rgba(102, 126, 234, 0.3);
+  }
+
+  .pwa-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 10px 4px 8px;
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    gap: 4px;
+    transition: color 0.2s ease, background 0.2s ease;
+    min-height: 56px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pwa-nav-item.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .pwa-nav-item:not(.active):active {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .pwa-nav-item svg {
+    flex-shrink: 0;
+  }
+
+  .pwa-nav-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+}
+
 /* ═══════════════════════════════════════════════
    DESKTOP — full website layout (≥ 901px)
    Mobile remains completely unchanged above
