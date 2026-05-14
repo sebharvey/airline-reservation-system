@@ -1,6 +1,33 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/*.{css,js,ico,png,jpg,svg,woff,woff2,ttf,eot}"]
-  }
+    "exclude": ["/assets/*", "/*.{css,js,ico,png,jpg,jpeg,svg,woff,woff2,ttf,eot,json,xml,txt,webp,gif,webmanifest}"]
+  },
+  "routes": [
+    {
+      "route": "/index.html",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
+      "route": "/*.js",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/*.css",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/manifest.json",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Content-Type": "application/manifest+json"
+      }
+    }
+  ]
 }
