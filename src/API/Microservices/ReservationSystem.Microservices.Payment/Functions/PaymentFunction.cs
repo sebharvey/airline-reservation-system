@@ -175,7 +175,7 @@ public sealed class PaymentFunction
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Bad request authorising payment {PaymentId}", paymentId);
+            _logger.LogWarning("Bad request authorising payment {PaymentId}: {Message}", paymentId, ex.Message);
             return await req.BadRequestAsync(ex.Message);
         }
         catch (InvalidOperationException ex)
