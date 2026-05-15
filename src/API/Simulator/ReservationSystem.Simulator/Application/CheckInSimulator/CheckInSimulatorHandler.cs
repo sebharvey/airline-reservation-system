@@ -195,8 +195,8 @@ public sealed class CheckInSimulatorHandler
             var request = new AdminCheckInRequest(
                 DepartureAirport: flight.Origin,
                 Passengers:       submissions,
-                OverrideTimatic:  false,
-                OverrideReason:   null);
+                OverrideTimatic:  true,
+                OverrideReason:   "Simulator auto check-in");
 
             try
             {
