@@ -733,13 +733,16 @@
     display: none;
   }
 
-  /* Brand banner at top */
+  /* Brand banner at top — glass header floating over the gradient background */
   .pwa-top-banner {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px 14px;
-    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+    background: rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     flex-shrink: 0;
   }
 
@@ -757,13 +760,22 @@
     font-weight: 600;
   }
 
-  /* Card no longer needs manual top padding — banner handles the safe area */
+  /* Frosted-glass card — purple gradient shows through from the body */
   .card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
     /* Reserve space for the fixed bottom bar + home indicator */
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Fixed bottom navigation bar */
+  /* Content area is transparent — card's glass is the surface */
+  .content {
+    background: transparent;
+  }
+
+  /* Fixed bottom navigation bar — glass panel over the gradient */
   .pwa-bottom-nav {
     display: flex;
     position: fixed;
@@ -771,10 +783,12 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+    background: rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     align-items: stretch;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.1), 0 -4px 24px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.14), 0 -4px 24px rgba(0, 0, 0, 0.20);
   }
 
   .pwa-nav-item {
