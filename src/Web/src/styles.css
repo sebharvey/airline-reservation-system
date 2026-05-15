@@ -141,13 +141,13 @@ button {
 /* ── PWA purple-glass theme (standalone mobile only) ── */
 @media (display-mode: standalone) and (max-width: 900px) {
   :root {
-    --white: rgba(255, 255, 255, 0.10);
-    --bg-light: rgba(255, 255, 255, 0.07);
-    --border: rgba(255, 255, 255, 0.20);
+    --white: rgba(255, 255, 255, 0.12);
+    --bg-light: rgba(255, 255, 255, 0.10);
+    --border: rgba(255, 255, 255, 0.25);
     --text: #ffffff;
-    --text-muted: rgba(255, 255, 255, 0.62);
-    --input-bg: rgba(255, 255, 255, 0.14);
-    --input-disabled-bg: rgba(255, 255, 255, 0.06);
+    --text-muted: rgba(255, 255, 255, 0.80);
+    --input-bg: rgba(255, 255, 255, 0.16);
+    --input-disabled-bg: rgba(255, 255, 255, 0.07);
     --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.20);
   }
 
