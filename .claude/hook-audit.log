@@ -1,0 +1,3 @@
+[2026-05-15T17:38:22.405093+00:00] BLOCKED — BLOCKED: Direct project reference between Azure Function microservices violates the Apex Air boundary rule. Communicate via HTTP endpoints or Azure Service Bus only. See design.md section on integration principles.
+[2026-05-15T17:38:22.481227+00:00] BLOCKED — BLOCKED: Potential secret or connection string detected outside approved config pattern. Use Azure Key Vault references or local.settings.json (gitignored) only.
+[2026-05-15T17:38:30.611791+00:00] BUILD — dotnet build triggered for /home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/ReservationSystem.Microservices.Order.csproj
