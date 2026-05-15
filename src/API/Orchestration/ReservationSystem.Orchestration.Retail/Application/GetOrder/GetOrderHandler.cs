@@ -147,31 +147,13 @@ public sealed class GetOrderHandler
                 }
 
                 // ── eTickets lookup ───────────────────────────────────────────
-                // eTickets stored as: [{ passengerId, segmentIds[], eTicketNumber }]
-                // or: [{ passengerId, eTicketNumber }] (older format)
-                var eTicketsBySegment = new Dictionary<string, List<ManagedETicket>>(StringComparer.OrdinalIgnoreCase);
-                if (data.TryGetProperty("eTickets", out var eTicketsArray) &&
-                    eTicketsArray.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var et in eTicketsArray.EnumerateArray())
-                    {
-                        var paxId = et.TryGetProperty("passengerId", out var epid) ? epid.GetString() ?? "" : "";
-                        var etNum = et.TryGetProperty("eTicketNumber", out var etn) ? etn.GetString() ?? "" : "";
-                        var managedEt = new ManagedETicket { PassengerId = paxId, ETicketNumber = etNum };
-
-                        if (et.TryGetProperty("segmentIds", out var segIds) &&
-                            segIds.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var sid in segIds.EnumerateArray())
-                            {
-                                var segIdStr = sid.GetString() ?? "";
-                                if (!eTicketsBySegment.ContainsKey(segIdStr))
-                                    eTicketsBySegment[segIdStr] = new List<ManagedETicket>();
-                                eTicketsBySegment[segIdStr].Add(managedEt);
-                            }
-                        }
-                    }
-                }
+                // Build from the live tickets fetched from the Delivery MS. Each ticket
+                // covers all segments for one passenger, so every flight order item gets
+                // all non-voided tickets for the passengers on that item.
+                var eTicketsForOrder = tickets
+                    .Where(t => !t.IsVoided && !string.IsNullOrEmpty(t.ETicketNumber))
+                    .Select(t => new ManagedETicket { PassengerId = t.PassengerId, ETicketNumber = t.ETicketNumber })
+                    .ToList();
 
                 // ── Payments ──────────────────────────────────────────────────
                 if (data.TryGetProperty("payments", out var paymentsArray) &&
@@ -319,9 +301,6 @@ public sealed class GetOrderHandler
                             BookingClass = fareBasisCode?.Length > 0 ? fareBasisCode[0].ToString() : cabinCode
                         });
 
-                        // e-tickets for this segment
-                        eTicketsBySegment.TryGetValue(segmentId, out var segETickets);
-
                         // Flight order item
                         orderItems.Add(new ManagedOrderItem
                         {
@@ -337,7 +316,7 @@ public sealed class GetOrderHandler
                             IsRefundable = isRefundable,
                             IsChangeable = isChangeable,
                             PaymentReference = payments.FirstOrDefault()?.PaymentReference ?? "",
-                            ETickets = segETickets ?? []
+                            ETickets = eTicketsForOrder
                         });
 
                         itemIndex++;
