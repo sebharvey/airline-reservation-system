@@ -155,4 +155,17 @@ button {
   html.dark body {
     background: linear-gradient(135deg, #667eea 0%, #5a3eab 50%, #764ba2 100%);
   }
+
+  /* Dark mode: content panel uses dark card rather than white */
+  html.dark .content {
+    background: #1e1e2e;
+    --text: #e2e2f0;
+    --text-muted: #9494b0;
+    --white: #1e1e2e;
+    --bg-light: #27273a;
+    --border: #3a3a50;
+    --input-bg: #2a2a3e;
+    --input-disabled-bg: #232334;
+    --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
 }

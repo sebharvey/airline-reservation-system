@@ -588,12 +588,4 @@ h1 {
   }
 }
 
-/* ── PWA: hero title must be white — gradient fill is invisible on purple background ── */
-@media (display-mode: standalone) and (max-width: 900px) {
-  h1 {
-    background: none;
-    -webkit-text-fill-color: #ffffff;
-    color: #ffffff;
-  }
-}
 
