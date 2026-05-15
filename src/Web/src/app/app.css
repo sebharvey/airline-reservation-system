@@ -760,19 +760,34 @@
     font-weight: 600;
   }
 
-  /* Frosted-glass card — purple gradient shows through from the body */
+  /* Card is now a transparent structural wrapper — content provides its own background */
   .card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    /* Reserve space for the fixed bottom bar + home indicator */
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    padding-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
 
-  /* Content area is transparent — card's glass is the surface */
+  /* White content panel — stands out on the purple gradient background.
+     Resets CSS variables to light-mode values so all child components
+     render with dark text on the white surface. */
   .content {
-    background: transparent;
+    flex: 1;
+    background: #ffffff;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    --text: #333333;
+    --text-muted: #666666;
+    --white: #ffffff;
+    --bg-light: #f8f9fa;
+    --border: #e0e0e0;
+    --input-bg: #ffffff;
+    --input-disabled-bg: #f0f0f0;
+    --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.3);
   }
 
   /* Fixed bottom navigation bar — glass panel over the gradient */
