@@ -196,7 +196,7 @@ public sealed class CheckInSimulatorHandler
                 DepartureAirport: flight.Origin,
                 Passengers:       submissions,
                 OverrideTimatic:  true,
-                OverrideReason:   "Simulator auto check-in");
+                OverrideReason:   "Agent override");
 
             try
             {
