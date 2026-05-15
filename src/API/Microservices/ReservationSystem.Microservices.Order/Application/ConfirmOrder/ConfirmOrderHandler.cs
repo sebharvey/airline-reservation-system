@@ -134,7 +134,7 @@ public sealed class ConfirmOrderHandler
             var item = new JsonObject();
             foreach (var prop in new[]
             {
-                "offerId", "inventoryId", "basketItemId", "cabinCode",
+                "offerId", "inventoryId", "cabinCode",
                 "flightNumber", "departureDate", "departureTime", "arrivalTime",
                 "origin", "destination", "aircraftType",
                 "fareBasisCode", "fareFamily",
