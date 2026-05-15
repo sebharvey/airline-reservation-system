@@ -790,7 +790,7 @@
     --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.3);
   }
 
-  /* Fixed bottom navigation bar — glass panel over the gradient */
+  /* Fixed bottom navigation bar — deep purple glass, clearly distinct from the gradient */
   .pwa-bottom-nav {
     display: flex;
     position: fixed;
@@ -798,12 +798,12 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    background: rgba(0, 0, 0, 0.18);
+    background: rgba(30, 10, 80, 0.92);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     align-items: stretch;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.14), 0 -4px 24px rgba(0, 0, 0, 0.20);
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.14), 0 -4px 24px rgba(0, 0, 0, 0.30);
   }
 
   .pwa-nav-item {
