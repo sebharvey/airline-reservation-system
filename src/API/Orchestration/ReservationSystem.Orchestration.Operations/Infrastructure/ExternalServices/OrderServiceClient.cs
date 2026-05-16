@@ -133,6 +133,19 @@ public sealed class OrderServiceClient
             ?? new AffectedOrdersResponse();
     }
 
+    public async Task<AffectedOrderDto?> GetOrderForIropsAsync(
+        string bookingReference,
+        string flightNumber,
+        string departureDate,
+        CancellationToken ct)
+    {
+        var url = $"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/irops?flightNumber={Uri.EscapeDataString(flightNumber)}&departureDate={Uri.EscapeDataString(departureDate)}";
+        using var response = await _httpClient.GetAsync(url, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AffectedOrderDto>(JsonOptions, ct);
+    }
+
     public async Task<AffectedOrdersResponse> GetOrdersByFlightAsync(
         string flightNumber,
         string departureDate,

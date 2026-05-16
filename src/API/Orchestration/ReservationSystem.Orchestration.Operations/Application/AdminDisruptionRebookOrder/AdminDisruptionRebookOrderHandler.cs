@@ -38,9 +38,9 @@ public sealed class AdminDisruptionRebookOrderHandler
                 "IROPS single-order rebook started for booking {BookingRef} on flight {FlightNumber}/{DepartureDate}",
                 command.BookingReference, command.FlightNumber, command.DepartureDate);
 
-            // Both calls only need flight number and date — start them in parallel.
+            // Both calls are independent — start them in parallel.
             var flightInventoryTask = _offerServiceClient.GetFlightInventoryAsync(command.FlightNumber, command.DepartureDate, ct);
-            var allOrdersTask = _orderServiceClient.GetOrdersByFlightAsync(command.FlightNumber, command.DepartureDate, "Confirmed", ct);
+            var orderTask = _orderServiceClient.GetOrderForIropsAsync(command.BookingReference, command.FlightNumber, command.DepartureDate, ct);
 
             var flightInventory = await flightInventoryTask;
             if (flightInventory is null)
@@ -49,11 +49,7 @@ public sealed class AdminDisruptionRebookOrderHandler
             var origin = flightInventory.Origin;
             var destination = flightInventory.Destination;
 
-            var allOrders = await allOrdersTask;
-
-            var order = allOrders.Orders.FirstOrDefault(o =>
-                string.Equals(o.BookingReference, command.BookingReference, StringComparison.OrdinalIgnoreCase));
-
+            var order = await orderTask;
             if (order is null)
                 return Failed(command.BookingReference,
                     $"Booking {command.BookingReference} not found on flight {command.FlightNumber}/{command.DepartureDate}.");

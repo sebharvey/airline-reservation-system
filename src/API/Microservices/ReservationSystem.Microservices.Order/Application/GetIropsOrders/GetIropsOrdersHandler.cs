@@ -37,6 +37,17 @@ public sealed class GetIropsOrdersHandler
             .ToList();
     }
 
+    public async Task<object?> HandleSingleAsync(
+        string bookingReference,
+        string flightNumber,
+        string departureDate,
+        CancellationToken cancellationToken = default)
+    {
+        var order = await _repository.GetByBookingReferenceAsync(bookingReference, cancellationToken);
+        if (order is null) return null;
+        return ProjectToIropsDto(order, flightNumber, departureDate);
+    }
+
     internal static object? ProjectToIropsDto(
         Domain.Entities.Order order,
         string flightNumber,
