@@ -38,16 +38,18 @@ public sealed class AdminDisruptionRebookOrderHandler
                 "IROPS single-order rebook started for booking {BookingRef} on flight {FlightNumber}/{DepartureDate}",
                 command.BookingReference, command.FlightNumber, command.DepartureDate);
 
-            var flightInventory = await _offerServiceClient.GetFlightInventoryAsync(command.FlightNumber, command.DepartureDate, ct);
+            // Both calls only need flight number and date — start them in parallel.
+            var flightInventoryTask = _offerServiceClient.GetFlightInventoryAsync(command.FlightNumber, command.DepartureDate, ct);
+            var allOrdersTask = _orderServiceClient.GetOrdersByFlightAsync(command.FlightNumber, command.DepartureDate, "Confirmed", ct);
+
+            var flightInventory = await flightInventoryTask;
             if (flightInventory is null)
                 return Failed(command.BookingReference, $"Flight {command.FlightNumber} on {command.DepartureDate} not found.");
 
             var origin = flightInventory.Origin;
             var destination = flightInventory.Destination;
 
-            // Resolve the order directly from Order MS — does not rely on manifest.
-            var allOrders = await _orderServiceClient.GetOrdersByFlightAsync(
-                command.FlightNumber, command.DepartureDate, "Confirmed", ct);
+            var allOrders = await allOrdersTask;
 
             var order = allOrders.Orders.FirstOrDefault(o =>
                 string.Equals(o.BookingReference, command.BookingReference, StringComparison.OrdinalIgnoreCase));
@@ -171,10 +173,14 @@ public sealed class AdminDisruptionRebookOrderHandler
             .Select(l => (l.InventoryId, replacement.CabinCode))
             .ToList();
 
+        // Both calls are independent of each other — start them in parallel.
+        var rebookInventoryTask = _offerServiceClient.RebookInventoryAsync(
+            order.Segment.InventoryId, order.Segment.CabinCode, toItems, order.OrderId, ct);
+        var getTicketsTask = _deliveryServiceClient.GetTicketsByBookingAsync(order.BookingReference, ct);
+
         try
         {
-            await _offerServiceClient.RebookInventoryAsync(
-                order.Segment.InventoryId, order.Segment.CabinCode, toItems, order.OrderId, ct);
+            await rebookInventoryTask;
         }
         catch (Exception ex)
         {
@@ -182,7 +188,7 @@ public sealed class AdminDisruptionRebookOrderHandler
                 order.BookingReference);
         }
 
-        var existingTickets = await _deliveryServiceClient.GetTicketsByBookingAsync(order.BookingReference, ct);
+        var existingTickets = await getTicketsTask;
         var ticketsToVoid = existingTickets.Where(t => !t.IsVoided).Select(t => t.ETicketNumber).ToList();
 
         var reissueRequest = new ReissueTicketsRequest
