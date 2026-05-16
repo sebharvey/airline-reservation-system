@@ -41,6 +41,15 @@ These four functions run concurrently at midnight UTC every day.
 
 ## 01:00 UTC batch
 
+### `DailyAircraftGateAssignment`
+
+- **Service** — Simulator microservice (`ReservationSystem.Microservices.Simulator`)
+- **Class** — `SimulatorFunction`
+- **Schedule** — `0 0 1 * * *`
+- **What it does** — Bulk-assigns aircraft registrations and departure gates to every flight in today's inventory that does not yet have them. Fetches all inventory for today in a single pass and assigns a registration (format `G-X123`) and a gate (1–50) to each flight that lacks one. Unlike the rolling `FlightOperationalDataSimulator`, this runs once per day and covers all flights up-front, regardless of departure time, ensuring no flight departs without an aircraft registration or gate even if an interim run was missed. Individual failures are logged and do not abort the run.
+- **Manual trigger** — `GET /api/v1/simulator/daily-assignment`
+- **External dependencies** — Admin API (`AdminApi:BaseUrl`), Retail API (`RetailApi:BaseUrl`), Operations API (`OperationsApi:BaseUrl`). Credentials read from `User:Username` and `User:Password`.
+
 ### `DeleteExpiredManifestItems`
 
 - **Service** — Delivery microservice
@@ -104,6 +113,7 @@ These four functions run concurrently at midnight UTC every day.
        DeleteExpiredDraftOrders
        DeleteExpiredBaskets
 
-01:00  DeleteExpiredManifestItems
+01:00  DailyAircraftGateAssignment
+       DeleteExpiredManifestItems
        RollingInventoryImport
 ```

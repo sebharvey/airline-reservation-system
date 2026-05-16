@@ -3,6 +3,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Simulator.Application.CheckInSimulator;
+using ReservationSystem.Simulator.Application.DailyAircraftGateAssignment;
 using ReservationSystem.Simulator.Application.RunSimulator;
 using ReservationSystem.Simulator.Application.UpdateFlightOperationalData;
 
@@ -21,18 +22,21 @@ public sealed class SimulatorFunction
     private readonly RunSimulatorHandler                    _handler;
     private readonly UpdateFlightOperationalDataHandler     _flightUpdateHandler;
     private readonly CheckInSimulatorHandler                _checkInHandler;
+    private readonly DailyAircraftGateAssignmentHandler     _dailyAssignmentHandler;
     private readonly ILogger<SimulatorFunction>             _logger;
 
     public SimulatorFunction(
         RunSimulatorHandler                handler,
         UpdateFlightOperationalDataHandler flightUpdateHandler,
         CheckInSimulatorHandler            checkInHandler,
+        DailyAircraftGateAssignmentHandler dailyAssignmentHandler,
         ILogger<SimulatorFunction>         logger)
     {
-        _handler             = handler;
-        _flightUpdateHandler = flightUpdateHandler;
-        _checkInHandler      = checkInHandler;
-        _logger              = logger;
+        _handler                = handler;
+        _flightUpdateHandler    = flightUpdateHandler;
+        _checkInHandler         = checkInHandler;
+        _dailyAssignmentHandler = dailyAssignmentHandler;
+        _logger                 = logger;
     }
 
     // Runs every 40 minutes: "0 */40 * * * *"
@@ -86,6 +90,33 @@ public sealed class SimulatorFunction
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");
         await response.WriteStringAsync("{\"message\":\"Flight operational data update completed.\"}");
+        return response;
+    }
+
+    // Runs once daily at 01:00 UTC: "0 0 1 * * *"
+    [Function("DailyAircraftGateAssignment")]
+    public async Task RunDailyAssignment(
+        [TimerTrigger("0 0 1 * * *")] TimerInfo timerInfo,
+        CancellationToken ct)
+    {
+        _logger.LogInformation("DailyAircraftGateAssignment timer triggered at {UtcNow:O}", DateTime.UtcNow);
+
+        await _dailyAssignmentHandler.HandleAsync(ct);
+    }
+
+    // Manual trigger: GET /api/v1/simulator/daily-assignment
+    [Function("DailyAircraftGateAssignmentManualTrigger")]
+    public async Task<HttpResponseData> RunDailyAssignmentManual(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/simulator/daily-assignment")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        _logger.LogInformation("DailyAircraftGateAssignment manual trigger invoked at {UtcNow:O}", DateTime.UtcNow);
+
+        await _dailyAssignmentHandler.HandleAsync(ct);
+
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json");
+        await response.WriteStringAsync("{\"message\":\"Daily aircraft and gate assignment completed.\"}");
         return response;
     }
 
