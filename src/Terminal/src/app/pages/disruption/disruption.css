@@ -164,17 +164,6 @@
   font-weight: 600;
 }
 
-/* Passenger names */
-.pax-names {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pax-name {
-  font-size: 0.8125rem;
-}
-
 /* Cabin */
 .cabin-badge {
   display: inline-block;

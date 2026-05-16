@@ -108,16 +108,7 @@
                   </button>
                 </span>
               </td>
-              <td>
-                <div class="pax-names">
-                  @for (name of row.order.passengerNames; track name) {
-                    <span class="pax-name">{{ name }}</span>
-                  }
-                  @if (row.order.passengerCount > row.order.passengerNames.length) {
-                    <span class="pax-name muted">+{{ row.order.passengerCount - row.order.passengerNames.length }} more</span>
-                  }
-                </div>
-              </td>
+              <td>{{ row.order.passengerCount }}</td>
               <td>
                 <span class="cabin-badge cabin-ok">{{ row.order.cabinCode }}</span>
                 <span class="cabin-label muted">{{ cabinLabel(row.order.cabinCode) }}</span>
