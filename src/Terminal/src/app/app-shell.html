@@ -27,25 +27,6 @@
         </div>
       }
 
-      <button
-        class="theme-toggle"
-        (click)="theme.toggle()"
-        [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
-        title="Toggle theme"
-      >
-        <lucide-icon [name]="theme.isDark() ? 'sun' : 'moon'" [size]="16" class="toggle-icon" />
-        <span class="toggle-track" [class.is-dark]="theme.isDark()">
-          <span class="toggle-thumb"></span>
-        </span>
-      </button>
-
-      <button class="debug-api-btn" (click)="openHttpDebug()" title="Debug: view API requests">
-        🔍 API Debug
-        @if (httpDebug.entries().length > 0) {
-          <span class="debug-api-count">{{ httpDebug.entries().length }}</span>
-        }
-      </button>
-
       <button class="logout-btn" (click)="logout()" title="Sign out">
         <lucide-icon name="log-out" [size]="15" />
         <span class="logout-label">Sign out</span>
@@ -77,6 +58,26 @@
       </nav>
 
       <div class="sidebar-footer">
+        <div class="sidebar-controls">
+          <button
+            class="sidebar-theme-toggle"
+            (click)="theme.toggle()"
+            [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+            title="Toggle theme"
+          >
+            <lucide-icon [name]="theme.isDark() ? 'sun' : 'moon'" [size]="16" />
+            <span class="sidebar-toggle-label">{{ theme.isDark() ? 'Light mode' : 'Dark mode' }}</span>
+            <span class="toggle-track" [class.is-dark]="theme.isDark()">
+              <span class="toggle-thumb"></span>
+            </span>
+          </button>
+          <button class="sidebar-debug-btn" (click)="openHttpDebug()" title="Debug: view API requests">
+            🔍 API Debug
+            @if (httpDebug.entries().length > 0) {
+              <span class="debug-api-count">{{ httpDebug.entries().length }}</span>
+            }
+          </button>
+        </div>
         <p class="sidebar-version">Apex Air Terminal v1.0</p>
         <p class="sidebar-copy">© 2026 Apex Air</p>
       </div>
