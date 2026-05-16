@@ -254,7 +254,18 @@ public sealed class InventoryManagementFunction
 
                     if (!string.Equals(segId, inventoryId, StringComparison.OrdinalIgnoreCase)) continue;
 
-                    if (string.Equals(pt, "BAG", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(pt, "SEAT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var seatNum = oi["seatNumber"]?.GetValue<string>() ?? "—";
+                        var price   = oi["price"]?.GetValue<decimal>() ?? 0m;
+                        ancillaries.Add(new InventoryOrderAncillaryDto
+                        {
+                            ProductType = "Seat",
+                            Description = $"Seat {seatNum}",
+                            Amount      = price,
+                        });
+                    }
+                    else if (string.Equals(pt, "BAG", StringComparison.OrdinalIgnoreCase))
                     {
                         var bags  = oi["additionalBags"]?.GetValue<int>() ?? 1;
                         var price = oi["price"]?.GetValue<decimal>() ?? 0m;
