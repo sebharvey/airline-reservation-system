@@ -70,7 +70,7 @@ public sealed class SimulatorFunction
     {
         _logger.LogInformation("FlightUpdate timer triggered at {UtcNow:O}", DateTime.UtcNow);
 
-        await _flightUpdateHandler.HandleAsync(ct);
+        await _flightUpdateHandler.HandleAsync(ct: ct);
     }
 
     // Manual trigger: GET /api/v1/simulator/flight-updates
@@ -81,7 +81,7 @@ public sealed class SimulatorFunction
     {
         _logger.LogInformation("FlightUpdate manual trigger invoked at {UtcNow:O}", DateTime.UtcNow);
 
-        await _flightUpdateHandler.HandleAsync(ct);
+        await _flightUpdateHandler.HandleAsync(ct: ct);
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");
