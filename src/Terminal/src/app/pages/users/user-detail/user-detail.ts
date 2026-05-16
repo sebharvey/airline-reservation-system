@@ -166,8 +166,11 @@ export class UserDetailComponent implements OnInit {
       this.success.set('Password reset successfully.');
       this.showResetPassword.set(false);
       this.resetPasswordValue.set('');
-    } catch {
-      this.error.set('Failed to reset password.');
+    } catch (err) {
+      const apiMessage = err instanceof HttpErrorResponse
+        ? (err.error?.message ?? err.error?.title ?? err.message)
+        : null;
+      this.error.set(apiMessage ?? 'Failed to reset password.');
     } finally {
       this.resettingPassword.set(false);
     }
