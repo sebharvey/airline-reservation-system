@@ -2,6 +2,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { UserService, UserAccount } from '../../../services/user.service';
 import { AuthService } from '../../../services/auth.service';
 
@@ -216,8 +217,11 @@ export class UserDetailComponent implements OnInit {
         password: this.newPassword(),
       });
       this.#router.navigate(['/users']);
-    } catch {
-      this.error.set('Failed to create user. Username or email may already exist.');
+    } catch (err) {
+      const apiMessage = err instanceof HttpErrorResponse
+        ? (err.error?.message ?? err.error?.title ?? err.message)
+        : null;
+      this.error.set(apiMessage ?? 'Failed to create user. Username or email may already exist.');
     } finally {
       this.saving.set(false);
     }
