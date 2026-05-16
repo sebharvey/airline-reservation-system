@@ -3,7 +3,6 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Simulator.Application.CheckInSimulator;
-using ReservationSystem.Simulator.Application.DailyAircraftGateAssignment;
 using ReservationSystem.Simulator.Application.RunSimulator;
 using ReservationSystem.Simulator.Application.UpdateFlightOperationalData;
 
@@ -22,21 +21,18 @@ public sealed class SimulatorFunction
     private readonly RunSimulatorHandler                    _handler;
     private readonly UpdateFlightOperationalDataHandler     _flightUpdateHandler;
     private readonly CheckInSimulatorHandler                _checkInHandler;
-    private readonly DailyAircraftGateAssignmentHandler     _dailyAssignmentHandler;
     private readonly ILogger<SimulatorFunction>             _logger;
 
     public SimulatorFunction(
         RunSimulatorHandler                handler,
         UpdateFlightOperationalDataHandler flightUpdateHandler,
         CheckInSimulatorHandler            checkInHandler,
-        DailyAircraftGateAssignmentHandler dailyAssignmentHandler,
         ILogger<SimulatorFunction>         logger)
     {
-        _handler                = handler;
-        _flightUpdateHandler    = flightUpdateHandler;
-        _checkInHandler         = checkInHandler;
-        _dailyAssignmentHandler = dailyAssignmentHandler;
-        _logger                 = logger;
+        _handler             = handler;
+        _flightUpdateHandler = flightUpdateHandler;
+        _checkInHandler      = checkInHandler;
+        _logger              = logger;
     }
 
     // Runs every 40 minutes: "0 */40 * * * *"
@@ -101,7 +97,7 @@ public sealed class SimulatorFunction
     {
         _logger.LogInformation("DailyAircraftGateAssignment timer triggered at {UtcNow:O}", DateTime.UtcNow);
 
-        await _dailyAssignmentHandler.HandleAsync(ct);
+        await _flightUpdateHandler.HandleAsync(assignAll: true, ct);
     }
 
     // Manual trigger: GET /api/v1/simulator/daily-assignment
@@ -112,7 +108,7 @@ public sealed class SimulatorFunction
     {
         _logger.LogInformation("DailyAircraftGateAssignment manual trigger invoked at {UtcNow:O}", DateTime.UtcNow);
 
-        await _dailyAssignmentHandler.HandleAsync(ct);
+        await _flightUpdateHandler.HandleAsync(assignAll: true, ct);
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");

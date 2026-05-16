@@ -4,7 +4,6 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Simulator.Application.CheckInSimulator;
-using ReservationSystem.Simulator.Application.DailyAircraftGateAssignment;
 using ReservationSystem.Simulator.Application.RunSimulator;
 using ReservationSystem.Simulator.Application.UpdateFlightOperationalData;
 using ReservationSystem.Simulator.Domain.ExternalServices;
@@ -45,7 +44,6 @@ var host = new HostBuilder()
         services.AddScoped<RunSimulatorHandler>();
         services.AddScoped<UpdateFlightOperationalDataHandler>();
         services.AddScoped<CheckInSimulatorHandler>();
-        services.AddScoped<DailyAircraftGateAssignmentHandler>();
     })
     .Build();
 
