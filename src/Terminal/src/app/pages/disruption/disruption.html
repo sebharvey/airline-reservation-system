@@ -119,10 +119,7 @@
                 @if (row.rebookStatus === 'pending') {
                   <span class="rebook-status rebook-status-pending">Pending</span>
                 } @else if (row.rebookStatus === 'loading') {
-                  <span class="rebook-status rebook-status-loading">
-                    <span class="btn-spinner-sm"></span>
-                    Processing…
-                  </span>
+                  <span class="rebook-status rebook-status-loading">Processing</span>
                 } @else if (row.rebookStatus === 'rebooked') {
                   <span class="rebook-status rebook-status-rebooked">
                     <lucide-icon name="check" [size]="12" />
