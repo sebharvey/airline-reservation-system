@@ -48,26 +48,6 @@
             flex-wrap: wrap;
         }
 
-        .controls label {
-            font-size: 13px;
-            color: #94a3b8;
-        }
-
-        .controls select {
-            background: #0f1117;
-            border: 1px solid #2d3148;
-            color: #e2e8f0;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            cursor: pointer;
-        }
-
-        .controls select:focus {
-            outline: none;
-            border-color: #6366f1;
-        }
-
         .refresh-btn {
             background: #6366f1;
             color: #fff;
@@ -95,25 +75,6 @@
             margin-left: auto;
             font-size: 12px;
             color: #64748b;
-        }
-
-        .filter-input {
-            background: #0f1117;
-            border: 1px solid #2d3148;
-            color: #e2e8f0;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            width: 240px;
-        }
-
-        .filter-input:focus {
-            outline: none;
-            border-color: #6366f1;
-        }
-
-        .filter-input::placeholder {
-            color: #4b5563;
         }
 
         .container {
@@ -401,17 +362,6 @@
 </header>
 
 <div class="controls">
-    <label for="timeRange">Time range</label>
-    <select id="timeRange">
-        <option value="1">Last 1 hour</option>
-        <option value="3">Last 3 hours</option>
-        <option value="6">Last 6 hours</option>
-        <option value="12">Last 12 hours</option>
-        <option value="24">Last 24 hours</option>
-    </select>
-
-    <input type="text" class="filter-input" id="filterInput" placeholder="Filter by type, message, method...">
-
     <button class="refresh-btn" id="refreshBtn" onclick="loadExceptions()">
         <span id="refreshIcon">&#8635;</span>
         Refresh
@@ -623,21 +573,6 @@ function toggleCard(index) {
     card.classList.toggle('expanded');
 }
 
-function applyFilter() {
-    const q = document.getElementById('filterInput').value.toLowerCase();
-    const filtered = q
-        ? allExceptions.filter(ex => {
-            const haystack = [
-                ex.outerType, ex.exceptionType, ex.message, ex.outerMessage,
-                ex.method, ex.cloudRoleName, ex.operationId, ex.problemId
-            ].join(' ').toLowerCase();
-            return haystack.includes(q);
-        })
-        : allExceptions;
-
-    renderList(filtered);
-}
-
 function renderList(exceptions) {
     const list = document.getElementById('exceptionList');
     if (exceptions.length === 0) {
@@ -649,7 +584,7 @@ function renderList(exceptions) {
                     <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 <h3>No exceptions found</h3>
-                <p>Try adjusting the time range or filter.</p>
+                <p>No exceptions recorded in this time window.</p>
             </div>`;
         return;
     }
@@ -660,15 +595,13 @@ async function loadExceptions() {
     const btn = document.getElementById('refreshBtn');
     const statusBar = document.getElementById('statusBar');
     const metaInfo = document.getElementById('metaInfo');
-    const hours = document.getElementById('timeRange').value;
-
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Loading…';
     statusBar.className = 'status-bar loading';
     statusBar.textContent = 'Fetching exceptions…';
 
     try {
-        const url = hours === '1' ? API_BASE : `${API_BASE}?hours=${hours}`;
+        const url = API_BASE;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
         const data = await res.json();
@@ -684,7 +617,7 @@ async function loadExceptions() {
 
         statusBar.textContent = '';
         statusBar.className = 'status-bar';
-        applyFilter();
+        renderList(allExceptions);
     } catch (err) {
         statusBar.className = 'status-bar error';
         statusBar.textContent = `Failed to load exceptions: ${err.message}`;
@@ -694,9 +627,6 @@ async function loadExceptions() {
         btn.innerHTML = '&#8635; Refresh';
     }
 }
-
-document.getElementById('filterInput').addEventListener('input', applyFilter);
-document.getElementById('timeRange').addEventListener('change', loadExceptions);
 
 loadExceptions();
 </script>
