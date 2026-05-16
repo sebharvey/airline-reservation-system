@@ -47,12 +47,17 @@ public sealed class UpdateFlightOperationalDataHandler
         _logger             = logger;
     }
 
-    public async Task HandleAsync(CancellationToken ct = default)
+    /// <param name="assignAll">
+    /// When true, assigns registration and gate to all flights today regardless of departure time.
+    /// Used by the daily 01:00 UTC batch. When false (default), applies the rolling time-window
+    /// logic throughout the day.
+    /// </param>
+    public async Task HandleAsync(bool assignAll = false, CancellationToken ct = default)
     {
         var username = _configuration["User:Username"];
-        var password = _configuration["User:Password"];
+        var userPwd  = _configuration["User:Password"];
 
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(userPwd))
         {
             _logger.LogWarning("FlightUpdate: User:Username or User:Password not configured — skipping run.");
             return;
@@ -61,7 +66,7 @@ public sealed class UpdateFlightOperationalDataHandler
         string jwtToken;
         try
         {
-            jwtToken = await _flightUpdateClient.LoginAsync(username, password, ct);
+            jwtToken = await _flightUpdateClient.LoginAsync(username, userPwd, ct);
         }
         catch (Exception ex)
         {
@@ -69,11 +74,11 @@ public sealed class UpdateFlightOperationalDataHandler
             return;
         }
 
-        var now      = DateTime.UtcNow;
-        var today    = now.Date.ToString("yyyy-MM-dd");
-        var tomorrow = now.Date.AddDays(1).ToString("yyyy-MM-dd");
+        var now   = DateTime.UtcNow;
+        var today = now.Date.ToString("yyyy-MM-dd");
 
-        var flights = await FetchInventoryAsync(jwtToken, [today, tomorrow], ct);
+        var dates  = assignAll ? new[] { today } : new[] { today, now.Date.AddDays(1).ToString("yyyy-MM-dd") };
+        var flights = await FetchInventoryAsync(jwtToken, dates, ct);
 
         var registrationUpdated = 0;
         var gateUpdated         = 0;
@@ -86,10 +91,10 @@ public sealed class UpdateFlightOperationalDataHandler
             var hoursUntilDeparture   = (departure - now).TotalHours;
             var minutesUntilDeparture = (departure - now).TotalMinutes;
 
-            // ── Aircraft registration (~24 h before departure) ─────────────────
+            // ── Aircraft registration ──────────────────────────────────────────
             if (flight.AircraftRegistration is null
-                && hoursUntilDeparture >= RegistrationWindowCloseHours
-                && hoursUntilDeparture <= RegistrationWindowOpenHours)
+                && (assignAll || (hoursUntilDeparture >= RegistrationWindowCloseHours
+                                  && hoursUntilDeparture <= RegistrationWindowOpenHours)))
             {
                 var registration = GenerateRegistration();
                 try
@@ -109,10 +114,10 @@ public sealed class UpdateFlightOperationalDataHandler
                 }
             }
 
-            // ── Departure gate (~1 h before departure) ─────────────────────────
+            // ── Departure gate ─────────────────────────────────────────────────
             if (flight.DepartureGate is null
-                && minutesUntilDeparture >= GateWindowCloseMinutes
-                && minutesUntilDeparture <= GateWindowOpenMinutes)
+                && (assignAll || (minutesUntilDeparture >= GateWindowCloseMinutes
+                                  && minutesUntilDeparture <= GateWindowOpenMinutes)))
             {
                 var gate = Random.Shared.Next(1, 51).ToString();
                 try
