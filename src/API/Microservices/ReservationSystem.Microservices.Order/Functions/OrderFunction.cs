@@ -311,33 +311,6 @@ public sealed class OrderFunction
         });
     }
 
-    // GET /v1/orders/{bookingRef}/irops
-    [Function("GetIropsOrderByRef")]
-    [OpenApiOperation(operationId: "GetIropsOrderByRef", tags: new[] { "Orders" }, Summary = "Get a single order projected for IROPS processing, by booking reference")]
-    [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
-    [OpenApiParameter(name: "flightNumber", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The flight number")]
-    [OpenApiParameter(name: "departureDate", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The departure date (yyyy-MM-dd)")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
-    public async Task<HttpResponseData> GetIropsOrderByRef(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/orders/{bookingRef}/irops")] HttpRequestData req,
-        string bookingRef, CancellationToken ct)
-    {
-        var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-        var flightNumber = query["flightNumber"];
-        var departureDate = query["departureDate"];
-
-        if (string.IsNullOrWhiteSpace(flightNumber) || string.IsNullOrWhiteSpace(departureDate))
-            return await req.BadRequestAsync("Query parameters 'flightNumber' and 'departureDate' are required.");
-
-        var projected = await _getIropsOrdersHandler.HandleSingleAsync(bookingRef, flightNumber, departureDate, ct);
-        if (projected is null)
-            return await req.NotFoundAsync($"Booking {bookingRef} not found on flight {flightNumber}/{departureDate}.");
-
-        return await req.OkJsonAsync(projected);
-    }
-
     // GET /v1/orders/{bookingRef}
     [Function("GetOrder")]
     [OpenApiOperation(operationId: "GetOrder", tags: new[] { "Orders" }, Summary = "Get an order by booking reference")]
