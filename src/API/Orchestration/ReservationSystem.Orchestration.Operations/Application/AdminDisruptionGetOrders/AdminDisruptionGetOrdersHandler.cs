@@ -8,15 +8,18 @@ public sealed class AdminDisruptionGetOrdersHandler
 {
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
+    private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly ILogger<AdminDisruptionGetOrdersHandler> _logger;
 
     public AdminDisruptionGetOrdersHandler(
         OfferServiceClient offerServiceClient,
         OrderServiceClient orderServiceClient,
+        DeliveryServiceClient deliveryServiceClient,
         ILogger<AdminDisruptionGetOrdersHandler> logger)
     {
         _offerServiceClient = offerServiceClient;
         _orderServiceClient = orderServiceClient;
+        _deliveryServiceClient = deliveryServiceClient;
         _logger = logger;
     }
 
@@ -24,18 +27,26 @@ public sealed class AdminDisruptionGetOrdersHandler
         AdminDisruptionGetOrdersQuery query,
         CancellationToken ct)
     {
-        // Fetch flight info and confirmed orders in parallel.
-        var flightsTask = _offerServiceClient.GetFlightsByDateAsync(query.DepartureDate, ct);
-        var ordersTask = _orderServiceClient.GetOrdersByFlightAsync(
-            query.FlightNumber, query.DepartureDate, "Confirmed", ct);
+        // Fetch flight info and manifest in parallel — manifest gives us the order IDs.
+        var flightsTask  = _offerServiceClient.GetFlightsByDateAsync(query.DepartureDate, ct);
+        var manifestTask = _deliveryServiceClient.GetManifestAsync(query.FlightNumber, query.DepartureDate, ct);
 
-        await Task.WhenAll(flightsTask, ordersTask);
+        await Task.WhenAll(flightsTask, manifestTask);
 
         var flightInfo = flightsTask.Result.FirstOrDefault(f => f.FlightNumber == query.FlightNumber);
         if (flightInfo is null)
             throw new KeyNotFoundException($"Flight {query.FlightNumber} on {query.DepartureDate} not found.");
 
-        var sorted = ordersTask.Result.Orders
+        var orderIds = manifestTask.Result.Entries
+            .Select(e => e.OrderId)
+            .Distinct()
+            .ToList();
+
+        var affectedOrders = orderIds.Count == 0
+            ? new Infrastructure.ExternalServices.Dto.AffectedOrdersResponse()
+            : await _orderServiceClient.GetAffectedOrdersByIdsAsync(orderIds, query.FlightNumber, query.DepartureDate, ct);
+
+        var sorted = affectedOrders.Orders
             .OrderBy(o => CabinPriority(o.Segment.CabinCode))
             .ThenBy(o => LoyaltyTierPriority(o.LoyaltyTier))
             .ThenBy(o => o.BookingDate)
