@@ -219,7 +219,7 @@ export class FlightManagementDetailComponent implements OnInit {
     try {
       await this.#inventoryService.cancelFlightInventoryOnly(this.#flightNumber, this.#departureDate);
       this.disruptionModalOpen.set(false);
-      void this.#router.navigate(['/disruption', this.#flightNumber, this.#departureDate]);
+      void this.#router.navigate(['/flight-management/disruption', this.#flightNumber, this.#departureDate]);
     } catch {
       this.cancelError.set('Failed to cancel flight. Please try again.');
     } finally {
@@ -229,7 +229,7 @@ export class FlightManagementDetailComponent implements OnInit {
 
   goToIrops(): void {
     this.closeDisruptionModal();
-    void this.#router.navigate(['/disruption', this.#flightNumber, this.#departureDate]);
+    void this.#router.navigate(['/flight-management/disruption', this.#flightNumber, this.#departureDate]);
   }
 
   equipmentChangeClick(): void {

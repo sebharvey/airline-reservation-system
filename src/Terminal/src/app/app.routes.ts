@@ -30,6 +30,10 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./pages/flight-management/flight-management-detail/flight-management-detail').then(m => m.FlightManagementDetailComponent),
           },
+          {
+            path: 'disruption/:flightNumber/:departureDate',
+            loadComponent: () => import('./pages/disruption/disruption').then(m => m.DisruptionComponent),
+          },
         ],
       },
       {
@@ -43,10 +47,6 @@ export const routes: Routes = [
       {
         path: 'inventory/:inventoryId',
         loadComponent: () => import('./pages/inventory/inventory-detail/inventory-detail').then(m => m.InventoryDetailComponent),
-      },
-      {
-        path: 'disruption/:flightNumber/:departureDate',
-        loadComponent: () => import('./pages/disruption/disruption').then(m => m.DisruptionComponent),
       },
       {
         path: 'aircraft-swap/:flightNumber/:departureDate',
