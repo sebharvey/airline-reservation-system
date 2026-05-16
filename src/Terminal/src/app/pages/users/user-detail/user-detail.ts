@@ -45,6 +45,16 @@ export class UserDetailComponent implements OnInit {
   newEmail = signal('');
   newPassword = signal('');
 
+  #extractApiError(err: unknown): string | null {
+    if (!(err instanceof HttpErrorResponse)) return null;
+    try {
+      const inner = JSON.parse(err.error?.error ?? '');
+      return inner?.error ?? null;
+    } catch {
+      return err.error?.error ?? null;
+    }
+  }
+
   ngOnInit(): void {
     this.userId = this.#route.snapshot.paramMap.get('userId') ?? '';
     this.isNew = this.userId === 'new';
@@ -167,10 +177,7 @@ export class UserDetailComponent implements OnInit {
       this.showResetPassword.set(false);
       this.resetPasswordValue.set('');
     } catch (err) {
-      const apiMessage = err instanceof HttpErrorResponse
-        ? (err.error?.message ?? err.error?.title ?? err.message)
-        : null;
-      this.error.set(apiMessage ?? 'Failed to reset password.');
+      this.error.set(this.#extractApiError(err) ?? 'Failed to reset password.');
     } finally {
       this.resettingPassword.set(false);
     }
@@ -221,10 +228,7 @@ export class UserDetailComponent implements OnInit {
       });
       this.#router.navigate(['/users']);
     } catch (err) {
-      const apiMessage = err instanceof HttpErrorResponse
-        ? (err.error?.message ?? err.error?.title ?? err.message)
-        : null;
-      this.error.set(apiMessage ?? 'Failed to create user. Username or email may already exist.');
+      this.error.set(this.#extractApiError(err) ?? 'Failed to create user. Username or email may already exist.');
     } finally {
       this.saving.set(false);
     }
