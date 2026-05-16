@@ -361,7 +361,7 @@ export class FlightManagementDetailComponent implements OnInit {
     if (stateFlight) this.flight.set(stateFlight);
 
     if (stateFlight?.status === 'Cancelled') {
-      void this.#router.navigate(['/disruption', this.#flightNumber, this.#departureDate], { replaceUrl: true });
+      void this.#router.navigate(['/flight-management/disruption', this.#flightNumber, this.#departureDate], { replaceUrl: true });
       return;
     }
 
