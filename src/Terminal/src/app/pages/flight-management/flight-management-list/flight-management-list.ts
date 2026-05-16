@@ -45,7 +45,7 @@ export class FlightManagementListComponent implements OnInit {
 
   stats = computed(() => {
     const all = [...this.pinnedFlights(), ...this.flights()];
-    const pax = all.reduce((s, f) => s + (f.totalSeats - f.totalSeatsAvailable), 0);
+    const pax = all.reduce((s, f) => s + ((f.f?.seatsSold ?? 0) + (f.j?.seatsSold ?? 0) + (f.w?.seatsSold ?? 0) + (f.y?.seatsSold ?? 0)), 0);
     return {
       total: all.length,
       active: all.filter(f => f.status === 'Active').length,
@@ -122,6 +122,6 @@ export class FlightManagementListComponent implements OnInit {
   }
 
   paxOnBoard(flight: FlightInventoryGroup): number {
-    return flight.totalSeats - flight.totalSeatsAvailable;
+    return (flight.f?.seatsSold ?? 0) + (flight.j?.seatsSold ?? 0) + (flight.w?.seatsSold ?? 0) + (flight.y?.seatsSold ?? 0);
   }
 }

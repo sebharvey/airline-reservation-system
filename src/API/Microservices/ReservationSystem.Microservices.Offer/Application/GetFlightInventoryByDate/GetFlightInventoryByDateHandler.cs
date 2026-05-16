@@ -67,8 +67,9 @@ public sealed class GetFlightInventoryByDateHandler
     private static FlightInventoryGroupResult Enrich(FlightInventoryGroup g, DateTime now)
     {
         var departure = g.DepartureDate.ToDateTime(g.DepartureTime, DateTimeKind.Utc);
+        var soldSeats = (g.F?.SeatsSold ?? 0) + (g.J?.SeatsSold ?? 0) + (g.W?.SeatsSold ?? 0) + (g.Y?.SeatsSold ?? 0);
         var loadFactor = g.TotalSeats > 0
-            ? (int)Math.Round((double)(g.TotalSeats - g.TotalSeatsAvailable) / g.TotalSeats * 100)
+            ? (int)Math.Round((double)soldSeats / g.TotalSeats * 100)
             : 0;
         var effectiveStatus = g.Status == "Active" && (departure - now).TotalHours <= 1
             ? "Ticketing Closed"
