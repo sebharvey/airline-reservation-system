@@ -26,13 +26,13 @@ export const routes: Routes = [
               import('./pages/flight-management/flight-management-list/flight-management-list').then(m => m.FlightManagementListComponent),
           },
           {
+            path: 'disruption/:flightNumber/:departureDate',
+            loadComponent: () => import('./pages/disruption/disruption').then(m => m.DisruptionComponent),
+          },
+          {
             path: ':inventoryId',
             loadComponent: () =>
               import('./pages/flight-management/flight-management-detail/flight-management-detail').then(m => m.FlightManagementDetailComponent),
-          },
-          {
-            path: 'disruption/:flightNumber/:departureDate',
-            loadComponent: () => import('./pages/disruption/disruption').then(m => m.DisruptionComponent),
           },
         ],
       },
