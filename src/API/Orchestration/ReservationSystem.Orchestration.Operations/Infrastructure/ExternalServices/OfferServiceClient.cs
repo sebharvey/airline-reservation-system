@@ -30,8 +30,8 @@ public sealed class OfferServiceClient
         var response = await _httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<IReadOnlyList<FlightInventoryDto>>(JsonOptions, cancellationToken);
-        return result ?? [];
+        var result = await response.Content.ReadFromJsonAsync<FlightInventoryWithPinnedDto>(JsonOptions, cancellationToken);
+        return result?.Flights ?? [];
     }
 
     public async Task<FlightInventoryDto?> GetFlightInventoryAsync(
