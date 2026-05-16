@@ -360,6 +360,11 @@ export class FlightManagementDetailComponent implements OnInit {
     const stateFlight = history.state?.flight as FlightInventoryGroup | undefined;
     if (stateFlight) this.flight.set(stateFlight);
 
+    if (stateFlight?.status === 'Cancelled') {
+      void this.#router.navigate(['/disruption', this.#flightNumber, this.#departureDate], { replaceUrl: true });
+      return;
+    }
+
     await this.#loadData();
   }
 
