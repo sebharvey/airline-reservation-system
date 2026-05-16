@@ -70,37 +70,41 @@ public sealed class EfOrderRepository : IOrderRepository
     public async Task<IReadOnlyList<Domain.Entities.Order>> GetByFlightAsync(
         string flightNumber, string departureDate, string? status = null, CancellationToken cancellationToken = default)
     {
-        var query = _context.Orders.AsNoTracking().AsQueryable();
+        FormattableString sql = string.IsNullOrEmpty(status)
+            ? $"""
+                SELECT o.*
+                FROM [order].[Order] o
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM OPENJSON(o.OrderData, '$.orderItems')
+                    WITH (
+                        flightNumber  NVARCHAR(10) '$.flightNumber',
+                        departureDate NVARCHAR(10) '$.departureDate'
+                    )
+                    WHERE flightNumber  = {flightNumber}
+                      AND departureDate = {departureDate}
+                )
+                """
+            : $"""
+                SELECT o.*
+                FROM [order].[Order] o
+                WHERE o.OrderStatus = {status}
+                  AND EXISTS (
+                    SELECT 1
+                    FROM OPENJSON(o.OrderData, '$.orderItems')
+                    WITH (
+                        flightNumber  NVARCHAR(10) '$.flightNumber',
+                        departureDate NVARCHAR(10) '$.departureDate'
+                    )
+                    WHERE flightNumber  = {flightNumber}
+                      AND departureDate = {departureDate}
+                )
+                """;
 
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(o => o.OrderStatus == status);
-
-        var allOrders = await query.ToListAsync(cancellationToken);
-
-        return allOrders.Where(o =>
-        {
-            try
-            {
-                using var doc = JsonDocument.Parse(o.OrderData);
-                if (!doc.RootElement.TryGetProperty("orderItems", out var items))
-                    return false;
-
-                foreach (var item in items.EnumerateArray())
-                {
-                    if (item.TryGetProperty("productType", out var pt) &&
-                        pt.GetString() != "FLIGHT")
-                        continue;
-
-                    var fn = item.TryGetProperty("flightNumber", out var fnProp) ? fnProp.GetString() : null;
-                    var dd = item.TryGetProperty("departureDate", out var ddProp) ? ddProp.GetString() : null;
-
-                    if (fn == flightNumber && dd == departureDate)
-                        return true;
-                }
-            }
-            catch { }
-            return false;
-        }).ToList().AsReadOnly();
+        return await _context.Orders
+            .FromSqlInterpolated(sql)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<Domain.Entities.Order>> GetRecentAsync(int limit, CancellationToken cancellationToken = default)
