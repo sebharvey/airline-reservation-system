@@ -58,6 +58,12 @@ public sealed class CabinInventoryDto
     public int SeatsHeld { get; init; }
 }
 
+public sealed class FlightInventoryWithPinnedDto
+{
+    public IReadOnlyList<FlightInventoryDto> Flights { get; init; } = [];
+    public IReadOnlyList<FlightInventoryDto> PinnedFlights { get; init; } = [];
+}
+
 /// <summary>
 /// DTO for the Offer MS POST /v1/flights/batch response.
 /// </summary>
