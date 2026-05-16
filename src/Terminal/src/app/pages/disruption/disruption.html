@@ -86,7 +86,6 @@
             <th>Booking Ref</th>
             <th>Passengers</th>
             <th>Cabin</th>
-            <th>Loyalty</th>
             <th>Booked</th>
             <th>Status</th>
             <th class="col-action"></th>
@@ -112,13 +111,6 @@
               <td>
                 <span class="cabin-badge cabin-ok">{{ row.order.cabinCode }}</span>
                 <span class="cabin-label muted">{{ cabinLabel(row.order.cabinCode) }}</span>
-              </td>
-              <td>
-                @if (row.order.loyaltyTier) {
-                  <span class="tier-badge" [class]="tierClass(row.order.loyaltyTier)">{{ row.order.loyaltyTier }}</span>
-                } @else {
-                  <span class="muted">—</span>
-                }
               </td>
               <td class="muted mono">{{ formatDate(row.order.bookingDate) }}</td>
               <td>
