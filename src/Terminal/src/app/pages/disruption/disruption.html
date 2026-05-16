@@ -88,6 +88,8 @@
             <th>Cabin</th>
             <th>Booked</th>
             <th>Status</th>
+            <th>New Flight</th>
+            <th>New Date</th>
             <th class="col-action"></th>
           </tr>
         </thead>
@@ -130,6 +132,8 @@
                   <span class="rebook-status rebook-status-failed">Failed</span>
                 }
               </td>
+              <td class="mono">{{ row.rebookResult?.replacementFlightNumber ?? '—' }}</td>
+              <td class="mono muted">{{ row.rebookResult?.replacementDepartureDate ?? '—' }}</td>
               <td class="col-action">
                 @if (row.rebookStatus === 'pending') {
                   <button class="btn-rebook" [disabled]="runningAll()" (click)="rebookOrder(row)">Rebook</button>
