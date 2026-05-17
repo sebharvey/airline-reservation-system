@@ -78,6 +78,7 @@
             <th class="pin-col"></th>
             <th>Flight</th>
             <th>Route</th>
+            <th>Date</th>
             <th>Dep / Arr</th>
             <th>Aircraft</th>
             <th>Gate</th>
@@ -90,7 +91,7 @@
           <!-- Pinned flights group -->
           @if (pinnedFlights().length > 0) {
             <tr class="group-header-row">
-              <td colspan="9">
+              <td colspan="10">
                 <div class="group-header-inner">
                   <lucide-icon name="pin" [size]="12" />
                   Pinned flights
@@ -113,9 +114,8 @@
                     {{ flight.destination }}
                   </span>
                 </td>
+                <td class="mono muted">{{ flight.departureDate }}</td>
                 <td class="mono time-cell">
-                  {{ flight.departureDate }}
-                  <span class="time-sep date-sep">·</span>
                   {{ flight.departureTime }}
                   <span class="time-sep">–</span>
                   {{ flight.arrivalTime }}
@@ -139,7 +139,7 @@
             }
             @if (flights().length > 0) {
               <tr class="group-header-row">
-                <td colspan="9">
+                <td colspan="10">
                   <div class="group-header-inner">
                     <lucide-icon name="calendar" [size]="12" />
                     {{ selectedDateDisplay() }}
@@ -166,9 +166,8 @@
                   {{ flight.destination }}
                 </span>
               </td>
+              <td class="mono muted">{{ flight.departureDate }}</td>
               <td class="mono time-cell">
-                {{ flight.departureDate }}
-                <span class="time-sep date-sep">·</span>
                 {{ flight.departureTime }}
                 <span class="time-sep">–</span>
                 {{ flight.arrivalTime }}
@@ -193,7 +192,7 @@
 
           @if (pinnedFlights().length === 0 && flights().length === 0) {
             <tr>
-              <td colspan="9" class="empty-row">No flights scheduled.</td>
+              <td colspan="10" class="empty-row">No flights scheduled.</td>
             </tr>
           }
         </tbody>
