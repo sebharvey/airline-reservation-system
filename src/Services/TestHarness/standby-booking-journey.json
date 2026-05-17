@@ -1,0 +1,435 @@
+{
+  "journey": {
+    "name": "Bookflow — standby booking (Staff fare)",
+    "description": "End-to-end standby booking journey for staff travel: create a staff user account, authenticate via the Admin API to obtain a staff JWT, search for available flights using the admin search endpoint (which surfaces the private Staff fare family with zero base fare), create a standby basket via the admin basket endpoint, add a single passenger, and confirm with tax-only payment. Validates the full standby booking flow including JWT-protected admin endpoints and Staff fare selection.",
+    "domain": "Retail / Admin",
+    "baseUrls": [
+      {
+        "id": "retail",
+        "label": "Retail API",
+        "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "admin",
+        "label": "Admin API",
+        "url": "https://reservation-system-db-api-admin-ageucwaad3axbxhm.uksouth-01.azurewebsites.net"
+      },
+      {
+        "id": "user",
+        "label": "User MS",
+        "url": "https://reservation-system-db-microservice-user-frhedyd4dcc6aya8.uksouth-01.azurewebsites.net"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "Create staff user",
+      "description": "Create a new employee user account on the User MS with runtime-generated credentials. This staff account is used to authenticate via the Admin API in the next step to obtain a JWT for the admin search and basket endpoints.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/users",
+        "baseUrlRef": "user"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "email": "__RAND_EMAIL__",
+          "password": "__RAND_PASSWORD__",
+          "firstName": "__RAND_GIVEN_NAME__",
+          "lastName": "__RAND_SURNAME__"
+        }
+      },
+      "response": {
+        "statusCode": 201
+      },
+      "expected": {
+        "statusCode": 201
+      },
+      "chainsTo": [
+        {
+          "field": "userId",
+          "usedInSteps": []
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Admin login",
+      "description": "Authenticate the staff user created in Step 1 via the Admin API. The Admin API delegates to the User MS for credential validation and JWT issuance. The returned access token is required to call the admin search and admin basket endpoints in subsequent steps.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/auth/login",
+        "baseUrlRef": "admin"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "username": "__RAND_GIVEN_NAME__.__RAND_SURNAME__",
+          "password": "__RAND_PASSWORD__"
+        },
+        "dataChain": [
+          {
+            "field": "username",
+            "source": "Step 1 → runtime-generated username"
+          },
+          {
+            "field": "password",
+            "source": "Step 1 → runtime-generated password"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "accessToken",
+            "assertion": "present",
+            "description": "A signed JWT access token must be returned."
+          },
+          {
+            "field": "tokenType",
+            "assertion": "equals",
+            "expected": "Bearer",
+            "description": "Token type must be Bearer."
+          }
+        ]
+      },
+      "chainsTo": [
+        {
+          "field": "accessToken",
+          "usedInSteps": [3, 4]
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Admin search — standby flights",
+      "description": "Search for available LHR → JFK flights via the admin search endpoint using the staff JWT from Step 2. The bookingType=Standby parameter causes the Offer MS to include private Staff fares (zero base fare, tax only) alongside the regular fare families. The sessionId and the Staff offer ID from the Economy cabin are chained to the basket creation step.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/search/slice",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        },
+        "body": {
+          "origin": "LHR",
+          "destination": "JFK",
+          "departureDate": "__TOMORROW_DATE__",
+          "paxCount": 1,
+          "bookingType": "Standby"
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 2 → response.accessToken"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "itineraries",
+            "assertion": "present",
+            "description": "At least one itinerary must be returned for the LHR → JFK route."
+          }
+        ]
+      },
+      "chainsTo": [
+        {
+          "path": "itineraries[0].segments[0].flights[0].sessionId",
+          "as": "sessionId",
+          "usedInSteps": [4]
+        },
+        {
+          "randomArrayPath": "itineraries[*].segments[*].flights[*].cabins[?cabinCode=Y].fareFamilies[?fareFamily=Staff].offer.offerId",
+          "as": "staffOfferId",
+          "usedInSteps": [4]
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "Create admin basket — standby",
+      "description": "Create a standby basket via the admin basket endpoint using the staff JWT from Step 2. The bookingType=Standby flag records the booking as a standby order in the delivery manifest. The Staff offer ID from Step 3 is used so the basket carries zero base fare. Returns a basketId for all subsequent basket operations.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/admin/basket",
+        "baseUrlRef": "retail"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        },
+        "body": {
+          "segments": [
+            {
+              "offerId": "00000000-0000-0000-0000-000000000000",
+              "sessionId": "00000000-0000-0000-0000-000000000000"
+            }
+          ],
+          "currency": "GBP",
+          "bookingType": "Standby",
+          "loyaltyNumber": null
+        },
+        "dataChain": [
+          {
+            "field": "Authorization",
+            "source": "Step 2 → response.accessToken"
+          },
+          {
+            "field": "segments[0].offerId",
+            "from": "staffOfferId",
+            "source": "Step 3 → Staff fare offer ID from Economy cabin"
+          },
+          {
+            "field": "segments[0].sessionId",
+            "from": "sessionId",
+            "source": "Step 3 → response.sessionId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201
+      },
+      "expected": {
+        "statusCode": 201,
+        "assertions": [
+          {
+            "field": "basketId",
+            "assertion": "present",
+            "description": "A basketId must be returned for all subsequent operations."
+          }
+        ]
+      },
+      "chainsTo": [
+        {
+          "field": "basketId",
+          "usedInSteps": [5, 6, 7, 8]
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "name": "Get basket summary",
+      "description": "Reprice the Staff fare offer in the basket and retrieve a pricing summary. This validates the offer against live inventory, copies tax lines into the stored offer, and sets validated = true — unblocking the confirmation step. The Staff fare should show a zero base fare with only the tax amount.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}/summary",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 4 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "flights",
+            "assertion": "present",
+            "description": "flights array must be present and non-empty."
+          },
+          {
+            "field": "flights[*].validated",
+            "assertion": "equals",
+            "expected": true,
+            "description": "Every flight in the summary must have validated = true after repricing."
+          }
+        ]
+      }
+    },
+    {
+      "step": 6,
+      "name": "Add passenger",
+      "description": "Add a single adult passenger to the standby basket. Staff travel is always a single passenger. Includes personal details and contact information required for ticketing and the delivery manifest.",
+      "type": "positive",
+      "apiCall": {
+        "method": "PUT",
+        "endpoint": "/api/v1/basket/{basketId}/passengers",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": [
+          {
+            "passengerId": "PAX-1",
+            "type": "ADT",
+            "givenName": "__RAND_GIVEN_NAME__",
+            "surname": "__RAND_SURNAME__",
+            "dob": "__RAND_DOB__",
+            "gender": "__RAND_GENDER__",
+            "loyaltyNumber": null,
+            "contacts": {
+              "email": "__RAND_EMAIL__",
+              "phone": "__RAND_PHONE__"
+            },
+            "docs": []
+          }
+        ],
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 4 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200
+      }
+    },
+    {
+      "step": 7,
+      "name": "Get basket — verify state",
+      "description": "Retrieve the basket to confirm the single passenger is saved and the basket status is Active before payment. Verifies the Staff fare family is recorded on the flight offer.",
+      "type": "positive",
+      "apiCall": {
+        "method": "GET",
+        "endpoint": "/api/v1/basket/{basketId}",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {},
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 4 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 200
+      },
+      "expected": {
+        "statusCode": 200,
+        "assertions": [
+          {
+            "field": "status",
+            "assertion": "equals",
+            "expected": "Active",
+            "description": "Basket must be Active before confirmation."
+          }
+        ]
+      }
+    },
+    {
+      "step": 8,
+      "name": "Confirm and pay — taxes only",
+      "description": "Submit payment with a Luhn-valid test card to confirm the standby basket. Because the Staff fare has a zero base fare, payment covers taxes only. The booking is created with bookingType=Standby in the delivery manifest. An orderId and bookingReference are returned on success, along with one e-ticket per passenger.",
+      "type": "positive",
+      "apiCall": {
+        "method": "POST",
+        "endpoint": "/api/v1/basket/{basketId}/confirm",
+        "baseUrlRef": "retail",
+        "pathParams": {
+          "basketId": "from-step-4"
+        }
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "channelCode": "STAFF",
+          "payment": {
+            "method": "CreditCard",
+            "cardNumber": "4111111111111111",
+            "expiryDate": "12/28",
+            "cvv": "737",
+            "cardholderName": "__RAND_GIVEN_NAME__ __RAND_SURNAME__"
+          },
+          "loyaltyPointsToRedeem": null
+        },
+        "dataChain": [
+          {
+            "field": "basketId",
+            "from": "basketId",
+            "source": "Step 4 → response.basketId"
+          }
+        ]
+      },
+      "response": {
+        "statusCode": 201
+      },
+      "expected": {
+        "statusCode": 201,
+        "assertions": [
+          {
+            "field": "orderId",
+            "assertion": "present",
+            "description": "An orderId must be returned confirming the standby order was created."
+          },
+          {
+            "field": "bookingReference",
+            "assertion": "present",
+            "description": "A bookingReference must be returned for the standby order."
+          },
+          {
+            "field": "orderItems[*].eTickets[*].eTicketNumber",
+            "assertion": "present",
+            "description": "One e-ticket must be issued for the single staff passenger."
+          }
+        ]
+      },
+      "chainsTo": [
+        {
+          "field": "orderId",
+          "as": "orderId",
+          "usedInSteps": []
+        },
+        {
+          "field": "bookingReference",
+          "as": "bookingReference",
+          "usedInSteps": []
+        }
+      ]
+    }
+  ]
+}

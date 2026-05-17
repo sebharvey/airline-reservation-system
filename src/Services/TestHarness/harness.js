@@ -13,6 +13,7 @@
         { value: 'multi-segment-oneway',        label: 'bookflow - one-way connecting DEL → LHR → JFK' },
         { value: 'multi-segment-return',        label: 'bookflow - return connecting DEL → LHR → JFK' },
         { value: 'bookflow',                    label: 'bookflow - search, basket, seats, bags & SSR' },
+        { value: 'standby-booking',             label: 'bookflow - standby booking (Staff fare)' },
         { value: 'loyalty',                     label: 'loyalty - registration, points & profile' },
         { value: 'oci-1-pax-inbound',           label: 'OCI - 1 pax inbound check-in' },
         { value: 'oci-1-pax-outbound',          label: 'OCI - 1 pax outbound check-in' },
