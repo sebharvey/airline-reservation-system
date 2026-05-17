@@ -250,7 +250,6 @@ export class FlightManagementDetailComponent implements OnInit {
   acSwapError = signal('');
   acSwapRegInput = signal('');
   acSwapSeatsProcessing = signal(false);
-  needsReassignment = signal(new Set<string>());
 
   startAircraftSwap(): void {
     this.closeDisruptionModal();
@@ -326,7 +325,6 @@ export class FlightManagementDetailComponent implements OnInit {
               e.cabinCode,
             ))
           );
-          this.needsReassignment.set(new Set(entriesToRelease.map(e => e.eTicketNumber)));
           await this.#silentRefresh();
         } finally {
           this.acSwapSeatsProcessing.set(false);
@@ -408,7 +406,6 @@ export class FlightManagementDetailComponent implements OnInit {
     this.selectedEntry.set(null);
     this.pendingSeat.set(null);
     this.seatOpError.set('');
-    this.needsReassignment.set(new Set());
     await this.#loadData();
   }
 
