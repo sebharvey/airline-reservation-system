@@ -1,12 +1,6 @@
 namespace ReservationSystem.Simulator.Models;
 
-// ── Admin API login ────────────────────────────────────────────────────────────
-
-public sealed record AdminLoginRequest(string Username, string Password);
-
-public sealed record AdminLoginResponse(string AccessToken, string UserId, string ExpiresAt, string TokenType);
-
-// ── Retail API admin inventory ─────────────────────────────────────────────────
+// ── Retail API admin inventory ────────────────────────────────────────────────────
 
 public sealed record FlightInventoryItem(
     Guid InventoryId,
@@ -23,11 +17,11 @@ public sealed record FlightInventoryResponse(
     List<FlightInventoryItem> Flights,
     List<FlightInventoryItem> PinnedFlights);
 
-// ── Operations API operational data update ─────────────────────────────────────
+// ── Operations API operational data update ─────────────────────────────────────────
 
 public sealed record SetFlightOperationalDataRequest(string? DepartureGate, string? AircraftRegistration);
 
-// ── Retail API admin manifest ──────────────────────────────────────────────────
+// ── Retail API admin manifest ──────────────────────────────────────────────────────
 
 public sealed record FlightManifestResponse(List<ManifestEntry> Entries);
 
@@ -40,7 +34,7 @@ public sealed record ManifestEntry(
     string ETicketNumber,
     bool CheckedIn);
 
-// ── Operations API admin check-in ─────────────────────────────────────────────
+// ── Operations API admin check-in ─────────────────────────────────────────────────
 
 public sealed record AdminCheckInRequest(
     string DepartureAirport,
