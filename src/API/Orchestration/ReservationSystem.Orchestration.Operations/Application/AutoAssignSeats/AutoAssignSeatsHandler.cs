@@ -57,10 +57,18 @@ public sealed class AutoAssignSeatsHandler
         // Compute seat assignments (pure logic, no I/O)
         var planned = PlanAssignments(unassigned, availablePerCabin);
 
-        // Persist each assignment
+        // Persist each assignment; null SeatNumber means no cabin had space
         var results = new List<SeatAssignmentOutcome>(planned.Count);
         foreach (var plan in planned)
         {
+            if (plan.SeatNumber is null)
+            {
+                results.Add(new SeatAssignmentOutcome(
+                    plan.BookingReference, plan.ETicketNumber, null, "Failed",
+                    plan.FailureReason ?? "No seats available in any cabin"));
+                continue;
+            }
+
             try
             {
                 var updated = await _deliveryService.UpdateManifestSeatAsync(
@@ -99,12 +107,22 @@ public sealed class AutoAssignSeatsHandler
                         plan.BookingReference, plan.ETicketNumber);
                 }
 
+                if (plan.AllocatedCabin is not null &&
+                    !string.Equals(plan.AllocatedCabin, plan.BookedCabin, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation(
+                        "AutoAssign: seat {Seat} ({AllocatedCabin}) assigned to e-ticket {ETicket} on booking {BookingRef} — overflow from booked cabin {BookedCabin}",
+                        plan.SeatNumber, plan.AllocatedCabin, plan.ETicketNumber, plan.BookingReference, plan.BookedCabin);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "AutoAssign: seat {Seat} assigned to e-ticket {ETicket} on booking {BookingRef}",
+                        plan.SeatNumber, plan.ETicketNumber, plan.BookingReference);
+                }
+
                 results.Add(new SeatAssignmentOutcome(
                     plan.BookingReference, plan.ETicketNumber, plan.SeatNumber, "Assigned", null));
-
-                _logger.LogInformation(
-                    "AutoAssign: seat {Seat} assigned to e-ticket {ETicket} on booking {BookingRef}",
-                    plan.SeatNumber, plan.ETicketNumber, plan.BookingReference);
             }
             catch (Exception ex)
             {
@@ -147,85 +165,149 @@ public sealed class AutoAssignSeatsHandler
 
     // ── Seat assignment algorithm ────────────────────────────────────────────
 
+    // Cabin downgrade order: when a cabin is full, try the next cabin down the chain.
+    // Higher-value cabins are processed first so they get first pick of overflow space.
+    private static readonly string[] CabinDowngradeChain = ["F", "J", "W", "Y"];
+
     private static List<PlannedAssignment> PlanAssignments(
         IReadOnlyList<ManifestEntryDto> unassigned,
         Dictionary<string, List<SeatSlot>> availablePerCabin)
     {
         var assignments = new List<PlannedAssignment>();
         var rng = new Random();
+        var usedSeats = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Process each cabin independently
-        foreach (var cabinGroup in unassigned.GroupBy(p => p.CabinCode, StringComparer.OrdinalIgnoreCase))
+        // Index available seats by cabin → row for efficient lookup
+        var cabinSeatRows = availablePerCabin.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value
+                .GroupBy(s => s.RowNumber)
+                .ToDictionary(g => g.Key, g => g.ToList()),
+            StringComparer.OrdinalIgnoreCase);
+
+        // Process cabins in priority order so higher-value pax get first pick of overflow space
+        foreach (var primaryCabin in CabinDowngradeChain)
         {
-            var cabinCode = cabinGroup.Key;
-            if (!availablePerCabin.TryGetValue(cabinCode, out var availableSeats) || availableSeats.Count == 0)
-                continue;
+            var cabinPassengers = unassigned
+                .Where(p => string.Equals(p.CabinCode, primaryCabin, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (cabinPassengers.Count == 0) continue;
 
-            // Shuffle booking groups so distribution is random
-            var bookingGroups = cabinGroup
+            // Shuffle booking groups for random distribution within the cabin
+            var bookingGroups = cabinPassengers
                 .GroupBy(p => p.BookingReference, StringComparer.OrdinalIgnoreCase)
                 .OrderBy(_ => rng.Next())
                 .ToList();
 
-            // Index available seats by row and shuffle row order
-            var seatsByRow = availableSeats
-                .GroupBy(s => s.RowNumber)
-                .ToDictionary(g => g.Key, g => g.ToList());
-            var shuffledRows = seatsByRow.Keys.OrderBy(_ => rng.Next()).ToList();
+            // Passengers who couldn't be seated in their primary cabin
+            var overflowPassengers = new List<ManifestEntryDto>();
 
-            var usedSeats = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var group in bookingGroups)
+            foreach (var bookingGroup in bookingGroups)
             {
-                var paxList   = group.ToList();
-                var groupSize = paxList.Count;
-                var placed    = false;
+                var unseated = AllocateFromCabin(
+                    bookingGroup.ToList(), primaryCabin, primaryCabin, cabinSeatRows, usedSeats, assignments, rng);
+                overflowPassengers.AddRange(unseated);
+            }
 
-                if (groupSize > 1)
+            if (overflowPassengers.Count == 0) continue;
+
+            // Try overflow cabins in downgrade order, keeping booking groups together where possible
+            var primaryCabinIdx = Array.IndexOf(CabinDowngradeChain, primaryCabin);
+
+            var overflowGroups = overflowPassengers
+                .GroupBy(p => p.BookingReference, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(_ => rng.Next())
+                .ToList();
+
+            foreach (var overflowGroup in overflowGroups)
+            {
+                var remaining = overflowGroup.ToList();
+
+                for (var i = primaryCabinIdx + 1; i < CabinDowngradeChain.Length && remaining.Count > 0; i++)
                 {
-                    // Try to seat the whole booking in one row
-                    foreach (var rowNum in shuffledRows)
-                    {
-                        var freeInRow = seatsByRow[rowNum]
-                            .Where(s => !usedSeats.Contains(s.SeatNumber))
-                            .ToList();
-
-                        if (freeInRow.Count >= groupSize)
-                        {
-                            for (var i = 0; i < groupSize; i++)
-                            {
-                                var seat = freeInRow[i];
-                                var pax  = paxList[i];
-                                assignments.Add(new PlannedAssignment(
-                                    pax.BookingReference, pax.ETicketNumber, pax.PassengerId, seat.SeatNumber));
-                                usedSeats.Add(seat.SeatNumber);
-                            }
-                            placed = true;
-                            break;
-                        }
-                    }
+                    var overflowCabin = CabinDowngradeChain[i];
+                    remaining = AllocateFromCabin(
+                        remaining, primaryCabin, overflowCabin, cabinSeatRows, usedSeats, assignments, rng);
                 }
 
-                if (placed) continue;
-
-                // Fallback: assign each pax individually to the next free seat
-                // Iterate seats in shuffled row order so pax are still spread randomly
-                var remaining = shuffledRows
-                    .SelectMany(r => seatsByRow[r].Where(s => !usedSeats.Contains(s.SeatNumber)))
-                    .GetEnumerator();
-
-                foreach (var pax in paxList)
+                // Any still-remaining passengers could not be seated in any cabin
+                foreach (var pax in remaining)
                 {
-                    if (!remaining.MoveNext()) break;
-                    var seat = remaining.Current;
                     assignments.Add(new PlannedAssignment(
-                        pax.BookingReference, pax.ETicketNumber, pax.PassengerId, seat.SeatNumber));
-                    usedSeats.Add(seat.SeatNumber);
+                        pax.BookingReference, pax.ETicketNumber, pax.PassengerId,
+                        SeatNumber: null, BookedCabin: primaryCabin, AllocatedCabin: null,
+                        FailureReason: "No seats available in any cabin"));
                 }
             }
         }
 
         return assignments;
+    }
+
+    /// <summary>
+    /// Attempts to allocate seats from <paramref name="targetCabin"/> for the supplied passenger list.
+    /// Prefers seating the whole group in one row; falls back to individual seats.
+    /// Returns passengers that could not be seated (cabin exhausted).
+    /// </summary>
+    private static List<ManifestEntryDto> AllocateFromCabin(
+        List<ManifestEntryDto> paxList,
+        string bookedCabin,
+        string targetCabin,
+        Dictionary<string, Dictionary<int, List<SeatSlot>>> cabinSeatRows,
+        HashSet<string> usedSeats,
+        List<PlannedAssignment> assignments,
+        Random rng)
+    {
+        if (!cabinSeatRows.TryGetValue(targetCabin, out var rows) || rows.Count == 0)
+            return paxList; // No seats at all in this cabin
+
+        var groupSize    = paxList.Count;
+        var shuffledRows = rows.Keys.OrderBy(_ => rng.Next()).ToList();
+
+        // Try to seat the whole group in one row
+        if (groupSize > 1)
+        {
+            foreach (var rowNum in shuffledRows)
+            {
+                var freeInRow = rows[rowNum]
+                    .Where(s => !usedSeats.Contains(s.SeatNumber))
+                    .ToList();
+
+                if (freeInRow.Count >= groupSize)
+                {
+                    for (var i = 0; i < groupSize; i++)
+                    {
+                        assignments.Add(new PlannedAssignment(
+                            paxList[i].BookingReference, paxList[i].ETicketNumber, paxList[i].PassengerId,
+                            SeatNumber: freeInRow[i].SeatNumber, BookedCabin: bookedCabin, AllocatedCabin: targetCabin));
+                        usedSeats.Add(freeInRow[i].SeatNumber);
+                    }
+                    return []; // All placed
+                }
+            }
+        }
+
+        // Fallback: individual seats across rows in shuffled order
+        var unseated      = new List<ManifestEntryDto>();
+        var seatEnumerator = shuffledRows
+            .SelectMany(r => rows[r].Where(s => !usedSeats.Contains(s.SeatNumber)))
+            .GetEnumerator();
+
+        foreach (var pax in paxList)
+        {
+            if (!seatEnumerator.MoveNext())
+            {
+                unseated.Add(pax);
+                continue;
+            }
+            var seat = seatEnumerator.Current;
+            assignments.Add(new PlannedAssignment(
+                pax.BookingReference, pax.ETicketNumber, pax.PassengerId,
+                SeatNumber: seat.SeatNumber, BookedCabin: bookedCabin, AllocatedCabin: targetCabin));
+            usedSeats.Add(seat.SeatNumber);
+        }
+
+        return unseated;
     }
 
     // ── Internal value types ─────────────────────────────────────────────────
@@ -236,7 +318,10 @@ public sealed class AutoAssignSeatsHandler
         string BookingReference,
         string ETicketNumber,
         int PassengerId,
-        string SeatNumber);
+        string? SeatNumber,
+        string? BookedCabin = null,
+        string? AllocatedCabin = null,
+        string? FailureReason = null);
 }
 
 // ── Public result types ──────────────────────────────────────────────────────
