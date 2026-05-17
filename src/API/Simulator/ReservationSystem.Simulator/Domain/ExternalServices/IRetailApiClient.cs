@@ -29,4 +29,8 @@ public interface IRetailApiClient
     Task AddProductsAsync(string basketId, List<ProductSelection> products, CancellationToken ct = default);
 
     Task<ConfirmBasketResponse> ConfirmBasketAsync(string basketId, ConfirmBasketRequest request, CancellationToken ct = default);
+
+    Task<SearchSliceResponse> AdminSearchSliceAsync(SearchSliceRequest request, string bearerToken, CancellationToken ct = default);
+
+    Task<CreateBasketResponse> AdminCreateBasketAsync(CreateBasketRequest request, string bearerToken, CancellationToken ct = default);
 }

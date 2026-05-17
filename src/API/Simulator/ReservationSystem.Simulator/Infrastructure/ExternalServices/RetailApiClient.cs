@@ -122,4 +122,30 @@ internal sealed class RetailApiClient : IRetailApiClient
         var result = await response.Content.ReadFromJsonAsync<ConfirmBasketResponse>(JsonOptions, ct);
         return result ?? throw new InvalidOperationException("Empty response from Retail API confirm basket.");
     }
+
+    public async Task<SearchSliceResponse> AdminSearchSliceAsync(SearchSliceRequest request, string bearerToken, CancellationToken ct = default)
+    {
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/search/slice");
+        httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
+        httpRequest.Content = JsonContent.Create(request, options: JsonOptions);
+
+        var response = await _httpClient.SendAsync(httpRequest, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<SearchSliceResponse>(JsonOptions, ct);
+        return result ?? throw new InvalidOperationException("Empty response from Retail API admin search/slice.");
+    }
+
+    public async Task<CreateBasketResponse> AdminCreateBasketAsync(CreateBasketRequest request, string bearerToken, CancellationToken ct = default)
+    {
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/basket");
+        httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
+        httpRequest.Content = JsonContent.Create(request, options: JsonOptions);
+
+        var response = await _httpClient.SendAsync(httpRequest, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<CreateBasketResponse>(JsonOptions, ct);
+        return result ?? throw new InvalidOperationException("Empty response from Retail API admin basket.");
+    }
 }
