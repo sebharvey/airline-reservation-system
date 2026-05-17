@@ -6,16 +6,18 @@ using ReservationSystem.Simulator.Models;
 namespace ReservationSystem.Simulator.Application.StandbyBookingSimulator;
 
 /// <summary>
-/// Creates 1–3 standby bookings per run using the Staff fare family (zero base fare, tax only).
-/// Staff travel is always a single passenger booked in Economy (Y) on a direct route.
-/// Standby orders are placed via the admin search and basket endpoints, which surface the
-/// private Staff fare that is hidden from the public retail channel.
+/// On each run there is a 1-in-5 chance of creating a single standby booking using the
+/// Staff fare family (zero base fare, tax only). Staff travel is always a single passenger
+/// booked in Economy (Y) on a direct route. Standby orders are placed via the admin search
+/// and basket endpoints, which surface the private Staff fare hidden from the public channel.
 /// Intended to be invoked alongside the main simulator every 40 minutes.
+/// Over a flight's 48-hour selling window (~72 runs) this produces roughly 1–2 standby
+/// bookings per flight across the route network.
 /// </summary>
 public sealed class StandbyBookingSimulatorHandler
 {
-    private const int MinStandbyOrders = 1;
-    private const int MaxStandbyOrders = 3;
+    /// <summary>Inverse probability: 1 in N chance of a standby booking each run.</summary>
+    private const int StandbyChanceOneIn = 5;
 
     private static readonly (string Origin, string Destination, int Weight)[] Routes =
     [
@@ -54,50 +56,34 @@ public sealed class StandbyBookingSimulatorHandler
 
     public async Task HandleAsync(CancellationToken ct = default)
     {
-        var orderCount = Random.Shared.Next(MinStandbyOrders, MaxStandbyOrders + 1);
-        var created    = 0;
-
-        _logger.LogInformation("StandbySimulator: starting run — targeting {Count} standby orders", orderCount);
-
-        string? bearerToken = null;
-
-        for (var i = 0; i < orderCount; i++)
+        if (Random.Shared.Next(StandbyChanceOneIn) != 0)
         {
-            try
-            {
-                // Obtain (or reuse) a staff JWT for the admin endpoints.
-                bearerToken ??= await _adminApiClient.LoginAsync(ct);
-
-                var result = await CreateStandbyOrderAsync(bearerToken, ct);
-
-                if (result is null)
-                {
-                    _logger.LogDebug(
-                        "StandbySimulator: order {Index}/{Total} skipped — no suitable standby flight found",
-                        i + 1, orderCount);
-                    continue;
-                }
-
-                var (orderId, bookingRef, route) = result.Value;
-                created++;
-                _logger.LogInformation(
-                    "StandbySimulator: order {Index}/{Total} created — orderId={OrderId} ref={BookingRef} route={Route}",
-                    i + 1, orderCount, orderId, bookingRef, route);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "StandbySimulator: order {Index}/{Total} failed — skipping to next",
-                    i + 1, orderCount);
-
-                // Reset the token on auth failures so the next iteration re-authenticates.
-                bearerToken = null;
-            }
+            _logger.LogDebug("StandbySimulator: skipped this run (1-in-{Chance} chance)", StandbyChanceOneIn);
+            return;
         }
 
-        _logger.LogInformation(
-            "StandbySimulator: run complete — {Created}/{Total} standby orders created",
-            created, orderCount);
+        _logger.LogInformation("StandbySimulator: creating one standby booking this run");
+
+        try
+        {
+            var bearerToken = await _adminApiClient.LoginAsync(ct);
+            var result      = await CreateStandbyOrderAsync(bearerToken, ct);
+
+            if (result is null)
+            {
+                _logger.LogDebug("StandbySimulator: skipped — no suitable standby flight found");
+                return;
+            }
+
+            var (orderId, bookingRef, route) = result.Value;
+            _logger.LogInformation(
+                "StandbySimulator: standby order created — orderId={OrderId} ref={BookingRef} route={Route}",
+                orderId, bookingRef, route);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "StandbySimulator: standby booking failed — skipping");
+        }
     }
 
     private async Task<(string OrderId, string BookingRef, string Route)?> CreateStandbyOrderAsync(
