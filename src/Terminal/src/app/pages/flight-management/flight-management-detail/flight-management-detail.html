@@ -101,7 +101,7 @@
             <div class="fc-stat-sep"></div>
             @for (cabin of cabinStats(); track cabin.code) {
               <div class="fc-stat-cell">
-                <span class="fc-stat-value">{{ cabin.seatsAvailable }}<span class="fc-stat-denom">/{{ cabin.totalSeats }}</span></span>
+                <span class="fc-stat-value">{{ cabin.seatsSold }}<span class="fc-stat-denom">/{{ cabin.totalSeats }}</span></span>
                 <span class="fc-stat-label"><span class="cabin-code-badge cabin-{{ cabin.code.toLowerCase() }}">{{ cabin.code }}</span></span>
               </div>
             }
