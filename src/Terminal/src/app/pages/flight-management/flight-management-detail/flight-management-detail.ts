@@ -375,12 +375,17 @@ export class FlightManagementDetailComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     try {
-      const [manifest, seatmap] = await Promise.all([
+      const [manifest, seatmap, inventoryOrders] = await Promise.all([
         this.#inventoryService.getFlightManifest(this.#flightNumber, this.#departureDate),
         this.#inventoryService.getFlightSeatmap(this.#inventoryId, this.#flightNumber, this.#aircraftType),
+        this.#inventoryService.getInventoryOrders(this.#inventoryId),
       ]);
       this.manifest.set(manifest);
       this.seatmap.set(seatmap);
+      if (inventoryOrders.cabins) {
+        const cabins = inventoryOrders.cabins;
+        this.flight.update(f => f ? { ...f, f: cabins.f, j: cabins.j, w: cabins.w, y: cabins.y } : f);
+      }
     } catch {
       this.error.set('Failed to load passengers or seatmap. Please try again.');
     } finally {
@@ -388,15 +393,20 @@ export class FlightManagementDetailComponent implements OnInit {
     }
   }
 
-  // Refreshes manifest + seatmap without hiding the UI (used after seat ops)
+  // Refreshes manifest + seatmap + cabin counts without hiding the UI (used after seat ops)
   async #silentRefresh(): Promise<void> {
     try {
-      const [manifest, seatmap] = await Promise.all([
+      const [manifest, seatmap, inventoryOrders] = await Promise.all([
         this.#inventoryService.getFlightManifest(this.#flightNumber, this.#departureDate),
         this.#inventoryService.getFlightSeatmap(this.#inventoryId, this.#flightNumber, this.#aircraftType),
+        this.#inventoryService.getInventoryOrders(this.#inventoryId),
       ]);
       this.manifest.set(manifest);
       this.seatmap.set(seatmap);
+      if (inventoryOrders.cabins) {
+        const cabins = inventoryOrders.cabins;
+        this.flight.update(f => f ? { ...f, f: cabins.f, j: cabins.j, w: cabins.w, y: cabins.y } : f);
+      }
     } catch {
       this.seatOpError.set('Data refresh failed — displayed data may be stale.');
     }
