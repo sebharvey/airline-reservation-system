@@ -291,6 +291,7 @@ export class FlightManagementDetailComponent implements OnInit {
       ]);
 
       // Update the flight type and seatmap immediately, close modal, clear seat selection
+      this.#aircraftType = newType;
       this.flight.update(f => f ? { ...f, aircraftType: newType } : f);
       this.seatmap.set(newSeatmap);
       this.selectedEntry.set(null);

@@ -362,7 +362,8 @@ public sealed class SqlOfferRepository : IOfferRepository
             SET    Cabins          = @Cabins,
                    TotalSeats      = @TotalSeats,
                    SeatsAvailable  = @SeatsAvailable,
-                   Status          = @Status
+                   Status          = @Status,
+                   AircraftType    = @AircraftType
             WHERE  InventoryId = @InventoryId;
             """;
 
@@ -375,7 +376,8 @@ public sealed class SqlOfferRepository : IOfferRepository
                 Cabins = SerializeCabins(inventory),
                 inventory.TotalSeats,
                 inventory.SeatsAvailable,
-                inventory.Status
+                inventory.Status,
+                inventory.AircraftType
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
         if (rowsAffected == 0)
