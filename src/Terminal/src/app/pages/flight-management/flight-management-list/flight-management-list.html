@@ -167,6 +167,8 @@
                 </span>
               </td>
               <td class="mono time-cell">
+                {{ flight.departureDate }}
+                <span class="time-sep date-sep">·</span>
                 {{ flight.departureTime }}
                 <span class="time-sep">–</span>
                 {{ flight.arrivalTime }}
@@ -262,6 +264,8 @@
             </button>
           </div>
           <div class="fc-times mono muted">
+            <span class="fc-date">{{ flight.departureDate }}</span>
+            <span class="time-sep"> · </span>
             {{ flight.departureTime }}<span class="time-sep"> – </span>{{ flight.arrivalTime }}
             @if (flight.arrivalDayOffset > 0) {
               <sup class="day-offset">+{{ flight.arrivalDayOffset }}</sup>
