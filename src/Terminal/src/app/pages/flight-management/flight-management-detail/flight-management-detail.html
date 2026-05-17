@@ -1,54 +1,122 @@
 <div class="fd-detail-page fade-in">
 
-  <!-- Page header -->
+  <!-- Page header bar -->
   <div class="detail-header">
     <button class="back-btn" (click)="goBack()">
       <span class="back-arrow">←</span> Back
     </button>
-
-    @if (flight()) {
-      <div class="detail-title-group">
-        <span class="detail-flight mono">{{ flight()!.flightNumber }}</span>
-        <span class="detail-route">
-          {{ flight()!.origin }}
-          <span class="route-arrow">→</span>
-          {{ flight()!.destination }}
-        </span>
-        <span class="detail-aircraft mono muted">{{ flight()!.aircraftType }}</span>
-        <span class="detail-time mono muted">
-          {{ flight()!.departureTime }} – {{ flight()!.arrivalTime }}
-        </span>
-        <span class="badge" [class]="statusClass(flight()!.status)">{{ flight()!.status }}</span>
-        <div class="operational-data-btns">
-          <button class="op-data-btn" (click)="openGateModal()">
-            <lucide-icon name="door-open" [size]="13" />
-            @if (flight()!.departureGate) {
-              Gate {{ flight()!.departureGate }}
-            } @else {
-              Set Gate
-            }
-          </button>
-          <button class="op-data-btn" (click)="openRegModal()">
-            <lucide-icon name="plane" [size]="13" />
-            @if (flight()!.aircraftRegistration) {
-              {{ flight()!.aircraftRegistration }}
-            } @else {
-              Set Reg
-            }
-          </button>
-          <button class="op-data-btn op-data-btn-disruption" (click)="openDisruptionModal()">
-            <lucide-icon name="triangle-alert" [size]="13" />
-            Disruption
-          </button>
-        </div>
-      </div>
-    }
-
     <button class="refresh-btn" [class.refresh-btn-spinning]="loading()" [disabled]="loading()" (click)="refresh()" title="Reload flight data">
       <lucide-icon name="rotate-ccw" [size]="14" />
       Refresh
     </button>
   </div>
+
+  <!-- Flight info card -->
+  @if (flight()) {
+    <div class="flight-card">
+
+      <!-- Row 1: Flight identity -->
+      <div class="flight-card-row flight-card-identity">
+        <div class="fc-cell">
+          <span class="fc-label">Flight</span>
+          <span class="fc-value fc-flight-num mono">{{ flight()!.flightNumber }}</span>
+        </div>
+        <div class="fc-cell fc-cell-route">
+          <span class="fc-label">Route</span>
+          <span class="fc-value">
+            <span class="fc-iata mono">{{ flight()!.origin }}</span>
+            <span class="fc-arrow">→</span>
+            <span class="fc-iata mono">{{ flight()!.destination }}</span>
+          </span>
+        </div>
+        <div class="fc-cell">
+          <span class="fc-label">Aircraft</span>
+          <span class="fc-value mono">{{ flight()!.aircraftType }}</span>
+        </div>
+        <div class="fc-cell">
+          <span class="fc-label">Times</span>
+          <span class="fc-value mono">{{ flight()!.departureTime }} – {{ flight()!.arrivalTime }}</span>
+        </div>
+        <div class="fc-cell fc-cell-status">
+          <span class="fc-label">Status</span>
+          <span class="badge" [class]="statusClass(flight()!.status)">{{ flight()!.status }}</span>
+        </div>
+      </div>
+
+      <!-- Row 2: Operational data -->
+      <div class="flight-card-row flight-card-ops">
+        <div class="fc-cell">
+          <span class="fc-label">Departure gate</span>
+          <button class="fc-op-btn" (click)="openGateModal()">
+            <lucide-icon name="door-open" [size]="13" />
+            @if (flight()!.departureGate) {
+              Gate {{ flight()!.departureGate }}
+            } @else {
+              <span class="fc-op-unset">Set gate</span>
+            }
+          </button>
+        </div>
+        <div class="fc-cell">
+          <span class="fc-label">Registration</span>
+          <button class="fc-op-btn" (click)="openRegModal()">
+            <lucide-icon name="plane" [size]="13" />
+            @if (flight()!.aircraftRegistration) {
+              {{ flight()!.aircraftRegistration }}
+            } @else {
+              <span class="fc-op-unset">Set registration</span>
+            }
+          </button>
+        </div>
+        <div class="fc-cell fc-cell-grow">
+          <span class="fc-label">Actions</span>
+          <button class="fc-op-btn fc-op-btn-disruption" (click)="openDisruptionModal()">
+            <lucide-icon name="triangle-alert" [size]="13" />
+            Disruption
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 3: Passenger stats -->
+      @if (!loading() && !error()) {
+        <div class="flight-card-row flight-card-stats">
+          @if (manifestStats()) {
+            <div class="fc-stat-cell">
+              <span class="fc-stat-value">{{ manifestStats()!.total }}</span>
+              <span class="fc-stat-label">Total Pax</span>
+            </div>
+            <div class="fc-stat-cell">
+              <span class="fc-stat-value fc-stat-ci">{{ manifestStats()!.checkedIn }}</span>
+              <span class="fc-stat-label">Checked In</span>
+            </div>
+            <div class="fc-stat-cell">
+              <span class="fc-stat-value fc-stat-confirmed">{{ manifestStats()!.confirmed }}</span>
+              <span class="fc-stat-label">Confirmed</span>
+            </div>
+            <div class="fc-stat-cell">
+              <span class="fc-stat-value fc-stat-standby">{{ manifestStats()!.standby }}</span>
+              <span class="fc-stat-label">Standby</span>
+            </div>
+          }
+          @if (cabinStats().length > 0) {
+            <div class="fc-stat-sep"></div>
+            @for (cabin of cabinStats(); track cabin.code) {
+              <div class="fc-stat-cell">
+                <span class="fc-stat-value">{{ cabin.seatsAvailable }}<span class="fc-stat-denom">/{{ cabin.totalSeats }}</span></span>
+                <span class="fc-stat-label"><span class="cabin-code-badge cabin-{{ cabin.code.toLowerCase() }}">{{ cabin.code }}</span></span>
+              </div>
+            }
+            @if (flight()) {
+              <div class="fc-stat-cell">
+                <span class="fc-stat-value">{{ flight()!.totalSeats }}</span>
+                <span class="fc-stat-label">Capacity</span>
+              </div>
+            }
+          }
+        </div>
+      }
+
+    </div>
+  }
 
   <!-- Error -->
   @if (error()) {
@@ -65,44 +133,6 @@
     </div>
   }
 
-  <!-- Stats bar -->
-  @if (!loading() && !error()) {
-    <div class="departure-stats">
-      @if (manifestStats()) {
-        <div class="stat-chip">
-          <span class="stat-value">{{ manifestStats()!.total }}</span>
-          <span class="stat-label">Total Pax</span>
-        </div>
-        <div class="stat-chip">
-          <span class="stat-value stat-ci">{{ manifestStats()!.checkedIn }}</span>
-          <span class="stat-label">Checked In</span>
-        </div>
-        <div class="stat-chip">
-          <span class="stat-value stat-confirmed">{{ manifestStats()!.confirmed }}</span>
-          <span class="stat-label">Confirmed</span>
-        </div>
-        <div class="stat-chip">
-          <span class="stat-value stat-standby">{{ manifestStats()!.standby }}</span>
-          <span class="stat-label">Standby</span>
-        </div>
-      }
-      @if (cabinStats().length > 0) {
-        <span class="stat-divider"></span>
-        @for (cabin of cabinStats(); track cabin.code) {
-          <div class="stat-chip">
-            <span class="stat-value">{{ cabin.seatsAvailable }}<span class="stat-denom">/{{ cabin.totalSeats }}</span></span>
-            <span class="stat-label"><span class="cabin-code-badge cabin-{{ cabin.code.toLowerCase() }}">{{ cabin.code }}</span></span>
-          </div>
-        }
-        @if (flight()) {
-          <div class="stat-chip">
-            <span class="stat-value">{{ flight()!.totalSeats }}</span>
-            <span class="stat-label">Capacity</span>
-          </div>
-        }
-      }
-    </div>
-  }
 
   <!-- Details: pax list + seatmap -->
   @if (!loading() && !error()) {
