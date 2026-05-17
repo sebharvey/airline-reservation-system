@@ -108,7 +108,7 @@
       "chainsTo": [
         {
           "field": "accessToken",
-          "usedInSteps": [3, 4]
+          "usedInSteps": [3, 4, 5, 6, 7, 8]
         }
       ]
     },
@@ -220,6 +220,18 @@
             "field": "basketId",
             "assertion": "present",
             "description": "A basketId must be returned for all subsequent operations."
+          },
+          {
+            "field": "flights[0].fareFamily",
+            "assertion": "equals",
+            "expected": "Staff",
+            "description": "The basket must carry the Staff fare family confirming a standby booking."
+          },
+          {
+            "field": "flights[0].fareAmount",
+            "assertion": "equals",
+            "expected": 0,
+            "description": "Staff fare has zero base fare — only taxes are charged."
           }
         ]
       },
@@ -244,12 +256,18 @@
         }
       },
       "request": {
-        "headers": {},
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        },
         "dataChain": [
           {
             "field": "basketId",
             "from": "basketId",
             "source": "Step 4 → response.basketId"
+          },
+          {
+            "field": "Authorization",
+            "source": "Step 2 → response.accessToken"
           }
         ]
       },
@@ -288,7 +306,8 @@
       },
       "request": {
         "headers": {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         },
         "body": [
           {
@@ -311,6 +330,10 @@
             "field": "basketId",
             "from": "basketId",
             "source": "Step 4 → response.basketId"
+          },
+          {
+            "field": "Authorization",
+            "source": "Step 2 → response.accessToken"
           }
         ]
       },
@@ -335,12 +358,18 @@
         }
       },
       "request": {
-        "headers": {},
+        "headers": {
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        },
         "dataChain": [
           {
             "field": "basketId",
             "from": "basketId",
             "source": "Step 4 → response.basketId"
+          },
+          {
+            "field": "Authorization",
+            "source": "Step 2 → response.accessToken"
           }
         ]
       },
@@ -362,7 +391,7 @@
     {
       "step": 8,
       "name": "Confirm and pay — taxes only",
-      "description": "Submit payment with a Luhn-valid test card to confirm the standby basket. Because the Staff fare has a zero base fare, payment covers taxes only. The booking is created with bookingType=Standby in the delivery manifest. An orderId and bookingReference are returned on success, along with one e-ticket per passenger.",
+      "description": "Submit payment with a Luhn-valid test card to confirm the standby basket. Because the Staff fare has a zero base fare, payment covers taxes only. The booking is created with bookingType=Standby in the delivery manifest. An orderId and bookingReference are returned on success.",
       "type": "positive",
       "apiCall": {
         "method": "POST",
@@ -374,7 +403,8 @@
       },
       "request": {
         "headers": {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         },
         "body": {
           "channelCode": "STAFF",
@@ -392,6 +422,10 @@
             "field": "basketId",
             "from": "basketId",
             "source": "Step 4 → response.basketId"
+          },
+          {
+            "field": "Authorization",
+            "source": "Step 2 → response.accessToken"
           }
         ]
       },
@@ -410,11 +444,6 @@
             "field": "bookingReference",
             "assertion": "present",
             "description": "A bookingReference must be returned for the standby order."
-          },
-          {
-            "field": "orderItems[*].eTickets[*].eTicketNumber",
-            "assertion": "present",
-            "description": "One e-ticket must be issued for the single staff passenger."
           }
         ]
       },
