@@ -3,4 +3,5 @@ namespace ReservationSystem.Microservices.Offer.Application.UpdateInventoryAircr
 public sealed record UpdateInventoryAircraftTypeCommand(
     string FlightNumber,
     string DepartureDate,
-    string NewAircraftType);
+    string NewAircraftType,
+    string? NewAircraftRegistration);

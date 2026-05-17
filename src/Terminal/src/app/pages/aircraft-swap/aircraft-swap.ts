@@ -146,7 +146,7 @@ export class AircraftSwapComponent implements OnInit {
 
       // Attempt to update the aircraft type on the inventory record; non-blocking
       try {
-        await this.#inventoryService.changeAircraftType(f.flightNumber, f.departureDate, newType);
+        await this.#inventoryService.changeAircraftType(f.flightNumber, f.departureDate, newType, null);
       } catch {
         this.typeUpdateFailed.set(true);
       }

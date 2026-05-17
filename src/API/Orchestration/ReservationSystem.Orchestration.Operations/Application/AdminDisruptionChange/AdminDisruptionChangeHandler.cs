@@ -20,6 +20,7 @@ public sealed class AdminDisruptionChangeHandler
             command.FlightNumber,
             command.DepartureDate,
             command.NewAircraftType,
+            command.NewAircraftRegistration,
             ct);
 
         return new AdminDisruptionChangeResponse

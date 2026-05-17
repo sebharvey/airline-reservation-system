@@ -384,11 +384,11 @@ export class InventoryService {
     );
   }
 
-  async changeAircraftType(flightNumber: string, departureDate: string, newAircraftType: string): Promise<void> {
+  async changeAircraftType(flightNumber: string, departureDate: string, newAircraftType: string, newAircraftRegistration: string | null): Promise<void> {
     await firstValueFrom(
       this.#http.post<void>(
         `${this.#operationsBaseUrl}/disruption/change`,
-        { flightNumber, departureDate, newAircraftType }
+        { flightNumber, departureDate, newAircraftType, newAircraftRegistration }
       )
     );
   }

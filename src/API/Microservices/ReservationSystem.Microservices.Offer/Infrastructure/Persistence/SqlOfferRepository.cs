@@ -359,11 +359,12 @@ public sealed class SqlOfferRepository : IOfferRepository
     {
         const string sql = """
             UPDATE [offer].[FlightInventory]
-            SET    Cabins          = @Cabins,
-                   TotalSeats      = @TotalSeats,
-                   SeatsAvailable  = @SeatsAvailable,
-                   Status          = @Status,
-                   AircraftType    = @AircraftType
+            SET    Cabins               = @Cabins,
+                   TotalSeats           = @TotalSeats,
+                   SeatsAvailable       = @SeatsAvailable,
+                   Status               = @Status,
+                   AircraftType         = @AircraftType,
+                   AircraftRegistration = @AircraftRegistration
             WHERE  InventoryId = @InventoryId;
             """;
 
@@ -377,7 +378,8 @@ public sealed class SqlOfferRepository : IOfferRepository
                 inventory.TotalSeats,
                 inventory.SeatsAvailable,
                 inventory.Status,
-                inventory.AircraftType
+                inventory.AircraftType,
+                inventory.AircraftRegistration
             }, commandTimeout: _options.CommandTimeoutSeconds));
 
         if (rowsAffected == 0)

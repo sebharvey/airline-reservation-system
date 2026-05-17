@@ -638,13 +638,25 @@
             </select>
           }
 
+          <!-- Optional new registration -->
+          <label class="modal-label" for="ac-swap-reg">New aircraft registration <span class="modal-label-optional">(optional)</span></label>
+          <input
+            id="ac-swap-reg"
+            type="text"
+            class="modal-input"
+            placeholder="e.g. G-ABCD"
+            [ngModel]="acSwapRegInput()"
+            (ngModelChange)="acSwapRegInput.set($event)"
+            [disabled]="acSwapLoading()"
+            autocomplete="off" />
+
           @if (acSwapError()) {
             <p class="modal-error">{{ acSwapError() }}</p>
           }
 
           <div class="ac-swap-note">
             <lucide-icon name="info" [size]="13" />
-            Seat assignments that do not exist on the new aircraft will be cleared automatically. Affected passengers will be highlighted in the manifest for manual reassignment.
+            The existing aircraft registration will be cleared. Seat assignments that do not exist on the new aircraft will also be cleared automatically. Affected passengers will be highlighted in the manifest for manual reassignment.
           </div>
         </div>
         <div class="modal-footer">
