@@ -118,10 +118,10 @@
               Validating seats…
             </span>
           }
-          @if (!acSwapSeatsProcessing() && needsReassignment().size > 0) {
+          @if (!acSwapSeatsProcessing() && unassignedConfirmedCount() > 0) {
             <span class="ac-swap-reassign-notice">
               <lucide-icon name="triangle-alert" [size]="12" />
-              {{ needsReassignment().size }} seat{{ needsReassignment().size !== 1 ? 's' : '' }} need reassignment
+              {{ unassignedConfirmedCount() }} seat{{ unassignedConfirmedCount() !== 1 ? 's' : '' }} need{{ unassignedConfirmedCount() === 1 ? 's' : '' }} assignment
             </span>
           }
           <span class="pax-filter-btns">
@@ -202,7 +202,7 @@
                     <tr
                       [class.pax-checked-in]="entry.checkedIn"
                       [class.pax-row-selected]="selectedEntry()?.eTicketNumber === entry.eTicketNumber"
-                      [class.pax-row-needs-reassignment]="needsReassignment().has(entry.eTicketNumber)"
+                      [class.pax-row-needs-reassignment]="!entry.seatNumber && entry.bookingType !== 'Standby'"
                       (click)="selectEntry(entry)">
                       <td>
                         <span class="pax-seat-badge" [class]="'cabin-' + entry.cabinCode.toLowerCase()">
