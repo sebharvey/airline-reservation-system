@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Simulator.Application.CheckInSimulator;
 using ReservationSystem.Simulator.Application.RunSimulator;
+using ReservationSystem.Simulator.Application.StandbyBookingSimulator;
 using ReservationSystem.Simulator.Application.UpdateFlightOperationalData;
 
 namespace ReservationSystem.Simulator.Functions;
@@ -19,17 +20,20 @@ namespace ReservationSystem.Simulator.Functions;
 public sealed class SimulatorFunction
 {
     private readonly RunSimulatorHandler                    _handler;
+    private readonly StandbyBookingSimulatorHandler         _standbyHandler;
     private readonly UpdateFlightOperationalDataHandler     _flightUpdateHandler;
     private readonly CheckInSimulatorHandler                _checkInHandler;
     private readonly ILogger<SimulatorFunction>             _logger;
 
     public SimulatorFunction(
         RunSimulatorHandler                handler,
+        StandbyBookingSimulatorHandler     standbyHandler,
         UpdateFlightOperationalDataHandler flightUpdateHandler,
         CheckInSimulatorHandler            checkInHandler,
         ILogger<SimulatorFunction>         logger)
     {
         _handler             = handler;
+        _standbyHandler      = standbyHandler;
         _flightUpdateHandler = flightUpdateHandler;
         _checkInHandler      = checkInHandler;
         _logger              = logger;
@@ -44,6 +48,7 @@ public sealed class SimulatorFunction
         _logger.LogInformation("Simulator timer triggered at {UtcNow:O}", DateTime.UtcNow);
 
         await _handler.HandleAsync(ct);
+        await _standbyHandler.HandleAsync(ct);
     }
 
     // Manual trigger: GET /api/v1/simulator/run
@@ -55,6 +60,7 @@ public sealed class SimulatorFunction
         _logger.LogInformation("Simulator manual trigger invoked at {UtcNow:O}", DateTime.UtcNow);
 
         await _handler.HandleAsync(ct);
+        await _standbyHandler.HandleAsync(ct);
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");

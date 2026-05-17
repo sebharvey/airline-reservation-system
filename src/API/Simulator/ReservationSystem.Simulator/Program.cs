@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ReservationSystem.Simulator.Application.CheckInSimulator;
 using ReservationSystem.Simulator.Application.RunSimulator;
+using ReservationSystem.Simulator.Application.StandbyBookingSimulator;
 using ReservationSystem.Simulator.Application.UpdateFlightOperationalData;
 using ReservationSystem.Simulator.Domain.ExternalServices;
 using ReservationSystem.Simulator.Infrastructure.ExternalServices;
@@ -38,10 +39,12 @@ var host = new HostBuilder()
 
         // ── Infrastructure ─────────────────────────────────────────────────────
         services.AddScoped<IRetailApiClient, RetailApiClient>();
+        services.AddScoped<IAdminApiClient, AdminApiClient>();
         services.AddScoped<IFlightUpdateClient, FlightUpdateClient>();
 
         // ── Application handlers ───────────────────────────────────────────────
         services.AddScoped<RunSimulatorHandler>();
+        services.AddScoped<StandbyBookingSimulatorHandler>();
         services.AddScoped<UpdateFlightOperationalDataHandler>();
         services.AddScoped<CheckInSimulatorHandler>();
     })
