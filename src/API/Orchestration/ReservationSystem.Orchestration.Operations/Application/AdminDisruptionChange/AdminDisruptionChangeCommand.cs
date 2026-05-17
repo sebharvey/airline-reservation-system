@@ -4,4 +4,5 @@ public sealed record AdminDisruptionChangeCommand(
     string FlightNumber,
     string DepartureDate,
     string NewAircraftType,
+    string? NewAircraftRegistration,
     string? Reason);

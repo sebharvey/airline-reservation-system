@@ -248,12 +248,14 @@ export class FlightManagementDetailComponent implements OnInit {
   acSwapSelectedType = signal('');
   acSwapLoading = signal(false);
   acSwapError = signal('');
+  acSwapRegInput = signal('');
   acSwapSeatsProcessing = signal(false);
   needsReassignment = signal(new Set<string>());
 
   startAircraftSwap(): void {
     this.closeDisruptionModal();
     this.acSwapSelectedType.set('');
+    this.acSwapRegInput.set('');
     this.acSwapError.set('');
     this.acSwapTypesError.set('');
     this.acSwapModalOpen.set(true);
@@ -282,17 +284,19 @@ export class FlightManagementDetailComponent implements OnInit {
     const newType = this.acSwapSelectedType();
     if (!newType || this.acSwapLoading()) return;
 
+    const newReg = this.acSwapRegInput().trim() || null;
+
     this.acSwapLoading.set(true);
     this.acSwapError.set('');
     try {
       const [newSeatmap] = await Promise.all([
         this.#inventoryService.getFlightSeatmap(this.#inventoryId, this.#flightNumber, newType),
-        this.#inventoryService.changeAircraftType(this.#flightNumber, this.#departureDate, newType),
+        this.#inventoryService.changeAircraftType(this.#flightNumber, this.#departureDate, newType, newReg),
       ]);
 
-      // Update the flight type and seatmap immediately, close modal, clear seat selection
+      // Update the flight type, registration, and seatmap immediately, close modal, clear seat selection
       this.#aircraftType = newType;
-      this.flight.update(f => f ? { ...f, aircraftType: newType } : f);
+      this.flight.update(f => f ? { ...f, aircraftType: newType, aircraftRegistration: newReg } : f);
       this.seatmap.set(newSeatmap);
       this.selectedEntry.set(null);
       this.pendingSeat.set(null);

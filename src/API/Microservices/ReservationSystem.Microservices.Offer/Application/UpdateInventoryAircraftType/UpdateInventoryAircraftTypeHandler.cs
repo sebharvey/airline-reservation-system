@@ -28,6 +28,7 @@ public sealed class UpdateInventoryAircraftTypeHandler
         foreach (var inventory in inventories)
         {
             inventory.ChangeAircraftType(command.NewAircraftType);
+            inventory.SetAircraftRegistration(command.NewAircraftRegistration);
             await _repository.UpdateInventoryAsync(inventory, ct);
             updatedCount++;
         }

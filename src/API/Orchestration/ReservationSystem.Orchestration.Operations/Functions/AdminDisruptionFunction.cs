@@ -212,6 +212,7 @@ public sealed class AdminDisruptionFunction
                 request.FlightNumber,
                 request.DepartureDate,
                 request.NewAircraftType,
+                string.IsNullOrWhiteSpace(request.NewAircraftRegistration) ? null : request.NewAircraftRegistration,
                 request.Reason);
 
             var result = await _changeHandler.HandleAsync(command, cancellationToken);

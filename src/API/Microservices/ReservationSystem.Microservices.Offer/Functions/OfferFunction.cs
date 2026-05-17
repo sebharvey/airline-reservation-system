@@ -1075,10 +1075,15 @@ public sealed class OfferFunction
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
         catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
 
+        var newReg = body.TryGetProperty("newAircraftRegistration", out var regProp)
+            ? regProp.GetString()
+            : null;
+
         var command = new UpdateInventoryAircraftTypeCommand(
             FlightNumber: body.GetProperty("flightNumber").GetString()!,
             DepartureDate: body.GetProperty("departureDate").GetString()!,
-            NewAircraftType: body.GetProperty("newAircraftType").GetString()!);
+            NewAircraftType: body.GetProperty("newAircraftType").GetString()!,
+            NewAircraftRegistration: string.IsNullOrWhiteSpace(newReg) ? null : newReg);
 
         try
         {

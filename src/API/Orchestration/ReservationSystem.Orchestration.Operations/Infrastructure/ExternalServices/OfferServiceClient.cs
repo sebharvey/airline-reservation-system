@@ -203,9 +203,10 @@ public sealed class OfferServiceClient
         string flightNumber,
         string departureDate,
         string newAircraftType,
+        string? newAircraftRegistration,
         CancellationToken cancellationToken = default)
     {
-        var body = new { flightNumber, departureDate, newAircraftType };
+        var body = new { flightNumber, departureDate, newAircraftType, newAircraftRegistration };
         var response = await _httpClient.PatchAsJsonAsync("/api/v1/inventory/aircraft-type", body, JsonOptions, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)

@@ -13,6 +13,9 @@ public sealed class AdminDisruptionChangeRequest
     [JsonPropertyName("newAircraftType")]
     public string NewAircraftType { get; init; } = string.Empty;
 
+    [JsonPropertyName("newAircraftRegistration")]
+    public string? NewAircraftRegistration { get; init; }
+
     [JsonPropertyName("reason")]
     public string? Reason { get; init; }
 }
