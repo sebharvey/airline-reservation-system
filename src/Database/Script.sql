@@ -611,6 +611,12 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_ETicketNumber' A
         WITH (JSON_PATH = N'$.eTickets[*].eTicketNumber');
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Order_CreatedAt' AND object_id = OBJECT_ID('[order].[Order]'))
+    CREATE INDEX IX_Order_CreatedAt
+        ON [order].[Order] (CreatedAt DESC)
+        INCLUDE (BookingReference, OrderStatus, ChannelCode, CurrencyCode, TotalAmount);
+GO
+
 IF OBJECT_ID('[order].[TR_Order_UpdatedAt]', 'TR') IS NULL
 BEGIN
     EXEC('
