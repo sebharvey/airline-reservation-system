@@ -575,20 +575,21 @@
               }
             </div>
 
-            <!-- Time change — coming soon -->
-            <div class="disruption-action-card disruption-action-disabled">
+            <!-- Time change -->
+            <div class="disruption-action-card">
               <div class="disruption-action-header">
                 <div class="disruption-action-icon disruption-icon-delay">
                   <lucide-icon name="clock" [size]="20" />
                 </div>
                 <div class="disruption-action-text">
-                  <div class="disruption-action-title">
-                    Change departure time
-                    <span class="badge-coming-soon">Coming soon</span>
-                  </div>
-                  <div class="disruption-action-desc">Update the scheduled departure and arrival times and notify affected passengers.</div>
+                  <div class="disruption-action-title">Change departure time</div>
+                  <div class="disruption-action-desc">Update the scheduled departure and arrival times for this flight.</div>
                 </div>
               </div>
+              <button class="disruption-action-btn disruption-action-btn-delay" (click)="openDepChangeModal()">
+                <lucide-icon name="clock" [size]="14" />
+                Change times
+              </button>
             </div>
 
             <!-- Equipment change -->
@@ -756,6 +757,145 @@
         </div>
         <div class="modal-footer">
           <button class="modal-btn modal-btn-cancel" (click)="closeBaggageModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Departure time change modal -->
+  @if (depChangeModalOpen()) {
+    <div class="modal-backdrop" (click)="closeDepChangeModal()">
+      <div class="modal-card modal-card-dep-change" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="dep-change-modal-title">
+        <div class="modal-header">
+          <div>
+            <span class="modal-title" id="dep-change-modal-title">Change Departure Time</span>
+            @if (flight()) {
+              <p class="dep-change-modal-subtitle">
+                {{ flight()!.flightNumber }} &nbsp;·&nbsp;
+                {{ flight()!.origin }} → {{ flight()!.destination }} &nbsp;·&nbsp;
+                {{ flight()!.departureDate }}
+              </p>
+            }
+          </div>
+          <button class="modal-close-btn" (click)="closeDepChangeModal()" aria-label="Close">
+            <lucide-icon name="x" [size]="16" />
+          </button>
+        </div>
+
+        <div class="modal-body dep-change-modal-body">
+
+          <!-- Current times summary -->
+          <div class="dep-change-current-row">
+            <span class="modal-label">Current scheduled times</span>
+            <span class="dep-change-current-times mono">
+              {{ flight()!.departureTime }}
+              <span class="dep-change-arrow">→</span>
+              {{ flight()!.arrivalTime }}
+              @if (flight()!.arrivalDayOffset > 0) {
+                <sup class="dep-change-day-offset">+{{ flight()!.arrivalDayOffset }}</sup>
+              }
+            </span>
+          </div>
+
+          <!-- Local times -->
+          <div class="dep-change-section-label">
+            <lucide-icon name="map-pin" [size]="12" />
+            Local times
+          </div>
+
+          <div class="dep-change-time-row">
+            <div class="dep-change-time-field">
+              <label class="modal-label" for="new-local-dep">New departure</label>
+              <input
+                id="new-local-dep"
+                type="time"
+                class="modal-input modal-input-time"
+                [ngModel]="newLocalDep()"
+                (ngModelChange)="onNewLocalDepChange($event)"
+                autocomplete="off"
+              />
+            </div>
+            <div class="dep-change-time-sep">
+              <lucide-icon name="arrow-right" [size]="14" />
+            </div>
+            <div class="dep-change-time-field">
+              <label class="modal-label" for="new-local-arr">
+                New arrival
+                <span class="dep-change-auto-badge">auto</span>
+              </label>
+              <div class="dep-change-arr-wrap">
+                <input
+                  id="new-local-arr"
+                  type="time"
+                  class="modal-input modal-input-time"
+                  [ngModel]="newLocalArr()"
+                  (ngModelChange)="newLocalArr.set($event)"
+                  autocomplete="off"
+                />
+                @if (newLocalArrOffset() > 0) {
+                  <span class="dep-change-offset-chip">+{{ newLocalArrOffset() }}</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- UTC times -->
+          <div class="dep-change-section-label">
+            <lucide-icon name="globe" [size]="12" />
+            UTC times
+          </div>
+
+          <div class="dep-change-time-row">
+            <div class="dep-change-time-field">
+              <label class="modal-label" for="new-utc-dep">New departure (UTC)</label>
+              <input
+                id="new-utc-dep"
+                type="time"
+                class="modal-input modal-input-time"
+                [ngModel]="newUtcDep()"
+                (ngModelChange)="onNewUtcDepChange($event)"
+                autocomplete="off"
+              />
+            </div>
+            <div class="dep-change-time-sep">
+              <lucide-icon name="arrow-right" [size]="14" />
+            </div>
+            <div class="dep-change-time-field">
+              <label class="modal-label" for="new-utc-arr">
+                New arrival (UTC)
+                <span class="dep-change-auto-badge">auto</span>
+              </label>
+              <div class="dep-change-arr-wrap">
+                <input
+                  id="new-utc-arr"
+                  type="time"
+                  class="modal-input modal-input-time"
+                  [ngModel]="newUtcArr()"
+                  (ngModelChange)="newUtcArr.set($event)"
+                  autocomplete="off"
+                />
+                @if (newUtcArrOffset() > 0) {
+                  <span class="dep-change-offset-chip">+{{ newUtcArrOffset() }}</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="dep-change-note">
+            <lucide-icon name="info" [size]="13" />
+            Arrival is auto-calculated from the original flight duration of <strong>{{ depChangeDurationLabel() }}</strong>. You can override either arrival field independently.
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" (click)="closeDepChangeModal()">Cancel</button>
+          <button
+            class="modal-btn modal-btn-save"
+            [disabled]="!newLocalDep()">
+            <lucide-icon name="check" [size]="14" />
+            Confirm change
+          </button>
         </div>
       </div>
     </div>

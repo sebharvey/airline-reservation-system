@@ -212,6 +212,79 @@ export class FlightManagementDetailComponent implements OnInit {
     this.cancelError.set('');
   }
 
+  // Departure time change modal state
+  depChangeModalOpen = signal(false);
+  newLocalDep = signal('');
+  newLocalArr = signal('');
+  newLocalArrOffset = signal(0);
+  newUtcDep = signal('');
+  newUtcArr = signal('');
+  newUtcArrOffset = signal(0);
+
+  openDepChangeModal(): void {
+    this.closeDisruptionModal();
+    const f = this.flight();
+    if (!f) return;
+    this.newLocalDep.set(f.departureTime);
+    const initialArr = this.#calcArrival(f.departureTime);
+    this.newLocalArr.set(initialArr.time);
+    this.newLocalArrOffset.set(initialArr.dayOffset);
+    this.newUtcDep.set('');
+    this.newUtcArr.set('');
+    this.newUtcArrOffset.set(0);
+    this.depChangeModalOpen.set(true);
+  }
+
+  closeDepChangeModal(): void {
+    this.depChangeModalOpen.set(false);
+  }
+
+  onNewLocalDepChange(value: string): void {
+    this.newLocalDep.set(value);
+    if (/^\d{2}:\d{2}$/.test(value)) {
+      const result = this.#calcArrival(value);
+      this.newLocalArr.set(result.time);
+      this.newLocalArrOffset.set(result.dayOffset);
+    }
+  }
+
+  onNewUtcDepChange(value: string): void {
+    this.newUtcDep.set(value);
+    if (/^\d{2}:\d{2}$/.test(value)) {
+      const result = this.#calcArrival(value);
+      this.newUtcArr.set(result.time);
+      this.newUtcArrOffset.set(result.dayOffset);
+    }
+  }
+
+  depChangeDurationLabel = computed(() => {
+    const mins = this.#flightDurationMins();
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  });
+
+  #flightDurationMins(): number {
+    const f = this.flight();
+    if (!f) return 0;
+    const [dh, dm] = f.departureTime.split(':').map(Number);
+    const [ah, am] = f.arrivalTime.split(':').map(Number);
+    return (ah * 60 + am) - (dh * 60 + dm) + f.arrivalDayOffset * 24 * 60;
+  }
+
+  #calcArrival(depTime: string): { time: string; dayOffset: number } {
+    const [h, m] = depTime.split(':').map(Number);
+    const total = h * 60 + m + this.#flightDurationMins();
+    const dayOffset = Math.floor(total / (24 * 60));
+    const remaining = total % (24 * 60);
+    const rh = Math.floor(remaining / 60);
+    const rm = remaining % 60;
+    return {
+      time: `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`,
+      dayOffset,
+    };
+  }
+
   async cancelFlight(): Promise<void> {
     if (this.cancelLoading()) return;
     this.cancelLoading.set(true);
