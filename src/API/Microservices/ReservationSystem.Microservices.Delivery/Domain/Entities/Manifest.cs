@@ -30,6 +30,7 @@ public sealed class Manifest
     public string BookingType { get; private set; } = string.Empty;
     public TimeOnly DepartureTime { get; private set; }
     public TimeOnly ArrivalTime { get; private set; }
+    public string? FlightStatus { get; private set; }
     public bool CheckedIn { get; private set; }
     public DateTime? CheckedInAt { get; private set; }
     public string? Baggage { get; private set; }
@@ -45,6 +46,15 @@ public sealed class Manifest
         CheckedInAt = checkedInAt;
         Baggage     = baggageJson;
         UpdatedAt   = checkedInAt;
+        Version++;
+    }
+
+    public void ApplyDelay(TimeOnly newDepartureTime, TimeOnly newArrivalTime)
+    {
+        DepartureTime = newDepartureTime;
+        ArrivalTime   = newArrivalTime;
+        FlightStatus  = "Delayed";
+        UpdatedAt     = DateTime.UtcNow;
         Version++;
     }
 

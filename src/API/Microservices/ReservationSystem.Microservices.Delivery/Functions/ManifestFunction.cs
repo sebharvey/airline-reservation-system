@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ReservationSystem.Microservices.Delivery.Application.DeleteManifestFlight;
 using ReservationSystem.Microservices.Delivery.Application.GetManifest;
 using ReservationSystem.Microservices.Delivery.Application.RebookManifest;
+using ReservationSystem.Microservices.Delivery.Application.UpdateManifestFlightTimes;
 using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSeat;
 using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSsrs;
 using ReservationSystem.Microservices.Delivery.Application.WriteManifest;
@@ -24,6 +25,7 @@ public sealed class ManifestFunction
     private readonly UpdateManifestSeatHandler _updateManifestSeatHandler;
     private readonly DeleteManifestFlightHandler _deleteManifestFlightHandler;
     private readonly UpdateManifestSsrsHandler _updateManifestSsrsHandler;
+    private readonly UpdateManifestFlightTimesHandler _updateFlightTimesHandler;
     private readonly ILogger<ManifestFunction> _logger;
 
     public ManifestFunction(
@@ -33,6 +35,7 @@ public sealed class ManifestFunction
         UpdateManifestSeatHandler updateManifestSeatHandler,
         DeleteManifestFlightHandler deleteManifestFlightHandler,
         UpdateManifestSsrsHandler updateManifestSsrsHandler,
+        UpdateManifestFlightTimesHandler updateFlightTimesHandler,
         ILogger<ManifestFunction> logger)
     {
         _writeHandler = writeHandler;
@@ -41,6 +44,7 @@ public sealed class ManifestFunction
         _updateManifestSeatHandler = updateManifestSeatHandler;
         _deleteManifestFlightHandler = deleteManifestFlightHandler;
         _updateManifestSsrsHandler = updateManifestSsrsHandler;
+        _updateFlightTimesHandler = updateFlightTimesHandler;
         _logger = logger;
     }
 
@@ -220,6 +224,54 @@ public sealed class ManifestFunction
 
         var ssrsCommand = new UpdateManifestSsrsCommand(bookingReference, ssrsByETicket);
         var updated = await _updateManifestSsrsHandler.HandleAsync(ssrsCommand, cancellationToken);
+
+        if (updated == 0)
+            return req.CreateResponse(HttpStatusCode.NotFound);
+
+        return await req.OkJsonAsync(new { updated });
+    }
+
+    // PATCH /v1/manifest/flight/{flightNumber}/{departureDate}/times
+    [Function("UpdateManifestFlightTimes")]
+    [OpenApiOperation(operationId: "UpdateManifestFlightTimes", tags: new[] { "Manifest" }, Summary = "Update departure and arrival times on all manifest entries for a delayed flight")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — returns count of updated entries")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no manifest entries for this flight")]
+    public async Task<HttpResponseData> UpdateManifestFlightTimes(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/flight/{flightNumber}/{departureDate}/times")] HttpRequestData req,
+        string flightNumber,
+        string departureDate,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(flightNumber))
+            return await req.BadRequestAsync("flightNumber is required.");
+
+        if (!DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out _))
+            return await req.BadRequestAsync("departureDate must be in yyyy-MM-dd format.");
+
+        string? newDepartureTime = null;
+        string? newArrivalTime   = null;
+        try
+        {
+            using var doc = await System.Text.Json.JsonDocument.ParseAsync(req.Body, cancellationToken: cancellationToken);
+            if (doc.RootElement.TryGetProperty("newDepartureTime", out var depEl))
+                newDepartureTime = depEl.GetString();
+            if (doc.RootElement.TryGetProperty("newArrivalTime", out var arrEl))
+                newArrivalTime = arrEl.GetString();
+        }
+        catch
+        {
+            return await req.BadRequestAsync("Request body must be valid JSON.");
+        }
+
+        if (string.IsNullOrWhiteSpace(newDepartureTime) || !TimeOnly.TryParseExact(newDepartureTime, "HH:mm", out _))
+            return await req.BadRequestAsync("newDepartureTime must be in HH:mm format.");
+
+        if (string.IsNullOrWhiteSpace(newArrivalTime) || !TimeOnly.TryParseExact(newArrivalTime, "HH:mm", out _))
+            return await req.BadRequestAsync("newArrivalTime must be in HH:mm format.");
+
+        var command = new UpdateManifestFlightTimesCommand(flightNumber, departureDate, newDepartureTime, newArrivalTime);
+        var updated = await _updateFlightTimesHandler.HandleAsync(command, cancellationToken);
 
         if (updated == 0)
             return req.CreateResponse(HttpStatusCode.NotFound);

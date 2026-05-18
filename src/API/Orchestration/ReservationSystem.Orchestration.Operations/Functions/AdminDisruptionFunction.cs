@@ -251,11 +251,21 @@ public sealed class AdminDisruptionFunction
             !DateOnly.TryParseExact(request.DepartureDate, "yyyy-MM-dd", out _))
             return await req.BadRequestAsync("'departureDate' must be in yyyy-MM-dd format.");
 
-        if (string.IsNullOrWhiteSpace(request.NewDepartureTime))
-            return await req.BadRequestAsync("'newDepartureTime' is required.");
+        if (string.IsNullOrWhiteSpace(request.NewDepartureTime) ||
+            !TimeOnly.TryParseExact(request.NewDepartureTime, "HH:mm", out _))
+            return await req.BadRequestAsync("'newDepartureTime' must be in HH:mm format.");
 
-        if (string.IsNullOrWhiteSpace(request.NewArrivalTime))
-            return await req.BadRequestAsync("'newArrivalTime' is required.");
+        if (string.IsNullOrWhiteSpace(request.NewArrivalTime) ||
+            !TimeOnly.TryParseExact(request.NewArrivalTime, "HH:mm", out _))
+            return await req.BadRequestAsync("'newArrivalTime' must be in HH:mm format.");
+
+        if (request.NewDepartureTimeUtc is not null &&
+            !TimeOnly.TryParseExact(request.NewDepartureTimeUtc, "HH:mm", out _))
+            return await req.BadRequestAsync("'newDepartureTimeUtc' must be in HH:mm format.");
+
+        if (request.NewArrivalTimeUtc is not null &&
+            !TimeOnly.TryParseExact(request.NewArrivalTimeUtc, "HH:mm", out _))
+            return await req.BadRequestAsync("'newArrivalTimeUtc' must be in HH:mm format.");
 
         try
         {
@@ -264,6 +274,10 @@ public sealed class AdminDisruptionFunction
                 request.DepartureDate,
                 request.NewDepartureTime,
                 request.NewArrivalTime,
+                request.NewArrivalDayOffset,
+                request.NewDepartureTimeUtc,
+                request.NewArrivalTimeUtc,
+                request.NewArrivalDayOffsetUtc,
                 request.Reason);
 
             var result = await _timeHandler.HandleAsync(command, cancellationToken);

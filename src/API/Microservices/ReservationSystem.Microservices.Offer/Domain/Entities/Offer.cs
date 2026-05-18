@@ -130,6 +130,22 @@ public sealed class FlightInventory
 
     public void Cancel() { Status = InventoryStatus.Cancelled; SeatsAvailable = 0; }
 
+    public void UpdateTimes(
+        TimeOnly newDepartureTime,
+        TimeOnly newArrivalTime,
+        int newArrivalDayOffset,
+        TimeOnly? newDepartureTimeUtc = null,
+        TimeOnly? newArrivalTimeUtc = null,
+        int? newArrivalDayOffsetUtc = null)
+    {
+        DepartureTime       = newDepartureTime;
+        ArrivalTime         = newArrivalTime;
+        ArrivalDayOffset    = newArrivalDayOffset;
+        DepartureTimeUtc    = newDepartureTimeUtc;
+        ArrivalTimeUtc      = newArrivalTimeUtc;
+        ArrivalDayOffsetUtc = newArrivalDayOffsetUtc;
+    }
+
     public void ChangeAircraftType(string newAircraftType) { AircraftType = newAircraftType; }
 
     public void SetDepartureGate(string? gate) { DepartureGate = gate; }

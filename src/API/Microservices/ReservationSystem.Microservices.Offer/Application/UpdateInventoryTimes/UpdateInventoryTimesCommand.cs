@@ -1,6 +1,6 @@
-namespace ReservationSystem.Orchestration.Operations.Application.AdminDisruptionTime;
+namespace ReservationSystem.Microservices.Offer.Application.UpdateInventoryTimes;
 
-public sealed record AdminDisruptionTimeCommand(
+public sealed record UpdateInventoryTimesCommand(
     string FlightNumber,
     string DepartureDate,
     string NewDepartureTime,
@@ -8,5 +8,4 @@ public sealed record AdminDisruptionTimeCommand(
     int NewArrivalDayOffset,
     string? NewDepartureTimeUtc,
     string? NewArrivalTimeUtc,
-    int? NewArrivalDayOffsetUtc,
-    string? Reason);
+    int? NewArrivalDayOffsetUtc);

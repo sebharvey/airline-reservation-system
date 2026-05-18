@@ -12,6 +12,7 @@ import {
   SeatmapSeat,
   AutoAssignSeatsResponse,
   AircraftType,
+  DisruptionTimeResponse,
 } from '../../../services/inventory.service';
 
 interface SeatCell {
@@ -265,6 +266,43 @@ export class FlightManagementDetailComponent implements OnInit {
 
   closeDepChangeModal(): void {
     this.depChangeModalOpen.set(false);
+    this.depChangeSaving.set(false);
+    this.depChangeError.set('');
+  }
+
+  depChangeSaving = signal(false);
+  depChangeError  = signal('');
+  depChangeResult = signal<DisruptionTimeResponse | null>(null);
+
+  async confirmDepChange(): Promise<void> {
+    const dep = this.newLocalDep();
+    const arr = this.newLocalArr();
+    if (!dep || !arr) return;
+    if (this.depChangeSaving()) return;
+
+    this.depChangeSaving.set(true);
+    this.depChangeError.set('');
+
+    const f = this.flight()!;
+    try {
+      const result = await this.#inventoryService.changeFlightTimes(
+        f.flightNumber,
+        f.departureDate,
+        dep,
+        arr,
+        this.newLocalArrOffset(),
+        this.newUtcDep() || null,
+        this.newUtcArr() || null,
+        this.newUtcArrOffset() || null,
+      );
+      this.depChangeResult.set(result);
+      this.depChangeModalOpen.set(false);
+      void this.refresh();
+    } catch {
+      this.depChangeError.set('Failed to update flight times. Please try again.');
+    } finally {
+      this.depChangeSaving.set(false);
+    }
   }
 
   onNewLocalDepChange(value: string): void {

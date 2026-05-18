@@ -228,6 +228,32 @@ public sealed class EfManifestRepository : IManifestRepository
         return expired.Count;
     }
 
+    public async Task<int> UpdateFlightTimesAsync(
+        string flightNumber,
+        DateOnly departureDate,
+        TimeOnly newDepartureTime,
+        TimeOnly newArrivalTime,
+        CancellationToken cancellationToken = default)
+    {
+        var entries = await _context.Manifests
+            .Where(m => m.FlightNumber == flightNumber && m.DepartureDate == departureDate)
+            .ToListAsync(cancellationToken);
+
+        if (entries.Count == 0)
+            return 0;
+
+        foreach (var entry in entries)
+            entry.ApplyDelay(newDepartureTime, newArrivalTime);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogDebug(
+            "Updated flight times on {Count} manifest entries for {FlightNumber}/{DepartureDate} — status set to Delayed",
+            entries.Count, flightNumber, departureDate);
+
+        return entries.Count;
+    }
+
     public async Task<int> DeleteByBookingAndFlightAsync(
         string bookingReference,
         string flightNumber,

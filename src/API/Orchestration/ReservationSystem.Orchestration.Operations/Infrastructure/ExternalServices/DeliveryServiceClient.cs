@@ -75,6 +75,29 @@ public sealed class DeliveryServiceClient
             ?? throw new InvalidOperationException("Empty response from OCI boarding-docs.");
     }
 
+    public async Task<int> UpdateManifestFlightTimesAsync(
+        string flightNumber,
+        string departureDate,
+        string newDepartureTime,
+        string newArrivalTime,
+        CancellationToken ct)
+    {
+        var url = $"/api/v1/manifest/flight/{Uri.EscapeDataString(flightNumber)}/{departureDate}/times";
+        var payload = new { newDepartureTime, newArrivalTime };
+        using var response = await _httpClient.PatchAsJsonAsync(url, payload, JsonOptions, ct);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return 0; // no manifest yet — not an error for a delay
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException(
+                $"Failed to update manifest times for {flightNumber}/{departureDate}: {await response.ReadErrorMessageAsync(ct)}");
+
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+        return doc.RootElement.TryGetProperty("updated", out var el) ? el.GetInt32() : 0;
+    }
+
     public async Task<ManifestResponse> GetManifestAsync(string flightNumber, string departureDate, CancellationToken ct)
     {
         var url = $"/api/v1/manifest?flightNumber={Uri.EscapeDataString(flightNumber)}&departureDate={departureDate}";

@@ -21,6 +21,7 @@ using ReservationSystem.Microservices.Offer.Application.GetFlightByInventoryId;
 using ReservationSystem.Microservices.Offer.Application.GetInventoryHolds;
 using ReservationSystem.Microservices.Offer.Application.RepriceStoredOffer;
 using ReservationSystem.Microservices.Offer.Application.UpdateInventoryAircraftType;
+using ReservationSystem.Microservices.Offer.Application.UpdateInventoryTimes;
 using ReservationSystem.Microservices.Offer.Application.SetInventoryOperationalData;
 using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Shared.Common.Http;
@@ -55,6 +56,7 @@ public sealed class OfferFunction
     private readonly GetInventoryHoldsHandler _getInventoryHoldsHandler;
     private readonly RepriceStoredOfferHandler _repriceHandler;
     private readonly UpdateInventoryAircraftTypeHandler _updateAircraftTypeHandler;
+    private readonly UpdateInventoryTimesHandler _updateInventoryTimesHandler;
     private readonly SetInventoryOperationalDataHandler _setOperationalDataHandler;
     private readonly ILogger<OfferFunction> _logger;
 
@@ -79,6 +81,7 @@ public sealed class OfferFunction
         GetInventoryHoldsHandler getInventoryHoldsHandler,
         RepriceStoredOfferHandler repriceHandler,
         UpdateInventoryAircraftTypeHandler updateAircraftTypeHandler,
+        UpdateInventoryTimesHandler updateInventoryTimesHandler,
         SetInventoryOperationalDataHandler setOperationalDataHandler,
         ILogger<OfferFunction> logger)
     {
@@ -102,6 +105,7 @@ public sealed class OfferFunction
         _getInventoryHoldsHandler = getInventoryHoldsHandler;
         _repriceHandler = repriceHandler;
         _updateAircraftTypeHandler = updateAircraftTypeHandler;
+        _updateInventoryTimesHandler = updateInventoryTimesHandler;
         _setOperationalDataHandler = setOperationalDataHandler;
         _logger = logger;
     }
@@ -1093,6 +1097,50 @@ public sealed class OfferFunction
                 flightNumber = command.FlightNumber,
                 departureDate = command.DepartureDate,
                 newAircraftType = command.NewAircraftType,
+                inventoriesUpdated = count
+            });
+        }
+        catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+    }
+
+    // PATCH /v1/inventory/flight-times
+    [Function("UpdateInventoryTimes")]
+    [OpenApiOperation(operationId: "UpdateInventoryTimes", tags: new[] { "Inventory" }, Summary = "Update departure and arrival times on all inventory records for a delayed flight")]
+    [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ flightNumber, departureDate, newDepartureTime, newArrivalTime, newArrivalDayOffset, newDepartureTimeUtc, newArrivalTimeUtc, newArrivalDayOffsetUtc }")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
+    public async Task<HttpResponseData> UpdateInventoryTimes(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/flight-times")] HttpRequestData req,
+        CancellationToken ct)
+    {
+        JsonElement body;
+        try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, SharedJsonOptions.CamelCase, ct); }
+        catch (JsonException ex) { _logger.LogWarning(ex, "Invalid JSON in request body"); return await req.BadRequestAsync("Invalid JSON."); }
+
+        var arrivalDayOffset    = body.TryGetProperty("newArrivalDayOffset",    out var adoProp) ? adoProp.GetInt32() : 0;
+        var newDepUtc           = body.TryGetProperty("newDepartureTimeUtc",    out var depUtcProp) && depUtcProp.ValueKind != JsonValueKind.Null ? depUtcProp.GetString() : null;
+        var newArrUtc           = body.TryGetProperty("newArrivalTimeUtc",      out var arrUtcProp) && arrUtcProp.ValueKind != JsonValueKind.Null ? arrUtcProp.GetString() : null;
+        var arrUtcDayOffset     = body.TryGetProperty("newArrivalDayOffsetUtc", out var adoUtcProp) && adoUtcProp.ValueKind != JsonValueKind.Null ? (int?)adoUtcProp.GetInt32() : null;
+
+        var command = new UpdateInventoryTimesCommand(
+            FlightNumber:          body.GetProperty("flightNumber").GetString()!,
+            DepartureDate:         body.GetProperty("departureDate").GetString()!,
+            NewDepartureTime:      body.GetProperty("newDepartureTime").GetString()!,
+            NewArrivalTime:        body.GetProperty("newArrivalTime").GetString()!,
+            NewArrivalDayOffset:   arrivalDayOffset,
+            NewDepartureTimeUtc:   newDepUtc,
+            NewArrivalTimeUtc:     newArrUtc,
+            NewArrivalDayOffsetUtc: arrUtcDayOffset);
+
+        try
+        {
+            var count = await _updateInventoryTimesHandler.HandleAsync(command, ct);
+            return await req.OkJsonAsync(new
+            {
+                flightNumber       = command.FlightNumber,
+                departureDate      = command.DepartureDate,
+                newDepartureTime   = command.NewDepartureTime,
+                newArrivalTime     = command.NewArrivalTime,
                 inventoriesUpdated = count
             });
         }

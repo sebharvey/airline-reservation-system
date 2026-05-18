@@ -1857,6 +1857,11 @@ BEGIN
 END
 GO
 
+-- Migration: add FlightStatus column to delivery.Manifest
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('[delivery].[Manifest]') AND name = 'FlightStatus')
+    ALTER TABLE [delivery].[Manifest] ADD FlightStatus VARCHAR(20) NULL;
+GO
+
 PRINT 'All tables, indexes and triggers created.';
 
 -- =============================================================================
