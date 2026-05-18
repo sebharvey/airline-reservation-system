@@ -1841,6 +1841,61 @@
   vertical-align: middle;
 }
 
+.dep-change-utc-offset-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(88, 166, 255, 0.12);
+  color: #58a6ff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.2px;
+  margin-left: 4px;
+  text-transform: none;
+}
+
+.dep-change-utc-hint {
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+.dep-change-flight-time {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  background: rgba(88, 166, 255, 0.06);
+  border: 1px solid rgba(88, 166, 255, 0.2);
+  border-radius: 8px;
+  color: #58a6ff;
+}
+
+.dep-change-flight-time-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dep-change-flight-time-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text);
+}
+
+.dep-change-flight-time-src {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
 .dep-change-note {
   display: flex;
   align-items: flex-start;

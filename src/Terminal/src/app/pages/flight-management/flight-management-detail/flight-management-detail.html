@@ -801,6 +801,9 @@
           <div class="dep-change-section-label">
             <lucide-icon name="map-pin" [size]="12" />
             Local times
+            @if (utcOffsetLabel()) {
+              <span class="dep-change-utc-offset-badge">{{ utcOffsetLabel() }}</span>
+            }
           </div>
 
           <div class="dep-change-time-row">
@@ -829,7 +832,7 @@
                   type="time"
                   class="modal-input modal-input-time"
                   [ngModel]="newLocalArr()"
-                  (ngModelChange)="newLocalArr.set($event)"
+                  (ngModelChange)="onNewLocalArrChange($event)"
                   autocomplete="off"
                 />
                 @if (newLocalArrOffset() > 0) {
@@ -843,6 +846,9 @@
           <div class="dep-change-section-label">
             <lucide-icon name="globe" [size]="12" />
             UTC times
+            @if (!utcOffsetLabel()) {
+              <span class="dep-change-utc-hint">Enter UTC departure to sync with local</span>
+            }
           </div>
 
           <div class="dep-change-time-row">
@@ -871,7 +877,7 @@
                   type="time"
                   class="modal-input modal-input-time"
                   [ngModel]="newUtcArr()"
-                  (ngModelChange)="newUtcArr.set($event)"
+                  (ngModelChange)="onNewUtcArrChange($event)"
                   autocomplete="off"
                 />
                 @if (newUtcArrOffset() > 0) {
@@ -881,9 +887,26 @@
             </div>
           </div>
 
+          <!-- Calculated flight time (from UTC) -->
+          @if (calculatedFlightTime()) {
+            <div class="dep-change-flight-time">
+              <lucide-icon name="timer" [size]="13" />
+              <span class="dep-change-flight-time-label">Block time</span>
+              <span class="dep-change-flight-time-value">{{ calculatedFlightTime() }}</span>
+              <span class="dep-change-flight-time-src">calculated from UTC</span>
+            </div>
+          }
+
           <div class="dep-change-note">
             <lucide-icon name="info" [size]="13" />
-            Arrival is auto-calculated from the original flight duration of <strong>{{ depChangeDurationLabel() }}</strong>. You can override either arrival field independently.
+            <span>
+              Arrival is auto-calculated using the original block time of <strong>{{ depChangeDurationLabel() }}</strong>.
+              @if (!utcOffsetLabel()) {
+                Enter the UTC departure time to derive the offset — local and UTC will then stay in sync.
+              } @else {
+                Local and UTC times are kept in sync via <strong>{{ utcOffsetLabel() }}</strong>. Override any field to adjust independently.
+              }
+            </span>
           </div>
 
         </div>
