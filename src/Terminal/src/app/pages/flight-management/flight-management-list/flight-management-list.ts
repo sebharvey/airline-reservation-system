@@ -1,5 +1,5 @@
 import { LucideAngularModule } from 'lucide-angular';
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { InventoryService, FlightInventoryGroup } from '../../../services/inventory.service';
@@ -12,10 +12,11 @@ import { PinService } from '../../../services/pin.service';
   templateUrl: './flight-management-list.html',
   styleUrl: './flight-management-list.css',
 })
-export class FlightManagementListComponent implements OnInit {
+export class FlightManagementListComponent implements OnInit, OnDestroy {
   #inventoryService = inject(InventoryService);
   #router = inject(Router);
   pinService = inject(PinService);
+  #refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   selectedDate = signal(new Date().toISOString().slice(0, 10));
 
@@ -56,6 +57,11 @@ export class FlightManagementListComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.load();
+    this.#refreshTimer = setInterval(() => this.load(), 60_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.#refreshTimer !== null) clearInterval(this.#refreshTimer);
   }
 
   async load(): Promise<void> {
@@ -110,7 +116,8 @@ export class FlightManagementListComponent implements OnInit {
 
   statusClass(status: string): string {
     if (status === 'Active') return 'badge-active';
-    if (status === 'Ticketing Closed') return 'badge-warning';
+    if (status === 'Delayed') return 'badge-amber';
+    if (status === 'Ticketing Closed') return 'badge-silver';
     return 'badge-inactive';
   }
 

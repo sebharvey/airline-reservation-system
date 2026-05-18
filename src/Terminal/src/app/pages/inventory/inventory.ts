@@ -1,5 +1,5 @@
 import { LucideAngularModule } from 'lucide-angular';
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { InventoryService, FlightInventoryGroup, CabinInventory } from '../../services/inventory.service';
@@ -10,9 +10,10 @@ import { InventoryService, FlightInventoryGroup, CabinInventory } from '../../se
   styleUrl: './inventory.css',
   imports: [FormsModule, LucideAngularModule],
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent implements OnInit, OnDestroy {
   #inventoryService = inject(InventoryService);
   #router = inject(Router);
+  #refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   flights = signal<FlightInventoryGroup[]>([]);
   selectedDate = signal(this.#inventoryService.lastSelectedDate);
@@ -34,6 +35,11 @@ export class InventoryComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.loadInventory();
+    this.#refreshTimer = setInterval(() => this.loadInventory(), 60_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.#refreshTimer !== null) clearInterval(this.#refreshTimer);
   }
 
   async loadInventory(): Promise<void> {
@@ -92,7 +98,8 @@ export class InventoryComponent implements OnInit {
 
   statusClass(status: string): string {
     if (status === 'Active') return 'badge-active';
-    if (status === 'Ticketing Closed') return 'badge-warning';
+    if (status === 'Delayed') return 'badge-amber';
+    if (status === 'Ticketing Closed') return 'badge-silver';
     return 'badge-inactive';
   }
 
