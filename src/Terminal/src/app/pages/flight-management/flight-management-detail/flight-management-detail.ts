@@ -212,6 +212,150 @@ export class FlightManagementDetailComponent implements OnInit {
     this.cancelError.set('');
   }
 
+  // Departure time change modal state
+  depChangeModalOpen = signal(false);
+  newLocalDep = signal('');
+  newLocalArr = signal('');
+  newLocalArrOffset = signal(0);
+  newUtcDep = signal('');
+  newUtcArr = signal('');
+  newUtcArrOffset = signal(0);
+  localUtcOffsetMins = signal<number | null>(null);
+
+  utcOffsetLabel = computed(() => {
+    const offset = this.localUtcOffsetMins();
+    if (offset === null) return null;
+    const abs = Math.abs(offset);
+    const h = Math.floor(abs / 60);
+    const m = abs % 60;
+    const sign = offset >= 0 ? '+' : '−';
+    return m > 0
+      ? `UTC${sign}${h}:${String(m).padStart(2, '0')}`
+      : `UTC${sign}${h}`;
+  });
+
+  calculatedFlightTime = computed(() => {
+    const dep = this.newUtcDep();
+    const arr = this.newUtcArr();
+    const arrOffset = this.newUtcArrOffset();
+    if (!dep || !arr || !/^\d{2}:\d{2}$/.test(dep) || !/^\d{2}:\d{2}$/.test(arr)) return null;
+    const [dh, dm] = dep.split(':').map(Number);
+    const [ah, am] = arr.split(':').map(Number);
+    const diff = (ah * 60 + am) - (dh * 60 + dm) + arrOffset * 24 * 60;
+    if (diff <= 0) return null;
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  });
+
+  openDepChangeModal(): void {
+    this.closeDisruptionModal();
+    const f = this.flight();
+    if (!f) return;
+    this.newLocalDep.set(f.departureTime);
+    const initialArr = this.#calcArrival(f.departureTime);
+    this.newLocalArr.set(initialArr.time);
+    this.newLocalArrOffset.set(initialArr.dayOffset);
+    this.newUtcDep.set('');
+    this.newUtcArr.set('');
+    this.newUtcArrOffset.set(0);
+    this.localUtcOffsetMins.set(null);
+    this.depChangeModalOpen.set(true);
+  }
+
+  closeDepChangeModal(): void {
+    this.depChangeModalOpen.set(false);
+  }
+
+  onNewLocalDepChange(value: string): void {
+    this.newLocalDep.set(value);
+    if (!/^\d{2}:\d{2}$/.test(value)) return;
+    const localArr = this.#calcArrival(value);
+    this.newLocalArr.set(localArr.time);
+    this.newLocalArrOffset.set(localArr.dayOffset);
+    const offset = this.localUtcOffsetMins();
+    if (offset !== null) {
+      const utcDep = this.#toUtc(value, offset);
+      const utcArr = this.#calcArrival(utcDep);
+      this.newUtcDep.set(utcDep);
+      this.newUtcArr.set(utcArr.time);
+      this.newUtcArrOffset.set(utcArr.dayOffset);
+    }
+  }
+
+  onNewLocalArrChange(value: string): void {
+    this.newLocalArr.set(value);
+    const offset = this.localUtcOffsetMins();
+    if (offset !== null && /^\d{2}:\d{2}$/.test(value)) {
+      const utcArr = this.#toUtc(value, offset);
+      const utcDep = this.newUtcDep();
+      this.newUtcArr.set(utcArr);
+      if (utcDep && /^\d{2}:\d{2}$/.test(utcDep)) {
+        this.newUtcArrOffset.set(this.#calcArrival(utcDep).dayOffset);
+      }
+    }
+  }
+
+  onNewUtcDepChange(value: string): void {
+    this.newUtcDep.set(value);
+    if (!/^\d{2}:\d{2}$/.test(value)) return;
+    const localDep = this.newLocalDep();
+    if (localDep && /^\d{2}:\d{2}$/.test(localDep)) {
+      this.localUtcOffsetMins.set(this.#deriveOffset(localDep, value));
+    }
+    const utcArr = this.#calcArrival(value);
+    this.newUtcArr.set(utcArr.time);
+    this.newUtcArrOffset.set(utcArr.dayOffset);
+  }
+
+  onNewUtcArrChange(value: string): void {
+    this.newUtcArr.set(value);
+  }
+
+  #deriveOffset(localTime: string, utcTime: string): number {
+    const [lh, lm] = localTime.split(':').map(Number);
+    const [uh, um] = utcTime.split(':').map(Number);
+    let offset = (lh * 60 + lm) - (uh * 60 + um);
+    // Normalise to the range [-12h, +14h] (covers all real-world UTC offsets)
+    while (offset > 14 * 60) offset -= 24 * 60;
+    while (offset < -12 * 60) offset += 24 * 60;
+    return offset;
+  }
+
+  #toUtc(localTime: string, offsetMins: number): string {
+    const [h, m] = localTime.split(':').map(Number);
+    const utcTotal = (((h * 60 + m) - offsetMins) % (24 * 60) + 24 * 60) % (24 * 60);
+    return `${String(Math.floor(utcTotal / 60)).padStart(2, '0')}:${String(utcTotal % 60).padStart(2, '0')}`;
+  }
+
+  depChangeDurationLabel = computed(() => {
+    const mins = this.#flightDurationMins();
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  });
+
+  #flightDurationMins(): number {
+    const f = this.flight();
+    if (!f) return 0;
+    const [dh, dm] = f.departureTime.split(':').map(Number);
+    const [ah, am] = f.arrivalTime.split(':').map(Number);
+    return (ah * 60 + am) - (dh * 60 + dm) + f.arrivalDayOffset * 24 * 60;
+  }
+
+  #calcArrival(depTime: string): { time: string; dayOffset: number } {
+    const [h, m] = depTime.split(':').map(Number);
+    const total = h * 60 + m + this.#flightDurationMins();
+    const dayOffset = Math.floor(total / (24 * 60));
+    const remaining = total % (24 * 60);
+    const rh = Math.floor(remaining / 60);
+    const rm = remaining % 60;
+    return {
+      time: `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`,
+      dayOffset,
+    };
+  }
+
   async cancelFlight(): Promise<void> {
     if (this.cancelLoading()) return;
     this.cancelLoading.set(true);

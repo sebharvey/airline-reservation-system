@@ -1612,6 +1612,16 @@
 }
 .disruption-action-btn-ghost:not(:disabled):hover { background: var(--border); }
 
+.disruption-action-btn-delay {
+  background: rgba(240, 136, 62, 0.1);
+  border: 1.5px solid rgba(240, 136, 62, 0.35);
+  color: #f0883e;
+}
+.disruption-action-btn-delay:not(:disabled):hover {
+  background: rgba(240, 136, 62, 0.18);
+  border-color: rgba(240, 136, 62, 0.55);
+}
+
 .disruption-action-card-confirm {
   flex-direction: column;
   align-items: flex-start;
@@ -1702,6 +1712,206 @@
   background: var(--bg-light);
   border-top: 2px solid var(--border);
   border-bottom: none;
+}
+
+/* ── Departure time change modal ────────────────────────────────────────── */
+.modal-card-dep-change {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.dep-change-modal-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+}
+
+.dep-change-modal-body {
+  gap: 14px;
+}
+
+.modal-input-time {
+  text-transform: none;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dep-change-current-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.dep-change-current-times {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dep-change-arrow {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.dep-change-day-offset {
+  font-size: 0.65em;
+  font-weight: 700;
+  color: #f0883e;
+  vertical-align: super;
+}
+
+.dep-change-section-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dep-change-time-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.dep-change-time-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dep-change-time-sep {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  padding-bottom: 9px;
+}
+
+.dep-change-arr-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dep-change-arr-wrap .modal-input-time {
+  flex: 1;
+  min-width: 0;
+}
+
+.dep-change-offset-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(240, 136, 62, 0.12);
+  color: #f0883e;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  white-space: nowrap;
+}
+
+.dep-change-auto-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--grad-start, #6366f1);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.dep-change-utc-offset-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(88, 166, 255, 0.12);
+  color: #58a6ff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.2px;
+  margin-left: 4px;
+  text-transform: none;
+}
+
+.dep-change-utc-hint {
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+.dep-change-flight-time {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  background: rgba(88, 166, 255, 0.06);
+  border: 1px solid rgba(88, 166, 255, 0.2);
+  border-radius: 8px;
+  color: #58a6ff;
+}
+
+.dep-change-flight-time-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dep-change-flight-time-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text);
+}
+
+.dep-change-flight-time-src {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.dep-change-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: rgba(240, 136, 62, 0.05);
+  border: 1px solid rgba(240, 136, 62, 0.2);
+  border-radius: 8px;
+}
+.dep-change-note lucide-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #f0883e;
 }
 
 /* ── Desktop ────────────────────────────────────────────────────────────── */
