@@ -103,7 +103,6 @@ public sealed class DeliveryDbContext : DbContext
             entity.Property(m => m.BookingType).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired();
             entity.Property(m => m.DepartureTime).HasColumnType("time").IsRequired();
             entity.Property(m => m.ArrivalTime).HasColumnType("time").IsRequired();
-            entity.Property(m => m.FlightStatus).HasColumnType("varchar(20)").HasMaxLength(20).IsRequired(false);
             entity.Property(m => m.CheckedIn).HasColumnType("bit").IsRequired();
             entity.Property(m => m.CheckedInAt).HasColumnType("datetime2").IsRequired(false);
             entity.Property(m => m.Baggage).HasColumnType("json").IsRequired(false);

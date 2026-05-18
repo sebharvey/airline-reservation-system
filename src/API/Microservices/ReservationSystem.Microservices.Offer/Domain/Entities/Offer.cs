@@ -144,6 +144,7 @@ public sealed class FlightInventory
         DepartureTimeUtc    = newDepartureTimeUtc;
         ArrivalTimeUtc      = newArrivalTimeUtc;
         ArrivalDayOffsetUtc = newArrivalDayOffsetUtc;
+        Status              = InventoryStatus.Delayed;
     }
 
     public void ChangeAircraftType(string newAircraftType) { AircraftType = newAircraftType; }
@@ -157,6 +158,7 @@ public static class InventoryStatus
 {
     public const string Active = "Active";
     public const string Cancelled = "Cancelled";
+    public const string Delayed = "Delayed";
 }
 
 public sealed class Fare
