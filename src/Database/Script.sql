@@ -177,7 +177,7 @@ CREATE TABLE [offer].[FlightInventory] (
     UpdatedAt         DATETIME2        NOT NULL CONSTRAINT DF_FlightInventory_Updated DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_FlightInventory          PRIMARY KEY (InventoryId),
     CONSTRAINT UQ_FlightInventory_Flight   UNIQUE      (FlightNumber, DepartureDate),
-    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled','Ticketing Closed'))
+    CONSTRAINT CHK_FlightInventory_Status  CHECK (Status IN ('Active','Cancelled','Ticketing Closed','Delayed'))
 );
 GO
 
@@ -1860,6 +1860,19 @@ BEGIN
             FROM   [user].[User] t
             INNER JOIN inserted i ON t.UserId = i.UserId;
     ');
+END
+GO
+
+-- Migration: allow 'Delayed' status on offer.FlightInventory
+IF EXISTS (
+    SELECT 1 FROM sys.check_constraints
+    WHERE name = 'CHK_FlightInventory_Status'
+      AND parent_object_id = OBJECT_ID('[offer].[FlightInventory]')
+)
+BEGIN
+    ALTER TABLE [offer].[FlightInventory] DROP CONSTRAINT CHK_FlightInventory_Status;
+    ALTER TABLE [offer].[FlightInventory] ADD CONSTRAINT CHK_FlightInventory_Status
+        CHECK (Status IN ('Active','Cancelled','Ticketing Closed','Delayed'));
 END
 GO
 

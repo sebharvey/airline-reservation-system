@@ -48,6 +48,14 @@ public sealed class Manifest
         Version++;
     }
 
+    public void ApplyDelay(TimeOnly newDepartureTime, TimeOnly newArrivalTime)
+    {
+        DepartureTime = newDepartureTime;
+        ArrivalTime   = newArrivalTime;
+        UpdatedAt     = DateTime.UtcNow;
+        Version++;
+    }
+
     public void UpdateSsrCodes(string? ssrCodesJson)
     {
         SsrCodes  = ssrCodesJson;

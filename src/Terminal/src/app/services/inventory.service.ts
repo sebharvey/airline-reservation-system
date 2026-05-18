@@ -163,6 +163,18 @@ export interface IropsOrdersResponse {
   orders: IropsOrderItem[];
 }
 
+export interface DisruptionTimeResponse {
+  flightNumber: string;
+  departureDate: string;
+  newDepartureTime: string;
+  newArrivalTime: string;
+  newDepartureTimeUtc: string | null;
+  newArrivalTimeUtc: string | null;
+  inventoriesUpdated: number;
+  affectedPassengerCount: number;
+  processedAt: string;
+}
+
 export interface IropsRebookOrderResponse {
   bookingReference: string;
   outcome: 'Rebooked' | 'Failed';
@@ -389,6 +401,35 @@ export class InventoryService {
       this.#http.post<void>(
         `${this.#operationsBaseUrl}/disruption/change`,
         { flightNumber, departureDate, newAircraftType, newAircraftRegistration }
+      )
+    );
+  }
+
+  async changeFlightTimes(
+    flightNumber: string,
+    departureDate: string,
+    newDepartureTime: string,
+    newArrivalTime: string,
+    newArrivalDayOffset: number,
+    newDepartureTimeUtc: string | null,
+    newArrivalTimeUtc: string | null,
+    newArrivalDayOffsetUtc: number | null,
+    reason?: string,
+  ): Promise<DisruptionTimeResponse> {
+    return firstValueFrom(
+      this.#http.post<DisruptionTimeResponse>(
+        `${this.#operationsBaseUrl}/disruption/time`,
+        {
+          flightNumber,
+          departureDate,
+          newDepartureTime,
+          newArrivalTime,
+          newArrivalDayOffset,
+          newDepartureTimeUtc,
+          newArrivalTimeUtc,
+          newArrivalDayOffsetUtc,
+          reason,
+        }
       )
     );
   }

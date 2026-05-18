@@ -16,6 +16,18 @@ public sealed class AdminDisruptionTimeRequest
     [JsonPropertyName("newArrivalTime")]
     public string NewArrivalTime { get; init; } = string.Empty;
 
+    [JsonPropertyName("newArrivalDayOffset")]
+    public int NewArrivalDayOffset { get; init; }
+
+    [JsonPropertyName("newDepartureTimeUtc")]
+    public string? NewDepartureTimeUtc { get; init; }
+
+    [JsonPropertyName("newArrivalTimeUtc")]
+    public string? NewArrivalTimeUtc { get; init; }
+
+    [JsonPropertyName("newArrivalDayOffsetUtc")]
+    public int? NewArrivalDayOffsetUtc { get; init; }
+
     [JsonPropertyName("reason")]
     public string? Reason { get; init; }
 }

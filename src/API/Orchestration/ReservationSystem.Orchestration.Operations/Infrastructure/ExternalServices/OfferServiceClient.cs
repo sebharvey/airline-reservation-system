@@ -199,6 +199,43 @@ public sealed class OfferServiceClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<int> UpdateInventoryTimesAsync(
+        string flightNumber,
+        string departureDate,
+        string newDepartureTime,
+        string newArrivalTime,
+        int newArrivalDayOffset,
+        string? newDepartureTimeUtc,
+        string? newArrivalTimeUtc,
+        int? newArrivalDayOffsetUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var body = new
+        {
+            flightNumber,
+            departureDate,
+            newDepartureTime,
+            newArrivalTime,
+            newArrivalDayOffset,
+            newDepartureTimeUtc,
+            newArrivalTimeUtc,
+            newArrivalDayOffsetUtc
+        };
+        var response = await _httpClient.PatchAsJsonAsync("/api/v1/inventory/flight-times", body, JsonOptions, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            throw new KeyNotFoundException($"No inventory found for flight {flightNumber} on {departureDate}.");
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        response.EnsureSuccessStatusCode();
+
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+        return doc.RootElement.TryGetProperty("inventoriesUpdated", out var el) ? el.GetInt32() : 0;
+    }
+
     public async Task UpdateInventoryAircraftTypeAsync(
         string flightNumber,
         string departureDate,

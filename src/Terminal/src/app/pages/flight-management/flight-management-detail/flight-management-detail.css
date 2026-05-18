@@ -1914,6 +1914,19 @@
   color: #f0883e;
 }
 
+.dep-change-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff0f0;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: #c0392b;
+  margin: 0 20px 4px;
+}
+
 /* ── Desktop ────────────────────────────────────────────────────────────── */
 @media (min-width: 901px) {
   .fd-detail-page {

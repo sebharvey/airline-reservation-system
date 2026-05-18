@@ -911,13 +911,23 @@
 
         </div>
 
+        @if (depChangeError()) {
+          <div class="dep-change-error" role="alert">
+            <lucide-icon name="triangle-alert" [size]="13" /> {{ depChangeError() }}
+          </div>
+        }
+
         <div class="modal-footer">
-          <button class="modal-btn modal-btn-cancel" (click)="closeDepChangeModal()">Cancel</button>
+          <button class="modal-btn modal-btn-cancel" (click)="closeDepChangeModal()" [disabled]="depChangeSaving()">Cancel</button>
           <button
             class="modal-btn modal-btn-save"
-            [disabled]="!newLocalDep()">
-            <lucide-icon name="check" [size]="14" />
-            Confirm change
+            [disabled]="!newLocalDep() || depChangeSaving()"
+            (click)="confirmDepChange()">
+            @if (depChangeSaving()) {
+              <span class="btn-spinner"></span> Saving…
+            } @else {
+              <lucide-icon name="check" [size]="14" /> Confirm change
+            }
           </button>
         </div>
       </div>

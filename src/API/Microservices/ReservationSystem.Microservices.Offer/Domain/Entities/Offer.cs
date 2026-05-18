@@ -130,6 +130,23 @@ public sealed class FlightInventory
 
     public void Cancel() { Status = InventoryStatus.Cancelled; SeatsAvailable = 0; }
 
+    public void UpdateTimes(
+        TimeOnly newDepartureTime,
+        TimeOnly newArrivalTime,
+        int newArrivalDayOffset,
+        TimeOnly? newDepartureTimeUtc = null,
+        TimeOnly? newArrivalTimeUtc = null,
+        int? newArrivalDayOffsetUtc = null)
+    {
+        DepartureTime       = newDepartureTime;
+        ArrivalTime         = newArrivalTime;
+        ArrivalDayOffset    = newArrivalDayOffset;
+        DepartureTimeUtc    = newDepartureTimeUtc;
+        ArrivalTimeUtc      = newArrivalTimeUtc;
+        ArrivalDayOffsetUtc = newArrivalDayOffsetUtc;
+        Status              = InventoryStatus.Delayed;
+    }
+
     public void ChangeAircraftType(string newAircraftType) { AircraftType = newAircraftType; }
 
     public void SetDepartureGate(string? gate) { DepartureGate = gate; }
@@ -141,6 +158,7 @@ public static class InventoryStatus
 {
     public const string Active = "Active";
     public const string Cancelled = "Cancelled";
+    public const string Delayed = "Delayed";
 }
 
 public sealed class Fare

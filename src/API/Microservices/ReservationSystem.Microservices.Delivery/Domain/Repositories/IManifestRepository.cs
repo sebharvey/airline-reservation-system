@@ -53,6 +53,12 @@ public interface IManifestRepository
     Task<IReadOnlyList<string>> GetAssignedSeatsByFlightAsync(string flightNumber, string origin, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Updates departure/arrival times and sets FlightStatus = 'Delayed' on all manifest rows
+    /// for the given flight. Returns the number of rows updated.
+    /// </summary>
+    Task<int> UpdateFlightTimesAsync(string flightNumber, DateOnly departureDate, TimeOnly newDepartureTime, TimeOnly newArrivalTime, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes all manifest entries whose <c>DepartureDate</c> is more than 48 hours in the past.
     /// Returns the number of rows deleted.
     /// </summary>

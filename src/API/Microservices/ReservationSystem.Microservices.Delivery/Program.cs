@@ -22,6 +22,7 @@ using ReservationSystem.Microservices.Delivery.Application.DeleteExpiredManifest
 using ReservationSystem.Microservices.Delivery.Application.DeleteManifestFlight;
 using ReservationSystem.Microservices.Delivery.Application.GetManifest;
 using ReservationSystem.Microservices.Delivery.Application.RebookManifest;
+using ReservationSystem.Microservices.Delivery.Application.UpdateManifestFlightTimes;
 using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSeat;
 using ReservationSystem.Microservices.Delivery.Application.UpdateManifestSsrs;
 using ReservationSystem.Microservices.Delivery.Application.WriteManifest;
@@ -110,6 +111,7 @@ var host = new HostBuilder()
         services.AddScoped<DeleteExpiredManifestItemsHandler>();
         services.AddScoped<DeleteManifestFlightHandler>();
         services.AddScoped<UpdateManifestSsrsHandler>();
+        services.AddScoped<UpdateManifestFlightTimesHandler>();
         services.AddScoped<GetAllWatchlistEntriesHandler>();
         services.AddScoped<GetWatchlistEntryHandler>();
         services.AddScoped<CreateWatchlistEntryHandler>();
