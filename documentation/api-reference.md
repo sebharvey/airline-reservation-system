@@ -642,3 +642,13 @@ Mimics the IATA AutoCheck REST API. All endpoints use `Authorization: Bearer <to
 | `POST` | `/autocheck/v1/documentcheck` | Document check — validates passport, visa, and health document requirements for a journey. Called at booking or OCI entry. Returns `status: OK`, no visa required, no health document required, and any applicable advisories (e.g. ESTA for US arrivals) |
 | `POST` | `/autocheck/v1/apischeck` | APIS check — validates Advance Passenger Information when a passenger submits check-in data. Returns `apisStatus: ACCEPTED`, `fineRisk: LOW`, and a generated audit reference |
 | `POST` | `/autocheck/v1/realtimecheck` | Realtime gate check — called when a gate agent scans the passenger MRZ. Parses the ICAO TD3 MRZ lines and returns a `decision: GO` with the extracted document fields |
+
+---
+
+## Exceptions Microservice
+
+The Exceptions microservice provides operational visibility into application errors across all services. It queries the shared Application Insights workspace using KQL and returns structured exception data with call stacks for diagnostics and incident response.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/exceptions` | Retrieve all Application Insights exceptions from the last hour; returns `count`, `queryFrom`, `queryTo`, and an `exceptions` array — each entry includes `timestamp`, `problemId`, `exceptionType`, `message`, `callStack`, `severityLevel`, `operationName`, `operationId`, `cloudRoleName`, `method`, `assembly`, `outerType`, and `outerMessage` |
