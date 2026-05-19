@@ -330,6 +330,74 @@ One row per **search session**. All matching flights and their cabin fares are s
 
 ---
 
+## Standby bookings
+
+Standby is a staff-travel booking type that allows Apex Air employees to travel on a space-available basis at no base fare cost (taxes only). Standby bookings use the private **Staff** fare family and flow through the admin channel only — the public Retail API and web channel never surface standby offers.
+
+### Booking type values
+
+| `bookingType` | Description |
+|---|---|
+| `Revenue` | Standard paid booking — default when omitted |
+| `Reward` | Loyalty points redemption |
+| `Standby` | Staff travel — taxes only, space-available |
+
+### Search behaviour
+
+Standby searches differ from Revenue searches in two ways:
+
+- **Sold-out flights are included.** `SearchOffersHandler` calls `SearchAllInventoryAsync` rather than `SearchAvailableInventoryAsync`, returning every active flight on the route regardless of `SeatsAvailable`. This allows staff to join a standby queue on a full flight.
+- **All cabins are returned regardless of remaining seats.** The cabin filter (`SeatsAvailable >= paxCount`) is bypassed so the response always includes every cabin on each returned flight.
+
+The 1-hour booking cutoff (flights departing within 60 minutes of search time) applies equally to standby searches.
+
+### Staff fare family
+
+Standby bookings are priced using the **Staff** fare family — a private fare rule (`IsPrivate = 1`) with a zero base fare (`MinAmount = 0`, `MaxAmount = 0`). Only taxes are charged. Because it is a private fare rule, it is suppressed from all public search paths; it surfaces only when `includePrivateFares = true` is sent by the admin Retail API.
+
+Callers must pass `bookingType: "Standby"` in the search request to retrieve sold-out flights. The Staff fare family is then selected from the Economy cabin (`Y`) of the search results before creating the basket.
+
+### Hold behaviour
+
+When `holdType: "Standby"` is sent to `POST /v1/inventory/hold`:
+
+- **Inventory counters are not decremented.** `SeatsAvailable` and `SeatsHeld` are unchanged — the standby passenger does not consume a seat.
+- A hold record is created in the `InventoryHold` table with `HoldType = 'Standby'` and `StandbyPriority` set to identify the passenger's queue position.
+- `StandbyPriority` is a `SMALLINT` — lower values indicate higher priority. The Retail API sets a default priority of `50` for staff leisure standby bookings.
+
+### Order and manifest
+
+At order confirmation the `bookingType` is carried forward from the basket into the order record. The Delivery MS manifest row is written with `BookingType = 'Standby'` (rather than `'Confirmed'`), which is the signal used downstream (e.g. seat auto-assignment) to exclude standby passengers from confirmed-passenger processing.
+
+### Standby booking flow
+
+```mermaid
+sequenceDiagram
+    actor StaffAgent
+    participant AdminRetail as Admin Retail API
+    participant OfferMS as Offer [MS]
+    participant OrderMS as Order [MS]
+
+    StaffAgent->>AdminRetail: POST /v1/admin/search/slice (bookingType=Standby)
+    AdminRetail->>OfferMS: POST /v1/search (bookingType=Standby, includePrivateFares=true)
+    Note over OfferMS: Includes sold-out flights — all cabins returned
+    OfferMS-->>AdminRetail: Offer options including Staff fare family (zero base fare)
+    AdminRetail-->>StaffAgent: Search results with Staff fare
+
+    StaffAgent->>AdminRetail: POST /v1/admin/basket (bookingType=Standby, Staff offerId)
+    AdminRetail->>OfferMS: POST /v1/inventory/hold (holdType=Standby, standbyPriority=50)
+    Note over OfferMS: No inventory decremented — standby queues only
+    OfferMS-->>AdminRetail: Hold recorded
+
+    StaffAgent->>AdminRetail: POST /v1/admin/basket/{basketId}/confirm (taxes payment)
+    AdminRetail->>OrderMS: Confirm order (bookingType=Standby)
+    OrderMS-->>AdminRetail: Order confirmed — itemStatus=Standby
+    AdminRetail-->>StaffAgent: Booking reference, e-ticket (taxes only)
+    Note over AdminRetail: Manifest written with BookingType=Standby
+```
+
+---
+
 ## Timer triggers
 
 ### `DeleteExpiredFlightInventory`
