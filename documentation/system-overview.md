@@ -236,6 +236,7 @@ graph LR
 - **Ancillary** — seatmap definitions, fleet-wide seat pricing, seat offer generation, bag policies, bag pricing, and bag offer generation. Owns Ancillary DB.
 - **Schedule** — flight schedule definitions and bulk inventory generation. Owns Schedule DB.
 - **User** — employee user accounts, credentials, and account lockout for all internal staff. Owns User DB. Separate from the Identity microservice, which manages loyalty member credentials.
+- **Exceptions** — application error monitoring and diagnostics. Queries Application Insights for system exceptions, call stacks, and failure analysis across all services. No database ownership — reads from the shared Application Insights workspace.
 
 ## Cabin Classes
 
