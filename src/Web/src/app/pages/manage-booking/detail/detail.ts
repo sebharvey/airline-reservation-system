@@ -35,9 +35,16 @@ export class ManageBookingDetailComponent implements OnInit {
   copiedText = signal<string | null>(null);
 
   selectedTicket = signal<Ticket | null>(null);
+  pnrModalOpen = signal(false);
+  copiedPnr = signal(false);
 
   readonly activeTickets = computed<Ticket[]>(() => (this.order()?.tickets ?? []).filter(t => !t.isVoided));
   readonly voidedTickets = computed<Ticket[]>(() => (this.order()?.tickets ?? []).filter(t => t.isVoided));
+
+  readonly pnrText = computed((): string => {
+    const o = this.order();
+    return o ? this.buildPnrText(o) : '';
+  });
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
@@ -164,6 +171,193 @@ export class ManageBookingDetailComponent implements OnInit {
 
   closeTicketModal(): void {
     this.selectedTicket.set(null);
+  }
+
+  openPnrModal(): void {
+    this.pnrModalOpen.set(true);
+  }
+
+  closePnrModal(): void {
+    this.pnrModalOpen.set(false);
+  }
+
+  copyPnrToClipboard(): void {
+    navigator.clipboard.writeText(this.pnrText()).then(() => {
+      this.copiedPnr.set(true);
+      setTimeout(() => this.copiedPnr.set(false), 2000);
+    });
+  }
+
+  private buildPnrText(o: Order): string {
+    const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const DOW_MAP = [7,1,2,3,4,5,6]; // JS 0=Sun→7, 1=Mon→1 ...
+
+    const fmtDate = (iso: string) => {
+      const d = new Date(iso);
+      return `${String(d.getUTCDate()).padStart(2,'0')}${MONTHS[d.getUTCMonth()]}`;
+    };
+
+    const fmtDateYY = (iso: string) => {
+      const d = new Date(iso);
+      return `${String(d.getUTCDate()).padStart(2,'0')}${MONTHS[d.getUTCMonth()]}${String(d.getUTCFullYear()).slice(2)}`;
+    };
+
+    const fmtTime = (iso: string) => {
+      const d = new Date(iso);
+      return `${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}`;
+    };
+
+    const fmtDow = (iso: string) => String(DOW_MAP[new Date(iso).getUTCDay()]);
+
+    const dayDiff = (dep: string, arr: string): string => {
+      const a = new Date(arr), b = new Date(dep);
+      const diff = Math.round((
+        Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate()) -
+        Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate())
+      ) / 86400000);
+      return diff > 0 ? `+${diff}` : diff < 0 ? String(diff) : '';
+    };
+
+    const lines: string[] = [];
+    const cd = new Date(o.createdAt);
+    const createdStr = `${cd.getUTCDate()}/${MONTHS[cd.getUTCMonth()]}/${String(cd.getUTCFullYear()).slice(2)}`;
+    const mc0 = (o.flightSegments[0]?.marketingCarrier || 'AX').toUpperCase();
+
+    // ── Header ──
+    lines.push('--- RLR MSC ---');
+    lines.push(`RP/APXWB0001/APXWB0001           ${o.channelCode.slice(0,2).padEnd(2)}/SU  ${createdStr}`);
+    lines.push(o.bookingReference);
+    lines.push('');
+
+    // ── Name elements ──
+    const names = o.passengers.map((p, i) => {
+      const title = p.type === 'ADT' ? (p.gender === 'F' ? 'MRS' : 'MR') :
+                    p.type === 'CHD' ? (p.gender === 'F' ? 'MISS' : 'MSTR') :
+                    p.type === 'INF' ? 'INF' : '';
+      return `${i+1}.${p.surname.toUpperCase()}/${p.givenName.toUpperCase()}${title ? ' '+title : ''}`;
+    });
+    let nameLine = '';
+    for (const n of names) {
+      const sep = nameLine ? '  ' : ' ';
+      if (nameLine && (nameLine.length + sep.length + n.length) > 72) {
+        lines.push(nameLine);
+        nameLine = ' ' + n;
+      } else {
+        nameLine = nameLine ? nameLine + sep + n : ' ' + n;
+      }
+    }
+    if (nameLine) lines.push(nameLine);
+    lines.push('');
+
+    // ── Itinerary ──
+    o.flightSegments.forEach((s, i) => {
+      const mc = (s.marketingCarrier || s.operatingCarrier || 'AX').toUpperCase();
+      const fn = s.flightNumber.replace(/^[A-Z]{2}/i, '').padStart(3, '0');
+      const dc = dayDiff(s.departureDateTime, s.arrivalDateTime);
+      const n = o.passengers.length;
+      const dcPad = dc ? ` ${dc}` : '   ';
+      lines.push(` ${String(i+1).padStart(2)}  ${mc} ${fn} ${s.bookingClass} ${fmtDate(s.departureDateTime)} ${fmtDow(s.departureDateTime)} ${s.origin}${s.destination} HK${n}  ${fmtTime(s.departureDateTime)}  ${fmtTime(s.arrivalDateTime)}${dcPad}  E  /DC${mc} /E`);
+    });
+    lines.push('');
+
+    // ── AP (contact) ──
+    const contactPax = o.passengers.find(p => p.contacts?.phone || p.contacts?.email);
+    if (contactPax?.contacts?.phone) {
+      lines.push(`AP ${contactPax.contacts.phone}`);
+    }
+    if (contactPax?.contacts?.email) {
+      lines.push(`AP ${contactPax.contacts.email.toUpperCase()}`);
+    }
+    if (contactPax) lines.push('');
+
+    // ── TK (ticketing) ──
+    lines.push(`TK OK${fmtDateYY(o.createdAt)}/APXWB0001//ET${mc0}`);
+    lines.push('');
+
+    // ── FP (form of payment) ──
+    o.payments.forEach((pay, i) => {
+      let fp: string;
+      if (pay.method === 'CreditCard' || pay.method === 'DebitCard') {
+        const brand = (pay.cardType || '').toUpperCase();
+        const code = brand.startsWith('VI') ? 'VI' : brand.startsWith('MA') ? 'MC' :
+                     brand.startsWith('AM') ? 'AX' : brand.startsWith('DI') ? 'DC' : 'CA';
+        fp = `CC${code}${pay.cardLast4}/0000/${pay.currency}${pay.authorisedAmount.toFixed(2)}`;
+      } else if (pay.method === 'ApplePay') {
+        fp = 'APPL';
+      } else if (pay.method === 'GooglePay') {
+        fp = 'GPAY';
+      } else {
+        fp = pay.method.toUpperCase().slice(0, 8);
+      }
+      lines.push(` ${String(i+1).padStart(2)} FP ${fp}`);
+    });
+    lines.push('');
+
+    // ── SSR ──
+    o.passengers.forEach((p, i) => {
+      const pn = i + 1;
+      const carrier = mc0;
+      p.docs?.forEach(doc => {
+        const docType = doc.type === 'PASSPORT' ? 'P' : 'I';
+        const dob = fmtDateYY(p.dob);
+        const exp = fmtDateYY(doc.expiryDate);
+        const gen = p.gender === 'F' ? 'F' : p.gender === 'M' ? 'M' : 'U';
+        lines.push(`SSR DOCS ${carrier} HK1 ${docType}/${doc.issuingCountry}/${doc.number}/${doc.nationality}/${dob}/${gen}/${exp}/${p.surname.toUpperCase()}/${p.givenName.toUpperCase()}-${pn}`);
+      });
+      if (p.contacts?.email) {
+        lines.push(`SSR CTCE ${carrier} HK1 ${p.contacts.email.replace('@', '//').toUpperCase()}-${pn}`);
+      }
+      if (p.contacts?.phone) {
+        lines.push(`SSR CTCM ${carrier} HK1 ${p.contacts.phone}-${pn}`);
+      }
+      if (p.loyaltyNumber) {
+        lines.push(`SSR FQTV ${carrier} HK1 ${carrier}${p.loyaltyNumber}/${carrier}-${pn}`);
+      }
+    });
+
+    o.orderItems.filter(oi => oi.type === 'SSR').forEach(oi => {
+      if (!oi.ssrCode) return;
+      const pn = o.passengers.findIndex(p => oi.passengerRefs.includes(p.passengerId)) + 1;
+      const seg = o.flightSegments.find(s => s.segmentId === oi.segmentRef);
+      const carrier = (seg?.marketingCarrier || mc0).toUpperCase();
+      lines.push(`SSR ${oi.ssrCode} ${carrier} HK1-${pn}`);
+    });
+
+    lines.push('');
+
+    // ── FA (e-ticket numbers) ──
+    let faSeq = 1;
+    const faLines: string[] = [];
+    o.flightSegments.forEach(seg => {
+      const fi = o.orderItems.find(oi => oi.type === 'Flight' && oi.segmentRef === seg.segmentId);
+      if (!fi?.eTickets?.length) return;
+      const carrier = (seg.marketingCarrier || 'AX').toUpperCase();
+      const fn = seg.flightNumber.replace(/^[A-Z]{2}/i, '').padStart(3, '0');
+      const date = fmtDate(seg.departureDateTime);
+      fi.eTickets.forEach(et => {
+        const pn = o.passengers.findIndex(p => p.passengerId === et.passengerId) + 1;
+        const fare = (fi.totalPrice ?? 0).toFixed(2);
+        const fb = fi.fareBasisCode ?? '';
+        faLines.push(` ${String(faSeq++).padStart(2)}  FA PAX ${pn}.${et.eTicketNumber}/${carrier} ${carrier}${fn}${seg.bookingClass}/${date}/${seg.origin}${seg.destination}/${o.currency}${fare}/${fb}`);
+      });
+    });
+    if (faLines.length) {
+      lines.push(...faLines);
+      lines.push('');
+    }
+
+    // ── FE (endorsements/restrictions) ──
+    const seenFe = new Set<string>();
+    o.tickets?.filter(t => !t.isVoided && t.ticketData?.endorsementsRestrictions).forEach(t => {
+      const end = t.ticketData!.endorsementsRestrictions!;
+      if (!seenFe.has(end)) {
+        seenFe.add(end);
+        const pn = o.passengers.findIndex(p => p.passengerId === t.passengerId) + 1;
+        lines.push(`FE ${end}-${pn}`);
+      }
+    });
+
+    return lines.join('\n');
   }
 
   couponStatusLabel(status: string): string {
