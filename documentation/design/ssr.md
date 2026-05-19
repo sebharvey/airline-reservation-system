@@ -9,7 +9,7 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 - SSRs are segment-specific — a connecting passenger requires independent SSR entries per leg.
 - Meal SSRs require at least 24 hours' notice; accessibility SSRs accepted up to check-in close but earlier notice aids ground handling preparation.
 - On IROPS rebooking, the Operations API carries all SSR items from the cancelled segment to the replacement itinerary.
-- The SSR catalogue is stored in `order.SsrCatalogue`, owned by the Order MS. The Retail API exposes `GET /v1/ssr/options` to channels by proxying to the Order MS `GET /v1/ssr/options` endpoint — the Retail API holds no direct database connection. CRUD admin endpoints allow authorised staff (via a future Contact Centre admin app) to add, update, and deactivate SSR codes without a code deployment.
+- The SSR catalogue is stored in `order.SsrCatalogue`, owned by the Order MS. The Retail API exposes `GET /v1/ssr/options` to channels by proxying to the Order MS `GET /v1/ssr/options` endpoint — the Retail API holds no direct database connection. CRUD admin endpoints on the Admin API allow authorised staff to add, update, and deactivate SSR codes without a code deployment.
 - Selections stored as typed items in `OrderData` per passenger per segment and included in the manifest payload so `delivery.Manifest` records carry operational codes for crew briefings and ground handling.
 
 ## `order.SsrCatalogue` data schema
@@ -26,14 +26,22 @@ SSRs are IATA-standardised four-character codes communicating individual passeng
 
 > **Indexes:** `IX_SsrCatalogue_Code` on `(SsrCode)` WHERE `IsActive = 1`.
 
-## SSR Catalogue CRUD Endpoints (Retail API)
+## SSR catalogue endpoints
+
+### Public (Retail API)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/ssr/options` | Retrieve all active SSR codes and labels by category; accepts optional `cabinCode` and `flightNumbers` query parameters to filter applicable SSRs |
-| `POST` | `/v1/ssr/options` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`); called by admin tools to add new SSR codes without redeployment |
-| `PUT` | `/v1/ssr/options/{ssrCode}` | Update an existing SSR catalogue entry (label or category); `ssrCode` itself is immutable |
-| `DELETE` | `/v1/ssr/options/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected |
+
+### Admin API (staff JWT required)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/v1/admin/ssr` | Retrieve all active SSR catalogue entries; same data as the public endpoint |
+| `POST` | `/v1/admin/ssr` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`) |
+| `PUT` | `/v1/admin/ssr/{ssrCode}` | Update an existing SSR catalogue entry (label or category); `ssrCode` itself is immutable |
+| `DELETE` | `/v1/admin/ssr/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected |
 
 ## Supported SSR codes
 

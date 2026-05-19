@@ -86,10 +86,10 @@
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/ssr/options` | Retrieve all active SSR codes, labels, and categories (Meal, Mobility, Accessibility) from `order.SsrCatalogue`; accepts optional `cabinCode` and `flightNumbers` query parameters |
-| `GET` | `/v1/admin/ssr/options` | Retrieve all active SSR codes, labels, and categories (staff); same data as the public endpoint but protected by staff JWT; used by the Terminal Contact Centre app |
-| `POST` | `/v1/ssr/options` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`); admin endpoint — not channel-facing |
-| `PUT` | `/v1/ssr/options/{ssrCode}` | Update an existing SSR entry (label or category); `ssrCode` is immutable; admin endpoint |
-| `DELETE` | `/v1/ssr/options/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected; admin endpoint |
+| `GET` | `/v1/admin/ssr` | Retrieve all active SSR catalogue entries (staff); same data as the public endpoint but protected by staff JWT; used by the Terminal Contact Centre app |
+| `POST` | `/v1/admin/ssr` | Create a new SSR catalogue entry (`ssrCode`, `label`, `category`); protected by staff JWT |
+| `PUT` | `/v1/admin/ssr/{ssrCode}` | Update an existing SSR entry (label or category); `ssrCode` is immutable; protected by staff JWT |
+| `DELETE` | `/v1/admin/ssr/{ssrCode}` | Deactivate an SSR code (`IsActive = 0`); existing order items referencing the code are unaffected; protected by staff JWT |
 
 ### Products
 
