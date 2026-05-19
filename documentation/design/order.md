@@ -80,8 +80,8 @@ sequenceDiagram
         SeatMS-->>RetailAPI: 200 OK — seatmap layout (cabin configuration, seat positions, attributes)
         RetailAPI->>SeatMS: GET /v1/seat-offers?flightId={flightId}
         SeatMS-->>RetailAPI: 200 OK — priced seat offers (SeatOfferId, price, seat attributes per selectable seat)
-        RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
-        OfferMS-->>RetailAPI: 200 OK — seat availability status per seat (available|held|sold)
+        RetailAPI->>DeliveryMS: GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}
+        DeliveryMS-->>RetailAPI: 200 OK — manifest entries (occupied seat numbers)
         RetailAPI-->>Web: 200 OK — seat map with pricing and availability (merged by Retail API)
         Traveller->>Web: Select seat(s) for each PAX
         Web->>RetailAPI: PUT /v1/basket/{basketId}/seats (seatOfferIds per PAX per flight)

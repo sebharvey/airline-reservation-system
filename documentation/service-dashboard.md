@@ -73,8 +73,6 @@ After step 2, flights are immediately live for offer search.
 | `POST` | `/v1/flights/{inventoryId}/fares` | Add a fare to an inventory record |
 | `POST` | `/v1/search` | Search inventory and return stored-offer snapshots |
 | `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer by ID |
-| `GET` | `/v1/flights/{flightId}/seat-availability` | Get per-seat availability status |
-| `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve specific seats |
 | `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status (e.g. to checked-in) |
 | `POST` | `/v1/inventory/hold` | Hold seats for a basket |
 | `POST` | `/v1/inventory/sell` | Convert held seats to sold at order confirmation |
@@ -88,7 +86,7 @@ After step 2, flights are immediately live for offer search.
 | Domain | Tables | Owner |
 |--------|--------|-------|
 | `schedule` | `FlightSchedule` | Schedule MS |
-| `offer` | `FlightInventory`, `Fare`, `StoredOffer`, `InventoryHold`, `SeatReservation` | Offer MS |
+| `offer` | `FlightInventory`, `Fare`, `StoredOffer`, `InventoryHold` | Offer MS |
 | `order` | `Basket`, `Order`, `SsrCatalogue` | Order MS |
 | `payment` | `Payment`, `PaymentEvent` | Payment MS |
 | `delivery` | `Ticket`, `Manifest`, `Document` | Delivery MS |

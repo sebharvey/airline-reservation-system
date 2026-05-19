@@ -5,7 +5,7 @@
 > **Transport:** HTTPS (TLS 1.2 minimum)
 > **Content type:** `application/json`
 
-The Offer microservice is the system of record for flight inventory, fare definitions, stored offer snapshots, and per-flight seat availability. It owns four capability areas: **Flight Inventory** (`offer.FlightInventory`) — seat capacity per flight, cabin, and date; **Fares** (`offer.Fare`) — fare definitions, pricing, and conditions linked to inventory records; **Stored Offers** (`offer.StoredOffer`) — point-in-time pricing snapshots presented to customers, ensuring price integrity through to order creation; and **Seat Availability** — per-seat status (available, held, sold) overlaid by the Retail API onto the Seat MS layout and pricing.
+The Offer microservice is the system of record for flight inventory, fare definitions, and stored offer snapshots. It owns three capability areas: **Flight Inventory** (`offer.FlightInventory`) — seat capacity per flight, cabin, and date; **Fares** (`offer.Fare`) — fare definitions, pricing, and conditions linked to inventory records; and **Stored Offers** (`offer.StoredOffer`) — point-in-time pricing snapshots presented to customers, ensuring price integrity through to order creation. Per-seat occupancy status is owned by the Delivery MS via the passenger manifest — not the Offer MS.
 
 > **Important:** The Offer microservice operates on individual flight **segments only**. It has no concept of multi-segment connecting itineraries. Connecting itinerary assembly (pairing legs, enforcing minimum connect time, combining prices) is exclusively the responsibility of the Retail API orchestration layer.
 
@@ -75,7 +75,7 @@ The Offer MS has no knowledge of multi-leg itineraries. When the Retail API hand
 
 ### Seat Availability vs Seat Pricing
 
-The Offer MS owns **real-time seat availability** (available, held, or sold) per flight. It does not own seat pricing or seatmap layout. The full seatmap response for a channel is assembled by the Retail API from three sources: Seat MS layout, Seat MS pricing/`SeatOfferId`, and Offer MS availability status.
+The Offer MS does **not** own per-seat occupancy. Seat occupancy is derived from the Delivery MS passenger manifest — a seat is occupied if a manifest entry exists for that seat number on the flight. The Offer MS owns aggregate inventory counts (`SeatsAvailable`, `SeatsHeld`, `SeatsSold`) at the cabin level for yield management and search filtering only. The full seatmap response for a channel is assembled by the Retail API from three sources: Ancillary MS layout, Ancillary MS pricing/`SeatOfferId`, and Delivery MS manifest (occupied seats).
 
 ### Code Share (Future Scope)
 
@@ -781,115 +781,6 @@ Returns a `FlightInventoryGroupResponse` with the same shape as the `GET /v1/adm
 
 ---
 
-### GET /v1/flights/{flightId}/seat-availability
-
-Retrieve current seat availability status for a flight. Returns one entry per selectable seat with availability status (`available`, `held`, or `sold`) based on `offer.FlightInventory` and seat reservations. Does **not** return pricing — pricing is owned by the Seat MS.
-
-**When to use:** Called by the Retail API as part of the three-source seatmap assembly: (1) Seat MS layout, (2) Seat MS pricing/`SeatOfferId`, (3) this endpoint for availability. The Retail API merges all three before returning the seatmap to the channel.
-
-**Availability derivation:** The Offer MS maps each selectable seat number (obtained from the seatmap held internally or passed in a future lookup mechanism) against the current reservation state for the flight. A seat is:
-- `available` — no reservation against it
-- `held` — reserved in an active basket not yet confirmed
-- `sold` — sold in a confirmed order
-
-> **Seat MS independence:** The Offer MS does not call the Seat MS. Seat availability is derived from reservation state stored within the Offer MS domain. Physical seat layout (which seats exist on the aircraft) is the Seat MS's responsibility. The Retail API merges both views.
-
-#### Path Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `flightId` | string (UUID) | The `InventoryId` from `offer.FlightInventory` identifying the specific flight and cabin |
-
-#### Response — `200 OK`
-
-```json
-{
-  "flightId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "flightNumber": "AX001",
-  "departureDate": "2026-08-15",
-  "cabinCode": "J",
-  "seatAvailability": [
-    {
-      "seatOfferId": "so-3fa85f64-1A-v1",
-      "seatNumber": "1A",
-      "status": "available"
-    },
-    {
-      "seatOfferId": "so-3fa85f64-1D-v1",
-      "seatNumber": "1D",
-      "status": "held"
-    },
-    {
-      "seatOfferId": "so-3fa85f64-1G-v1",
-      "seatNumber": "1G",
-      "status": "sold"
-    }
-  ]
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `flightId` | string (UUID) | Echoed back |
-| `flightNumber` | string | Flight number for this inventory record |
-| `departureDate` | string (date) | ISO 8601 departure date |
-| `cabinCode` | string | Cabin class for this inventory record |
-| `seatAvailability` | array | One entry per selectable seat in this cabin on this flight |
-| `seatAvailability[].seatOfferId` | string | Deterministic `SeatOfferId` generated by the Offer MS using the same derivation as the Seat MS (`flightId + seatNumber`), enabling the Retail API to join availability to Seat MS offer data |
-| `seatAvailability[].seatNumber` | string | Seat number, e.g. `1A` |
-| `seatAvailability[].status` | string | `available`, `held`, or `sold` |
-
-#### Error Responses
-
-| Status | Reason |
-|--------|--------|
-| `404 Not Found` | No inventory record found for the given `flightId` |
-
----
-
-### POST /v1/flights/{flightId}/seat-reservations
-
-Reserve specific seats against a basket or check-in flow. Records the seat reservation in the Offer MS so that `GET /v1/flights/{flightId}/seat-availability` reflects the updated status.
-
-**When to use:** Called by the Retail API when a passenger selects seats during the bookflow or OLCI. This is a soft reservation — it marks seats as `held` for availability display purposes. The formal inventory hold (`POST /v1/inventory/hold`) manages the aggregate `SeatsHeld` count at the cabin level.
-
-#### Path Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `flightId` | string (UUID) | The `InventoryId` identifying the specific flight and cabin |
-
-#### Request
-
-```json
-{
-  "basketId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "seatNumbers": ["1A", "1K"]
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `basketId` | string (UUID) | Yes | The basket or check-in session identifier. Used for idempotency and to release reservations on basket expiry |
-| `seatNumbers` | array | Yes | List of seat numbers to reserve, e.g. `["1A", "1K"]` |
-
-#### Response — `200 OK`
-
-```json
-{
-  "flightId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "reserved": ["1A", "1K"]
-}
-```
-
-#### Error Responses
-
-| Status | Reason |
-|--------|--------|
-| `400 Bad Request` | Missing required fields or empty `seatNumbers` array |
-| `404 Not Found` | No inventory record found for the given `flightId` |
-| `409 Conflict` | One or more requested seats are already held or sold by another basket |
-
 ---
 
 ### PATCH /v1/flights/{flightId}/seat-availability
@@ -1173,13 +1064,10 @@ Close a cancelled flight's inventory. Sets `SeatsAvailable = 0` and `Status = Ca
 ### Seatmap Assembly (Retail API)
 
 For every seatmap display to the channel:
-1. **Retail API → Seat MS:** `GET /v1/seatmap/{aircraftType}` — layout.
-2. **Retail API → Seat MS:** `GET /v1/seat-offers?flightId={flightId}` — pricing and `SeatOfferId`.
-3. **Retail API → Offer MS:** `GET /v1/flights/{flightId}/seat-availability` — per-seat status.
+1. **Retail API → Ancillary MS:** `GET /v1/seatmap/{aircraftType}` — layout.
+2. **Retail API → Ancillary MS:** `GET /v1/seat-offers?flightId={flightId}` — pricing and `SeatOfferId`.
+3. **Retail API → Delivery MS:** `GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}` — occupied seats. A seat number present in any manifest entry for this flight is `sold`; all other selectable seats are `available`.
 4. Retail API merges and returns to channel.
-
-When passenger selects seats:
-5. **Retail API → Offer MS:** `POST /v1/flights/{flightId}/seat-reservations` — soft-reserve selected seats.
 
 ### Voluntary Cancellation (Retail API)
 
@@ -1358,13 +1246,6 @@ curl -X PATCH https://{offer-ms-host}/v1/inventory/cancel \
   }'
 ```
 
-### Retrieve seat availability (Retail API → Offer MS, step 3 of seatmap assembly)
-
-```bash
-curl -X GET https://{offer-ms-host}/v1/flights/3fa85f64-5717-4562-b3fc-2c963f66afa6/seat-availability \
-  -H "x-functions-key: {host-key}" \
-  -H "X-Correlation-ID: 550e8400-e29b-41d4-a716-446655440000"
-```
 
 > **Note:** All calls to the Offer microservice are authenticated using the `x-functions-key` header. The Offer MS never receives or validates end-user JWTs. See [`api.md` — Microservice Authentication](../api.md#microservice-authentication--host-keys) for the full host key mechanism.
 

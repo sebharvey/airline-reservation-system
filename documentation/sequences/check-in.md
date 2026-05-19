@@ -97,10 +97,10 @@ sequenceDiagram
         DeliveryMS-->>RetailAPI: Manifest (occupied seat numbers — source of truth)
     end
 
-    Note over RetailAPI: Merge layout, pricing, occupancy<br/>Manifest seats → held, priced seats → available,<br/>no offer seats → sold
+    Note over RetailAPI: Merge layout, pricing, occupancy<br/>Manifest seats → sold, selectable seats not in manifest → available
 
     RetailAPI-->>Web: SeatmapResponse
-    Note over RetailAPI,Web: cabins[]: seats with seatOfferId,<br/>price, tax, availability (available/held/sold),<br/>position (Window/Aisle/Middle), attributes
+    Note over RetailAPI,Web: cabins[]: seats with seatOfferId,<br/>price, tax, availability (available/sold),<br/>position (Window/Aisle/Middle), attributes
 ```
 
 ---

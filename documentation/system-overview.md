@@ -19,7 +19,6 @@ A Modern Airline Retailing system built on offer and order capability.
   - Flight Inventory (creation per flight/cabin/date, seat hold/sell/release, inventory cancellation IROPS)
   - Fares (definition/retrieval per inventory, validity and conditions)
   - Stored Offers (search and snapshot creation, retrieval and consumption control)
-  - Seat Availability (seat reservation and status updates)
 
 - **Order** — booking lifecycle and post-sale state management
   - Basket (creation, accumulation, confirmation, expiry/cleanup)

@@ -102,7 +102,7 @@
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/v1/flights/{flightId}/seatmap` | Retrieve seatmap with pricing and availability for a flight |
-| `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve real-time seat availability overlay for a flight |
+| `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve real-time seat occupancy for a flight — derived from the Delivery MS manifest; returns `available` or `sold` per selectable seat |
 
 ### Check-in ancillaries
 
@@ -136,7 +136,7 @@ Staff-only endpoints protected by a valid staff JWT token (`Authorization: Beare
 |--------|----------|-------------|
 | `GET` | `/v1/admin/inventory` | Return flight inventory for a given departure date, grouped by flight (one row per flight with cabin F/J/W/Y aggregated as columns). Query param `departureDate=yyyy-MM-dd`; defaults to today. Each row includes total seats, seats available per cabin, overall load factor (percent of seats filled), and flight status. |
 | `GET` | `/v1/admin/manifest` | Return the passenger manifest for a flight from `delivery.Manifest`. Query params `flightNumber` (required) and `departureDate=yyyy-MM-dd` (required). Each entry includes booking reference, passenger name, e-ticket number, seat number, cabin code, check-in status, check-in timestamp, and SSR codes. Proxies to the Delivery microservice `GET /v1/manifest`. Used by the Terminal Flight Management screen to display the PAX list alongside the seatmap. |
-| `GET` | `/v1/admin/flights/{inventoryId}/seatmap` | Return seatmap with pricing and seat availability for a flight (staff). Query params `flightNumber` and `aircraftType` (required); optional `cabinCode` to filter to a single cabin. Merges physical layout, seat pricing, and manifest-derived seat occupancy (manifest is the source of truth for held and sold seats). Staff JWT required. |
+| `GET` | `/v1/admin/flights/{inventoryId}/seatmap` | Return seatmap with pricing and seat occupancy for a flight (staff). Query params `flightNumber` and `aircraftType` (required); optional `cabinCode` to filter to a single cabin. Merges physical layout, seat pricing, and manifest-derived occupancy (seats in the Delivery MS manifest for this flight are `sold`; all others are `available`). Staff JWT required. |
 | `GET` | `/v1/admin/watchlist-entries` | Return all watchlist entries; proxies to Delivery MS. Used by the Terminal Watchlist screen. |
 | `GET` | `/v1/admin/watchlist-entries/{watchlistId}` | Return a single watchlist entry by GUID; proxies to Delivery MS. |
 | `POST` | `/v1/admin/watchlist-entries` | Add a passenger to the watchlist; `addedBy` is populated from the staff JWT `unique_name` claim; proxies to Delivery MS. |
@@ -348,8 +348,7 @@ The Offer microservice operates on individual flight **segments** only. It has n
 | `POST` | `/v1/flights/{inventoryId}/fares` | Add a fare definition to an existing flight inventory record; called by the Operations API to attribute pricing to inventory after creation; returns `fareId` |
 | `POST` | `/v1/search` | Search flight inventory for a single segment (origin, destination, date, pax count) across all cabin classes and return priced, stored-offer-snapshotted offers; creates one `StoredOffer` row per flight containing all cabin fares in `FaresInfo` JSON; returns a `sessionId` shared across all rows produced by the search; called once per leg by the Retail API for both direct (`/v1/search/slice`) and connecting (`/v1/search/connecting`) searches; accepts optional `includePrivateFares` boolean (default `false`) — the public Retail API always sends `false`, the admin Retail API (Contact Centre) sends `true` to surface private fares; accepts optional `bookingType` string (`Revenue` default, `Standby` for staff travel) — standby searches include sold-out flights and return all cabins regardless of seat availability so staff can queue on any flight |
 | `GET` | `/v1/offers/{offerId}` | Retrieve a stored offer by the per-fare `offerId` (found inside `FaresInfo`); validates `ExpiresAt > now`; resolves flight details from `offer.FlightInventory` at read time; accepts optional `?sessionId=` query parameter to scope the lookup to the indexed session for efficiency |
-| `GET` | `/v1/flights/{flightId}/seat-availability` | Retrieve current seat availability status for a flight — returns one entry per selectable seat with `SeatOfferId` (deterministic) and availability status (`available`, `held`, or `sold`) based on `offer.FlightInventory`; does **not** return pricing (pricing is owned by the Seat MS via `GET /v1/seat-offers?flightId=`); Retail API merges this availability data with the Seat MS offer response and the seatmap layout before returning to the channel |
-| `POST` | `/v1/flights/{flightId}/seat-reservations` | Reserve seats against a basket or check-in |
+
 | `PATCH` | `/v1/flights/{flightId}/seat-availability` | Update seat status on a flight (e.g. to checked-in) |
 | `GET` | `/v1/flights/{inventoryId}` | Return flight details for a single inventory record by GUID; returns flight number, route, times, aircraft type, and status; called by the Retail API when resolving flight details for a confirmed order using the `inventoryId` stored on each flight order item |
 | `GET` | `/v1/flights/{flightNumber}/inventory` | Return flight inventory for a specific flight number and departure date with cabin F/J/W/Y breakdown; query param `departureDate=yyyy-MM-dd` (defaults to today); called by the Operations API for flight status derivation |

@@ -46,7 +46,7 @@ Channels authenticate with the Retail API using OAuth 2.0 / OIDC:
 
 | Service | Key Operations |
 |---------|---------------|
-| **Offer MS** | Search, stored offer retrieval, inventory hold/sell/release/cancel, seat availability, seat reservations |
+| **Offer MS** | Search, stored offer retrieval, inventory hold/sell/release/cancel |
 | **Order MS** | Basket creation and management, order confirmation, post-sale mutations, check-in recording |
 | **Payment MS** | Card payment authorisation, settlement, refund |
 | **Delivery MS** | E-ticket issuance and reissuance, manifest write/update/delete/retrieve, ancillary documents, boarding cards |
@@ -102,9 +102,9 @@ Reward bookings follow the same basket and order flow as revenue bookings, with 
 
 The full seatmap response is assembled from three separate microservice calls — never from a single source:
 
-1. **Seat MS:** `GET /v1/seatmap/{aircraftType}` — physical cabin layout, seat positions, attributes.
-2. **Seat MS:** `GET /v1/seat-offers?flightId={flightId}` — `SeatOfferId`, price, `isChargeable` per selectable seat.
-3. **Offer MS:** `GET /v1/flights/{flightId}/seat-availability` — per-seat status (available, held, sold).
+1. **Ancillary MS:** `GET /v1/seatmap/{aircraftType}` — physical cabin layout, seat positions, attributes.
+2. **Ancillary MS:** `GET /v1/seat-offers?flightId={flightId}` — `SeatOfferId`, price, `isChargeable` per selectable seat.
+3. **Delivery MS:** `GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}` — occupied seats. A seat number present in any manifest entry for this flight is `sold`; all other selectable seats are `available`.
 
 The Retail API merges all three datasets before returning to the channel. Channels must never call these endpoints directly.
 
@@ -520,8 +520,7 @@ Add or update seat selections on a basket during the bookflow.
 
 **Orchestration sequence:**
 1. For each `seatOfferId`: `GET /v1/seat-offers/{seatOfferId}` on Seat MS — validate offer is still active and lock current price.
-2. `POST /v1/flights/{flightId}/seat-reservations` on Offer MS — soft-reserve selected seats to update availability display.
-3. `PUT /v1/basket/{basketId}/seats` on Order MS — write seat offer IDs, PAX assignments, and updated totals.
+2. `PUT /v1/basket/{basketId}/seats` on Order MS — write seat offer IDs, PAX assignments, and updated totals.
 
 #### Path Parameters
 
@@ -565,7 +564,7 @@ Add or update seat selections on a basket during the bookflow.
 |--------|--------|
 | `400 Bad Request` | Missing required fields or mismatched passenger/flight references |
 | `404 Not Found` | Basket not found or `seatOfferId` not found on Seat MS |
-| `409 Conflict` | One or more selected seats are already held or sold |
+| `409 Conflict` | One or more selected seats are already occupied (present in the flight manifest) |
 | `410 Gone` | Basket has expired or the seat offer is no longer valid |
 
 ---
@@ -872,13 +871,12 @@ Add or change seat selection on a confirmed order. Full ancillary charge applies
 **Orchestration sequence:**
 1. `GET /v1/seatmap/{aircraftType}` on Seat MS — validate seat numbers.
 2. For each `seatOfferId`: `GET /v1/seat-offers/{seatOfferId}` on Seat MS — validate and price.
-3. `POST /v1/flights/{flightId}/seat-reservations` on Offer MS — soft-reserve seats.
-4. `POST /v1/payment/authorise` on Payment MS — `description=SeatAncillary`.
-5. `POST /v1/payment/{paymentId}/settle`.
-6. `PATCH /v1/orders/{bookingRef}/seats` on Order MS.
-7. `POST /v1/tickets/reissue` on Delivery MS, `reason=SeatChange`.
-8. `PUT /v1/manifest` on Delivery MS — update seat numbers and e-ticket numbers.
-9. `POST /v1/documents` on Delivery MS per paid seat, `documentType=SeatAncillary`.
+3. `POST /v1/payment/authorise` on Payment MS — `description=SeatAncillary`.
+4. `POST /v1/payment/{paymentId}/settle`.
+5. `PATCH /v1/orders/{bookingRef}/seats` on Order MS.
+6. `POST /v1/tickets/reissue` on Delivery MS, `reason=SeatChange`.
+7. `PUT /v1/manifest` on Delivery MS — update seat numbers and e-ticket numbers.
+8. `POST /v1/documents` on Delivery MS per paid seat, `documentType=SeatAncillary`.
 
 #### Path Parameters
 
@@ -924,7 +922,7 @@ Add or change seat selection on a confirmed order. Full ancillary charge applies
 |--------|--------|
 | `400 Bad Request` | Missing required fields |
 | `404 Not Found` | Order or seat offer not found |
-| `409 Conflict` | Requested seat is already held or sold |
+| `409 Conflict` | Requested seat is already occupied (present in the flight manifest) |
 | `422 Unprocessable Entity` | Card declined |
 
 ---
@@ -1220,9 +1218,9 @@ Reverse a points authorisation hold if a downstream step fails during reward boo
 Retrieve seatmap with pricing and availability for a flight. Assembles the full channel-facing seatmap by merging three microservice data sources.
 
 **Orchestration sequence:**
-1. `GET /v1/seatmap/{aircraftType}` on Seat MS — physical cabin layout, seat positions, attributes, `isSelectable`.
-2. `GET /v1/seat-offers?flightId={flightId}` on Seat MS — `SeatOfferId`, price, `isChargeable` per selectable seat.
-3. `GET /v1/flights/{flightId}/seat-availability` on Offer MS — per-seat status (available, held, sold).
+1. `GET /v1/seatmap/{aircraftType}` on Ancillary MS — physical cabin layout, seat positions, attributes, `isSelectable`.
+2. `GET /v1/seat-offers?flightId={flightId}` on Ancillary MS — `SeatOfferId`, price, `isChargeable` per selectable seat.
+3. `GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}` on Delivery MS — occupied seats. A seat number present in any manifest entry is `sold`; all other selectable seats are `available`.
 4. Merge on `seatNumber` and return to channel.
 
 #### Path Parameters
@@ -1273,7 +1271,7 @@ Retrieve seatmap with pricing and availability for a flight. Assembles the full 
 | `seats[].seatOfferId` | string | `SeatOfferId` from Seat MS. `null` for non-selectable seats |
 | `seats[].isChargeable` | boolean | `false` for Business and First Class |
 | `seats[].price` | number | Current price. `0.00` for non-chargeable seats |
-| `seats[].availability` | string | `available`, `held`, or `sold` from Offer MS |
+| `seats[].availability` | string | `available` or `sold` — derived from Delivery MS manifest |
 
 #### Error Responses
 
@@ -1285,9 +1283,11 @@ Retrieve seatmap with pricing and availability for a flight. Assembles the full 
 
 ### GET /v1/flights/{flightId}/seat-availability
 
-Retrieve real-time seat availability overlay for a flight without full pricing. Delegates directly to `GET /v1/flights/{flightId}/seat-availability` on the Offer MS.
+Retrieve real-time seat occupancy for a flight without full pricing. Calls `GET /v1/manifest` on the Delivery MS and returns per-seat status derived from manifest entries.
 
 **When to use:** When a channel needs to refresh availability without rebuilding the full seatmap.
+
+**Availability derivation:** Retail API queries the Delivery MS manifest for the flight. A seat number present in any manifest entry is `sold`; all other selectable seats are `available`.
 
 #### Path Parameters
 
@@ -1297,7 +1297,20 @@ Retrieve real-time seat availability overlay for a flight without full pricing. 
 
 #### Response — `200 OK`
 
-Passes through the Offer MS response. See Offer Microservice spec for full schema.
+```json
+{
+  "flightId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "seatAvailability": [
+    { "seatNumber": "1A", "status": "available" },
+    { "seatNumber": "1D", "status": "sold" }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `seatAvailability[].seatNumber` | string | Seat number, e.g. `1A` |
+| `seatAvailability[].status` | string | `available` or `sold` |
 
 #### Error Responses
 
@@ -1487,8 +1500,7 @@ Update seat assignment during check-in. **No charge at OLCI** regardless of cabi
 
 **Orchestration sequence:**
 1. `GET /v1/seatmap/{aircraftType}` on Seat MS — validate seat numbers.
-2. `POST /v1/flights/{flightId}/seat-reservations` on Offer MS — soft-reserve.
-3. `PATCH /v1/orders/{bookingRef}/seats` on Order MS.
+2. `PATCH /v1/orders/{bookingRef}/seats` on Order MS.
 
 > E-ticket reissuance is **not** triggered by OLCI seat changes — boarding cards have not yet been generated at this point.
 
@@ -1527,7 +1539,7 @@ Update seat assignment during check-in. **No charge at OLCI** regardless of cabi
 |--------|--------|
 | `400 Bad Request` | Missing required fields |
 | `404 Not Found` | Order not found |
-| `409 Conflict` | Requested seat already held or sold |
+| `409 Conflict` | Requested seat is already occupied (present in the flight manifest) |
 | `422 Unprocessable Entity` | Outside the OLCI window |
 
 ---
