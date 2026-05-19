@@ -78,6 +78,25 @@ export class OrderDetailComponent implements OnInit {
   selectedOrderItem = signal<OrderItem | null>(null);
   selectedPassenger = signal<OrderPassenger | null>(null);
 
+  // PNR view modal
+  pnrModalOpen = signal(false);
+  copiedPnr = signal(false);
+
+  readonly pnrText = computed((): string => {
+    const o = this.order();
+    return o ? this.#buildPnrText(o) : '';
+  });
+
+  openPnrModal(): void { this.pnrModalOpen.set(true); }
+  closePnrModal(): void { this.pnrModalOpen.set(false); }
+
+  copyPnrToClipboard(): void {
+    navigator.clipboard.writeText(this.pnrText()).then(() => {
+      this.copiedPnr.set(true);
+      setTimeout(() => this.copiedPnr.set(false), 2000);
+    });
+  }
+
   // Tickets tab state
   tickets = signal<Ticket[]>([]);
   ticketsLoading = signal(false);
@@ -927,6 +946,200 @@ export class OrderDetailComponent implements OnInit {
   getSegmentLabel(segmentRef: string): string {
     const seg = this.segments().find(s => s.segmentId === segmentRef);
     return seg ? `${seg.flightNumber} (${seg.origin}→${seg.destination})` : segmentRef;
+  }
+
+  #buildPnrText(o: OrderDetail): string {
+    const passengers = o.orderData?.dataLists?.passengers ?? [];
+    const segments   = o.orderData?.dataLists?.flightSegments ?? [];
+    const orderItems = o.orderData?.orderItems ?? [];
+    const payments   = o.orderData?.payments ?? [];
+    const tickets    = this.tickets();
+
+    const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const DOW_MAP = [7,1,2,3,4,5,6]; // JS Sun=0→Amadeus 7, Mon=1→1 ...
+
+    const fmtDate = (iso: string) => {
+      const d = new Date(iso);
+      return `${String(d.getUTCDate()).padStart(2,'0')}${MONTHS[d.getUTCMonth()]}`;
+    };
+
+    const fmtDateYY = (iso: string) => {
+      const d = new Date(iso);
+      return `${String(d.getUTCDate()).padStart(2,'0')}${MONTHS[d.getUTCMonth()]}${String(d.getUTCFullYear()).slice(2)}`;
+    };
+
+    const fmtTime = (iso: string) => {
+      const d = new Date(iso);
+      return `${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}`;
+    };
+
+    const fmtDow = (iso: string) => String(DOW_MAP[new Date(iso).getUTCDay()]);
+
+    const dayDiff = (dep: string, arr: string): string => {
+      const a = new Date(arr), b = new Date(dep);
+      const diff = Math.round((
+        Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate()) -
+        Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate())
+      ) / 86400000);
+      return diff > 0 ? `+${diff}` : diff < 0 ? String(diff) : '';
+    };
+
+    const carrierFromFlight = (flightNumber: string) =>
+      flightNumber.match(/^([A-Z]{2})/i)?.[1]?.toUpperCase() ?? 'AX';
+
+    const lines: string[] = [];
+    const cd  = new Date(o.createdAt);
+    const createdStr = `${cd.getUTCDate()}/${MONTHS[cd.getUTCMonth()]}/${String(cd.getUTCFullYear()).slice(2)}`;
+    const mc0 = segments.length ? carrierFromFlight(segments[0].flightNumber) : 'AX';
+
+    // ── Header ──
+    lines.push('--- RLR MSC ---');
+    lines.push(`RP/APXCC0001/APXCC0001           ${o.channelCode.slice(0,2).padEnd(2)}/SU  ${createdStr}`);
+    lines.push(o.bookingReference);
+    lines.push('');
+
+    // ── Name elements ──
+    const names = passengers.map((p, i) => {
+      const title = p.type === 'ADT' ? (p.gender === 'F' ? 'MRS' : 'MR') :
+                    p.type === 'CHD' ? (p.gender === 'F' ? 'MISS' : 'MSTR') :
+                    p.type === 'INF' ? 'INF' : '';
+      return `${i+1}.${(p.surname||'').toUpperCase()}/${(p.givenName||'').toUpperCase()}${title ? ' '+title : ''}`;
+    });
+    let nameLine = '';
+    for (const n of names) {
+      const sep = nameLine ? '  ' : ' ';
+      if (nameLine && (nameLine.length + sep.length + n.length) > 72) {
+        lines.push(nameLine);
+        nameLine = ' ' + n;
+      } else {
+        nameLine = nameLine ? nameLine + sep + n : ' ' + n;
+      }
+    }
+    if (nameLine) lines.push(nameLine);
+    lines.push('');
+
+    // ── Itinerary ──
+    segments.forEach((s, i) => {
+      const mc  = carrierFromFlight(s.flightNumber);
+      const fn  = s.flightNumber.replace(/^[A-Z]{2}/i, '').padStart(3, '0');
+      const cls = s.fareClass || s.cabinClass?.charAt(0) || 'Y';
+      const dc  = dayDiff(s.departureTime, s.arrivalTime);
+      const dcPad = dc ? ` ${dc}` : '   ';
+      const n   = passengers.length;
+      lines.push(` ${String(i+1).padStart(2)}  ${mc} ${fn} ${cls} ${fmtDate(s.departureTime)} ${fmtDow(s.departureTime)} ${s.origin}${s.destination} HK${n}  ${fmtTime(s.departureTime)}  ${fmtTime(s.arrivalTime)}${dcPad}  E  /DC${mc} /E`);
+    });
+    lines.push('');
+
+    // ── AP (contact) ──
+    const contactPax = passengers.find(p => p.contacts?.phone || p.contacts?.email);
+    if (contactPax?.contacts?.phone) lines.push(`AP ${contactPax.contacts.phone}`);
+    if (contactPax?.contacts?.email) lines.push(`AP ${contactPax.contacts.email.toUpperCase()}`);
+    if (contactPax) lines.push('');
+
+    // ── TK (ticketing arrangement) ──
+    lines.push(`TK OK${fmtDateYY(o.createdAt)}/APXCC0001//ET${mc0}`);
+    lines.push('');
+
+    // ── FP (form of payment) ──
+    payments.forEach((pay, i) => {
+      let fp: string;
+      if (pay.paymentMethod === 'CreditCard' || pay.paymentMethod === 'DebitCard') {
+        const brand = (pay.cardType || '').toUpperCase();
+        const code  = brand.startsWith('VI') ? 'VI' : brand.startsWith('MA') ? 'MC' :
+                      brand.startsWith('AM') ? 'AX' : brand.startsWith('DI') ? 'DC' : 'CA';
+        fp = `CC${code}${pay.cardLast4 ?? '****'}/0000/${pay.currency}${pay.amount.toFixed(2)}`;
+      } else if (pay.paymentMethod === 'ApplePay')  { fp = 'APPL'; }
+      else if  (pay.paymentMethod === 'GooglePay')  { fp = 'GPAY'; }
+      else { fp = (pay.paymentMethod || 'CASH').toUpperCase().slice(0, 8); }
+      lines.push(` ${String(i+1).padStart(2)} FP ${fp}`);
+    });
+    lines.push('');
+
+    // ── SSR ──
+    passengers.forEach((p, i) => {
+      const pn = i + 1;
+      p.docs?.forEach(doc => {
+        if (!doc.type || !doc.number || !doc.issuingCountry || !doc.nationality) return;
+        const docType = doc.type.toLowerCase().includes('passport') ? 'P' : 'I';
+        const dob = p.dob ? fmtDateYY(p.dob) : '01JAN00';
+        const exp = doc.expiryDate ? fmtDateYY(doc.expiryDate) : '01JAN99';
+        const gen = p.gender === 'F' ? 'F' : p.gender === 'M' ? 'M' : 'U';
+        lines.push(`SSR DOCS ${mc0} HK1 ${docType}/${doc.issuingCountry}/${doc.number}/${doc.nationality}/${dob}/${gen}/${exp}/${(p.surname||'').toUpperCase()}/${(p.givenName||'').toUpperCase()}-${pn}`);
+      });
+      if (p.contacts?.email) {
+        lines.push(`SSR CTCE ${mc0} HK1 ${p.contacts.email.replace('@', '//').toUpperCase()}-${pn}`);
+      }
+      if (p.contacts?.phone) {
+        lines.push(`SSR CTCM ${mc0} HK1 ${p.contacts.phone}-${pn}`);
+      }
+      if (p.loyaltyNumber) {
+        lines.push(`SSR FQTV ${mc0} HK1 ${mc0}${p.loyaltyNumber}/${mc0}-${pn}`);
+      }
+    });
+
+    // SSR order items
+    orderItems.filter(oi => oi.itemType === 'SSR' && oi.ssrCode).forEach(oi => {
+      const pn      = passengers.findIndex(p => p.passengerId === oi.passengerId) + 1;
+      const seg     = segments.find(s => s.segmentId === oi.segmentId);
+      const carrier = seg ? carrierFromFlight(seg.flightNumber) : mc0;
+      lines.push(`SSR ${oi.ssrCode} ${carrier} HK1-${pn}`);
+    });
+    lines.push('');
+
+    // ── FA (e-ticket numbers) ──
+    let faSeq = 1;
+    const faLines: string[] = [];
+
+    // Primary source: Flight order items that carry an eTicketNumber directly
+    segments.forEach(seg => {
+      const segFlightItems = orderItems.filter(
+        oi => oi.itemType === 'Flight' && oi.segmentId === seg.segmentId && oi.eTicketNumber
+      );
+      const mc  = carrierFromFlight(seg.flightNumber);
+      const fn  = seg.flightNumber.replace(/^[A-Z]{2}/i, '').padStart(3, '0');
+      const cls = seg.fareClass || seg.cabinClass?.charAt(0) || 'Y';
+      const date = fmtDate(seg.departureTime);
+      segFlightItems.forEach(fi => {
+        const pn   = passengers.findIndex(p => p.passengerId === fi.passengerId) + 1;
+        const fare = (fi.totalAmount ?? fi.fareAmount ?? 0).toFixed(2);
+        faLines.push(` ${String(faSeq++).padStart(2)}  FA PAX ${pn}.${fi.eTicketNumber}/${mc} ${mc}${fn}${cls}/${date}/${seg.origin}${seg.destination}/${o.currency}${fare}`);
+      });
+    });
+
+    // Fallback: use loaded tickets array (includes fare basis from ticketData)
+    if (faLines.length === 0) {
+      tickets.filter(t => !t.isVoided).forEach(t => {
+        const pn = passengers.findIndex(p => p.passengerId === t.passengerId) + 1;
+        if (t.ticketData?.coupons?.length) {
+          t.ticketData.coupons.forEach(coupon => {
+            const mc  = coupon.marketing?.carrier || mc0;
+            const fn  = (coupon.marketing?.flightNumber || '').replace(/^[A-Z]{2}/i, '').padStart(3, '0');
+            const cls = coupon.classOfService || coupon.cabin?.charAt(0) || 'Y';
+            const date = coupon.departureDate ? fmtDate(coupon.departureDate) : '??';
+            const fare = (t.ticketData?.fareConstruction?.totalAmount ?? 0).toFixed(2);
+            const fb   = coupon.fareBasisCode ? `/${coupon.fareBasisCode}` : '';
+            faLines.push(` ${String(faSeq++).padStart(2)}  FA PAX ${pn}.${t.eTicketNumber}/${mc} ${mc}${fn}${cls}/${date}/${coupon.origin}${coupon.destination}/${o.currency}${fare}${fb}`);
+          });
+        } else {
+          faLines.push(` ${String(faSeq++).padStart(2)}  FA PAX ${pn}.${t.eTicketNumber}/${mc0}`);
+        }
+      });
+    }
+
+    if (faLines.length) { lines.push(...faLines); lines.push(''); }
+
+    // ── FE (endorsements/restrictions from ticket data) ──
+    const seenFe = new Set<string>();
+    tickets.filter(t => !t.isVoided && t.ticketData?.endorsementsRestrictions).forEach(t => {
+      const end = t.ticketData!.endorsementsRestrictions!;
+      if (!seenFe.has(end)) {
+        seenFe.add(end);
+        const pn = passengers.findIndex(p => p.passengerId === t.passengerId) + 1;
+        lines.push(`FE ${end}-${pn}`);
+      }
+    });
+
+    return lines.join('\n');
   }
 
   getFlightDescription(item: OrderItem): string {

@@ -26,6 +26,10 @@
         <lucide-icon name="rotate-ccw" [size]="15" [class.spinning]="loading()" />
         Refresh
       </button>
+      <button class="pnr-btn" (click)="openPnrModal()" title="View order as Amadeus PNR">
+        <lucide-icon name="terminal" [size]="14" />
+        View PNR
+      </button>
       <!-- TODO: Remove debug button when debug endpoint is removed -->
       <button class="debug-btn" (click)="openDebug()" title="Show raw order record">
         Debug
@@ -2059,6 +2063,32 @@
             </div>
           }
         }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── PNR VIEW MODAL ── -->
+@if (pnrModalOpen()) {
+  <div class="pnr-overlay" (click)="closePnrModal()">
+    <div class="pnr-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Amadeus PNR view">
+      <div class="pnr-modal-header">
+        <span class="pnr-modal-title">&gt;_ RT {{ bookingRef }}</span>
+        <div class="pnr-modal-actions">
+          <button class="pnr-copy-btn" (click)="copyPnrToClipboard()" [attr.aria-label]="copiedPnr() ? 'Copied' : 'Copy PNR'">
+            @if (copiedPnr()) {
+              <lucide-icon name="check" [size]="12" />
+              COPIED
+            } @else {
+              <lucide-icon name="copy" [size]="12" />
+              COPY
+            }
+          </button>
+          <button class="pnr-modal-close" (click)="closePnrModal()" aria-label="Close">&#x2715;</button>
+        </div>
+      </div>
+      <div class="pnr-modal-body">
+        <pre class="pnr-pre">{{ pnrText() }}</pre>
       </div>
     </div>
   </div>
