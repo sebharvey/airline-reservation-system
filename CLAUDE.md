@@ -40,6 +40,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 │   ├── tests.md                          ← how to write integration tests
 │   ├── authentication.md                 ← JWT and refresh token flow
 │   ├── api-specs/                        ← per-service detailed API specifications
+│   ├── adr/                              ← architecture decision records (ADRs)
 │   └── principles/
 │       ├── architecture-principals.md
 │       ├── integration-principals.md
@@ -80,6 +81,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 | `documentation/api-specs/<service>.md` | When implementing a specific service API. Request/response shapes, error codes. |
 | `documentation/api-specs/admin-api.md` | When working on the Admin API. Staff authentication flow, downstream dependencies, configuration. |
 | `documentation/principles/*.md` | Architecture, integration, security, data, infrastructure, and coding rules. |
+| `documentation/adr/*.md` | Architecture Decision Records — accepted decisions and their rationale. Read before raising a finding that may already be resolved by a recorded decision. |
 | `documentation/test-harness.md` | When working on the test harness. File inventory, journey JSON schema, runtime variable placeholders, harness.js architecture. |
 | `documentation/timer-triggers.md` | When working on scheduled background jobs. All timer trigger functions, their schedules, and what data they clean up or import. |
 | `src/Database/Script.sql` | When working with data. Authoritative database schema with all tables, triggers, constraints. |
