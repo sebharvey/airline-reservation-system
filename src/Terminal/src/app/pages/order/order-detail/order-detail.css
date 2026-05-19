@@ -2097,3 +2097,123 @@ col.col-action     { width: 80px;  }
   border-color: rgba(0, 255, 136, 0.5);
   opacity: 1;
 }
+
+/* ── View PNR button (in detail header) ── */
+.pnr-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0d1a0d;
+  color: #22c55e;
+  border: 1.5px solid #22c55e;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.pnr-btn:hover { background: #22c55e; color: #0d1a0d; }
+
+/* ── PNR view modal ── */
+.pnr-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow: hidden;
+}
+
+.pnr-modal {
+  background: #0a0f0a;
+  border: 1.5px solid #1a4d1a;
+  border-radius: var(--radius-sm);
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 40px rgba(34, 197, 94, 0.05);
+}
+
+.pnr-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  background: #111811;
+  border-bottom: 1px solid #1a4d1a;
+  flex-shrink: 0;
+}
+
+.pnr-modal-title {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #22c55e;
+  letter-spacing: 0.08em;
+}
+
+.pnr-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pnr-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  background: #1a4d1a;
+  border: 1px solid #2d7a2d;
+  border-radius: 4px;
+  color: #22c55e;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1.4;
+}
+.pnr-copy-btn:hover { background: #225522; }
+
+.pnr-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4d8d4d;
+  font-size: 1rem;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.pnr-modal-close:hover { color: #22c55e; background: #1a4d1a; }
+
+.pnr-modal-body {
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 18px 22px 22px;
+  flex: 1;
+}
+
+.pnr-pre {
+  margin: 0;
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: #22c55e;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
