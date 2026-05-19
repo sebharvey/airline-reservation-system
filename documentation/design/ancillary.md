@@ -12,7 +12,7 @@ The Ancillary microservice is the system of record for seat ancillaries (seatmap
 
 ## Seat ancillary
 
-The Ancillary MS owns seatmap definitions, aircraft type records, fleet-wide seat pricing rules, and seat offer generation. Seat availability (held/sold/available per flight) is a separate concern owned by the Offer MS.
+The Ancillary MS owns seatmap definitions, aircraft type records, fleet-wide seat pricing rules, and seat offer generation. Per-seat occupancy status is derived from the Delivery MS passenger manifest — not the Ancillary MS or the Offer MS.
 
 Seat prices are fleet-wide and position-based (not per flight):
 
@@ -26,14 +26,14 @@ Business Class and First Class seat selection is included in the fare with no an
 
 ### Retrieve seatmap layout
 
-The Ancillary MS returns the physical cabin layout (`GET /v1/seatmap/{aircraftType}`) and priced seat offers (`GET /v1/seat-offers?flightId={flightId}`). Seat availability status (available, held, or sold) is served by the Offer MS via `GET /v1/flights/{flightId}/seat-availability`. The Retail API retrieves layout and priced offers from the Ancillary MS, availability from the Offer MS, and merges all three datasets before returning the seat offer response to the channel.
+The Ancillary MS returns the physical cabin layout (`GET /v1/seatmap/{aircraftType}`) and priced seat offers (`GET /v1/seat-offers?flightId={flightId}`). Seat occupancy status is derived from the Delivery MS passenger manifest (`GET /v1/manifest`): a seat number present in a manifest entry for the flight is `sold`; all other selectable seats are `available`. The Retail API retrieves layout and priced offers from the Ancillary MS, occupied seats from the Delivery MS, and merges all three datasets before returning the seat offer response to the channel.
 
 ```mermaid
 sequenceDiagram
     participant RetailAPI as Retail API
     participant AncillaryMS as Ancillary [MS]
     participant AncillaryDB as Ancillary DB
-    participant OfferMS as Offer [MS]
+    participant DeliveryMS as Delivery [MS]
 
     RetailAPI->>AncillaryMS: GET /v1/seatmap/{aircraftType}
     AncillaryMS->>AncillaryDB: SELECT seatmap WHERE aircraftType = {aircraftType} AND isActive = 1
@@ -46,13 +46,13 @@ sequenceDiagram
     AncillaryMS-->>RetailAPI: 200 OK — priced seat offers (seatNumber, price, seat attributes per selectable seat)
     Note over RetailAPI: Generate SeatOfferId per seat as base64({flightNumber}-{departureDate}-{cabinCode}-{seatNumber})
 
-    RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
-    OfferMS-->>RetailAPI: 200 OK — seat availability status per seat (available|held|sold)
+    RetailAPI->>DeliveryMS: GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}
+    DeliveryMS-->>RetailAPI: 200 OK — manifest entries (seatNumber per PAX)
 
-    Note over RetailAPI: Merge seatmap layout + priced seat offers + availability into unified seat offer response before returning to channel
+    Note over RetailAPI: Merge seatmap layout + priced seat offers + manifest occupancy into unified seat offer response before returning to channel
 ```
 
-*Ref: ancillary seat - Retail API retrieves seatmap layout and pricing from Ancillary MS, seat availability from Offer MS, then merges all three datasets into the seat offer response*
+*Ref: ancillary seat - Retail API retrieves seatmap layout and pricing from Ancillary MS, occupied seats from Delivery MS manifest, then merges all three datasets into the seat offer response*
 
 ### Post-sale seat selection
 
@@ -65,7 +65,6 @@ sequenceDiagram
     participant RetailAPI as Retail API
     participant OrderMS as Order [MS]
     participant AncillaryMS as Ancillary [MS]
-    participant OfferMS as Offer [MS]
     participant PaymentMS as Payment [MS]
     participant DeliveryMS as Delivery [MS]
     participant AccountingMS as Accounting [MS]
@@ -82,16 +81,13 @@ sequenceDiagram
     AncillaryMS-->>RetailAPI: 200 OK — seatmap layout (cabin configuration, seat positions, attributes)
     RetailAPI->>AncillaryMS: GET /v1/seat-offers?flightId={flightId}
     AncillaryMS-->>RetailAPI: 200 OK — priced seat offers (SeatOfferId, price, seat attributes per selectable seat)
-    RetailAPI->>OfferMS: GET /v1/flights/{flightId}/seat-availability
-    OfferMS-->>RetailAPI: 200 OK — seat availability status per seat (available|held|sold)
+    RetailAPI->>DeliveryMS: GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}
+    DeliveryMS-->>RetailAPI: 200 OK — manifest entries (occupied seat numbers)
     RetailAPI-->>Web: 200 OK — seat map with pricing and availability (merged by Retail API)
 
     Traveller->>Web: Select seat(s) for each PAX
 
     Web->>RetailAPI: PATCH /v1/orders/{bookingRef}/seats (seatOfferIds per PAX per flight)
-
-    RetailAPI->>OfferMS: POST /v1/flights/{flightId}/seat-reservations (flightId, seatNumbers)
-    OfferMS-->>RetailAPI: 200 OK — seats reserved
 
     Note over RetailAPI, PaymentMS: Take payment for seat ancillary
     RetailAPI->>PaymentMS: POST /v1/payment/authorise (amount, cardDetails, description=SeatAncillary)
@@ -168,7 +164,7 @@ sequenceDiagram
 
 **Example `CabinLayout` JSON document**
 
-The JSON is structured as an ordered array of cabins, each containing a column configuration and an array of rows. Each seat carries its label, position, and physical attributes. Pricing and availability are **not** embedded here — pricing is returned by the Ancillary MS via `GET /v1/seat-offers?flightId={flightId}` and availability by the Offer MS via `GET /v1/flights/{flightId}/seat-availability`; all three are merged by the Retail API before the seatmap is returned to the channel. The `isSelectable` flag reflects only whether a seat is physically available for selection (not a crew seat, structural block, or permanently closed position).
+The JSON is structured as an ordered array of cabins, each containing a column configuration and an array of rows. Each seat carries its label, position, and physical attributes. Pricing and occupancy are **not** embedded here — pricing is returned by the Ancillary MS via `GET /v1/seat-offers?flightId={flightId}` and occupancy is derived from the Delivery MS manifest (`GET /v1/manifest`); all three are merged by the Retail API before the seatmap is returned to the channel. The `isSelectable` flag reflects only whether a seat is physically available for selection (not a crew seat, structural block, or permanently closed position).
 
 ```json
 {

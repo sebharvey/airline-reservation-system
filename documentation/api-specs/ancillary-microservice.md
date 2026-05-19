@@ -43,15 +43,15 @@ Calls from the Retail API to the Ancillary microservice are authenticated using 
 
 Business Class (`J`) and First Class (`F`) seat selection is included in the fare at no ancillary charge. These cabins are excluded from `ancillary.SeatPricing`.
 
-**Seatmap layout vs pricing vs availability** are three distinct concerns owned by different services:
+**Seatmap layout vs pricing vs occupancy** are three distinct concerns owned by different services:
 
 - **Layout** — physical cabin and seat configuration. Owned by Ancillary MS via `GET /v1/seatmap/{aircraftType}`.
 - **Pricing** — fleet-wide position-based prices and `SeatOfferId` generation. Owned by Ancillary MS via `GET /v1/seat-offers?flightId={flightId}`.
-- **Availability** — real-time per-seat status (available, held, sold) for a specific flight. Owned by **Offer MS** via `GET /v1/flights/{flightId}/seat-availability`.
+- **Occupancy** — which seats are occupied on a specific flight. Derived from the Delivery MS passenger manifest via `GET /v1/manifest`. A seat number present in a manifest entry is `sold`; all other selectable seats are `available`.
 
 The Retail API merges all three datasets before returning the seatmap response to the channel.
 
-**`isSelectable`** reflects only whether a seat is physically available for selection (not a structural block or crew seat). Real-time occupancy is overlaid from the Offer MS.
+**`isSelectable`** reflects only whether a seat is physically available for selection (not a structural block or crew seat). Real-time occupancy is overlaid from the Delivery MS manifest.
 
 **Seat validation responsibility:** Before writing any row to `delivery.Manifest`, the orchestration layer must validate `SeatNumber` against the active seatmap by calling `GET /v1/seatmap/{aircraftType}`.
 
@@ -347,14 +347,13 @@ Delete a seat pricing rule. Invalidates any `SeatOfferId` generated from it. Adm
 
 1. Retail API → Ancillary MS: `GET /v1/seatmap/{aircraftType}` — layout
 2. Retail API → Ancillary MS: `GET /v1/seat-offers?flightId={flightId}` — pricing and `SeatOfferId` per seat
-3. Retail API → Offer MS: `GET /v1/flights/{flightId}/seat-availability` — availability status
+3. Retail API → Delivery MS: `GET /v1/manifest?flightNumber={flightNumber}&departureDate={departureDate}` — occupied seats (seats in manifest = `sold`, all others = `available`)
 4. Retail API merges and returns unified seatmap to channel
 
 **Adding a seat to the basket:**
 
 5. Retail API → Ancillary MS: `GET /v1/seat-offers/{seatOfferId}` — validate offer
-6. Retail API → Offer MS: `POST /v1/flights/{flightId}/seat-reservations` — reserve seat
-7. Retail API → Order MS: `PUT /v1/basket/{basketId}/seats`
+6. Retail API → Order MS: `PUT /v1/basket/{basketId}/seats`
 
 **At basket confirmation:**
 
