@@ -57,85 +57,114 @@ public sealed class AutoAssignSeatsHandler
         // Compute seat assignments (pure logic, no I/O)
         var planned = PlanAssignments(unassigned, availablePerCabin);
 
-        // Persist each assignment; null SeatNumber means no cabin had space
+        // Passengers with no available seat — record immediately, no I/O needed
         var results = new List<SeatAssignmentOutcome>(planned.Count);
-        foreach (var plan in planned)
+        foreach (var plan in planned.Where(p => p.SeatNumber is null))
         {
-            if (plan.SeatNumber is null)
+            results.Add(new SeatAssignmentOutcome(
+                plan.BookingReference, plan.ETicketNumber, null, "Failed",
+                plan.FailureReason ?? "No seats available in any cabin"));
+        }
+
+        // Persist all manifest seat assignments in parallel — each targets a different e-ticket
+        var seatPlans      = planned.Where(p => p.SeatNumber is not null).ToList();
+        var manifestTasks  = seatPlans.Select(p => PersistManifestSeatAsync(p, command.InventoryId, ct)).ToList();
+        var manifestOutcomes = await Task.WhenAll(manifestTasks);
+
+        // Evaluate manifest results; collect successful seats grouped by booking for batched order updates
+        var seatsByBooking = new Dictionary<string, List<object>>(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < seatPlans.Count; i++)
+        {
+            var plan    = seatPlans[i];
+            var outcome = manifestOutcomes[i];
+
+            if (outcome.Exception is not null)
             {
+                _logger.LogError(outcome.Exception,
+                    "AutoAssign: unexpected failure for e-ticket {ETicket}", plan.ETicketNumber);
                 results.Add(new SeatAssignmentOutcome(
-                    plan.BookingReference, plan.ETicketNumber, null, "Failed",
-                    plan.FailureReason ?? "No seats available in any cabin"));
+                    plan.BookingReference, plan.ETicketNumber, null, "Failed", outcome.Exception.Message));
                 continue;
             }
 
-            try
+            if (!outcome.Updated)
             {
-                var updated = await _deliveryService.UpdateManifestSeatAsync(
-                    plan.ETicketNumber, command.InventoryId, plan.SeatNumber, ct);
-
-                if (!updated)
-                {
-                    _logger.LogWarning(
-                        "AutoAssign: manifest entry not found for e-ticket {ETicket}", plan.ETicketNumber);
-                    results.Add(new SeatAssignmentOutcome(
-                        plan.BookingReference, plan.ETicketNumber, null, "Failed", "Manifest entry not found"));
-                    continue;
-                }
-
-                // Update order seat — best-effort; manifest is the authoritative departure record
-                try
-                {
-                    var seatsPayload = new[]
-                    {
-                        new
-                        {
-                            passengerId = plan.PassengerId,
-                            segmentId   = command.InventoryId.ToString(),
-                            seatNumber  = plan.SeatNumber,
-                            price       = 0m,
-                            tax         = 0m,
-                            currency    = "GBP"
-                        }
-                    };
-                    await _orderService.UpdateOrderSeatsPostSaleAsync(plan.BookingReference, seatsPayload, ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex,
-                        "AutoAssign: order seat update failed for {BookingRef}/{ETicket} — manifest was updated",
-                        plan.BookingReference, plan.ETicketNumber);
-                }
-
-                if (plan.AllocatedCabin is not null &&
-                    !string.Equals(plan.AllocatedCabin, plan.BookedCabin, StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogInformation(
-                        "AutoAssign: seat {Seat} ({AllocatedCabin}) assigned to e-ticket {ETicket} on booking {BookingRef} — overflow from booked cabin {BookedCabin}",
-                        plan.SeatNumber, plan.AllocatedCabin, plan.ETicketNumber, plan.BookingReference, plan.BookedCabin);
-                }
-                else
-                {
-                    _logger.LogInformation(
-                        "AutoAssign: seat {Seat} assigned to e-ticket {ETicket} on booking {BookingRef}",
-                        plan.SeatNumber, plan.ETicketNumber, plan.BookingReference);
-                }
-
+                _logger.LogWarning(
+                    "AutoAssign: manifest entry not found for e-ticket {ETicket}", plan.ETicketNumber);
                 results.Add(new SeatAssignmentOutcome(
-                    plan.BookingReference, plan.ETicketNumber, plan.SeatNumber, "Assigned", null));
+                    plan.BookingReference, plan.ETicketNumber, null, "Failed", "Manifest entry not found"));
+                continue;
             }
-            catch (Exception ex)
+
+            if (plan.AllocatedCabin is not null &&
+                !string.Equals(plan.AllocatedCabin, plan.BookedCabin, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogError(ex,
-                    "AutoAssign: unexpected failure for e-ticket {ETicket}", plan.ETicketNumber);
-                results.Add(new SeatAssignmentOutcome(
-                    plan.BookingReference, plan.ETicketNumber, null, "Failed", ex.Message));
+                _logger.LogInformation(
+                    "AutoAssign: seat {Seat} ({AllocatedCabin}) assigned to e-ticket {ETicket} on booking {BookingRef} — overflow from booked cabin {BookedCabin}",
+                    plan.SeatNumber, plan.AllocatedCabin, plan.ETicketNumber, plan.BookingReference, plan.BookedCabin);
             }
+            else
+            {
+                _logger.LogInformation(
+                    "AutoAssign: seat {Seat} assigned to e-ticket {ETicket} on booking {BookingRef}",
+                    plan.SeatNumber, plan.ETicketNumber, plan.BookingReference);
+            }
+
+            results.Add(new SeatAssignmentOutcome(
+                plan.BookingReference, plan.ETicketNumber, plan.SeatNumber, "Assigned", null));
+
+            if (!seatsByBooking.TryGetValue(plan.BookingReference, out var bookingSeats))
+                seatsByBooking[plan.BookingReference] = bookingSeats = [];
+
+            bookingSeats.Add(new
+            {
+                passengerId = plan.PassengerId,
+                segmentId   = command.InventoryId.ToString(),
+                seatNumber  = plan.SeatNumber,
+                price       = 0m,
+                tax         = 0m,
+                currency    = "GBP"
+            });
         }
+
+        // Update orders in parallel — one batched call per booking reference (best-effort)
+        await Task.WhenAll(seatsByBooking.Select(kvp => UpdateOrderSeatsAsync(kvp.Key, kvp.Value, ct)));
 
         var assigned = results.Count(r => r.Status == "Assigned");
         var failed   = results.Count - assigned;
         return new AutoAssignSeatsResult(assigned, failed, results);
+    }
+
+    // ── Persistence helpers ──────────────────────────────────────────────────
+
+    private async Task<(bool Updated, Exception? Exception)> PersistManifestSeatAsync(
+        PlannedAssignment plan, Guid inventoryId, CancellationToken ct)
+    {
+        try
+        {
+            var updated = await _deliveryService.UpdateManifestSeatAsync(
+                plan.ETicketNumber, inventoryId, plan.SeatNumber, ct);
+            return (updated, null);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex);
+        }
+    }
+
+    private async Task UpdateOrderSeatsAsync(string bookingReference, List<object> seats, CancellationToken ct)
+    {
+        try
+        {
+            await _orderService.UpdateOrderSeatsPostSaleAsync(bookingReference, seats, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "AutoAssign: order seat update failed for {BookingRef} — manifests were updated",
+                bookingReference);
+        }
     }
 
     // ── Seat pool construction ───────────────────────────────────────────────
