@@ -76,7 +76,7 @@ var host = new HostBuilder()
         services.AddHttpClient("ScheduleMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["ScheduleMs:BaseUrl"]!);
-            var hostKey = context.Configuration["ScheduleMs:HostKey"];
+            var hostKey = context.Configuration["Microservice:HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
@@ -84,7 +84,7 @@ var host = new HostBuilder()
         services.AddHttpClient("AncillaryMs", client =>
         {
             client.BaseAddress = new Uri(context.Configuration["AncillaryMs:BaseUrl"]!);
-            var hostKey = context.Configuration["AncillaryMs:HostKey"];
+            var hostKey = context.Configuration["Microservice:HostKey"];
             if (!string.IsNullOrEmpty(hostKey))
                 client.DefaultRequestHeaders.Add("x-functions-key", hostKey);
         });
