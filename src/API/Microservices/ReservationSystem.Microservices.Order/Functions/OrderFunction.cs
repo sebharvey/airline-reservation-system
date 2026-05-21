@@ -130,7 +130,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateOrderResponse), Description = "Created — order is in Draft status with no booking reference yet")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/orders")] HttpRequestData req,
         CancellationToken ct)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateOrderRequest>(_logger, ct);
@@ -159,7 +159,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
     public async Task<HttpResponseData> ConfirmOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/confirm")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/orders/confirm")] HttpRequestData req,
         CancellationToken ct)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<ConfirmOrderRequest>(_logger, ct);
@@ -189,7 +189,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> RetrieveOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/retrieve")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/orders/retrieve")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -216,7 +216,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> QueryOrders(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/orders")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/orders")] HttpRequestData req,
         CancellationToken ct)
     {
         var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
@@ -249,7 +249,7 @@ public sealed class OrderFunction
     [OpenApiParameter(name: "status", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Order status filter")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> GetIropsOrders(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/orders/irops")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/orders/irops")] HttpRequestData req,
         CancellationToken ct)
     {
         var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
@@ -276,7 +276,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> GetIropsOrdersByIds(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/irops")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/orders/irops")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -318,7 +318,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/orders/{bookingRef}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/orders/{bookingRef}")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         // Avoid routing conflicts with static sub-routes
@@ -338,7 +338,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetOrderByETicket(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/orders/e-ticket/{eTicketNumber}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/orders/e-ticket/{eTicketNumber}")] HttpRequestData req,
         string eTicketNumber, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(eTicketNumber))
@@ -358,7 +358,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdatePassengers(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/passengers")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/passengers")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -388,7 +388,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSeats(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/seats")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/seats")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -418,7 +418,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSegments(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/segments")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/segments")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -448,7 +448,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateBags(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/bags")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/bags")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -478,7 +478,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSsrs(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/ssrs")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/ssrs")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -508,7 +508,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateETickets(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/tickets")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/tickets")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -538,7 +538,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> ChangeOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/change")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/change")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -568,7 +568,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> CancelOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/cancel")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/cancel")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -598,7 +598,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> RebookOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/rebook")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/rebook")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -628,7 +628,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "Raw Order row as JSON")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DebugGetOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/debug/orders/{bookingRef}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/debug/orders/{bookingRef}")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         var order = await _getOrderDebugHandler.HandleAsync(new GetOrderDebugQuery(bookingRef.ToUpperInvariant()), ct);
@@ -661,7 +661,7 @@ public sealed class OrderFunction
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true, Description = "{ orderIds: [guid, ...] }")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — array of { orderId, bookingReference } pairs")]
     public async Task<HttpResponseData> GetOrderBookingReferences(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/orders/booking-references")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/admin/orders/booking-references")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -688,7 +688,7 @@ public sealed class OrderFunction
     [OpenApiParameter(name: "limit", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "Number of orders to return (default 10, max 100)")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetRecentOrders(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/orders")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/admin/orders")] HttpRequestData req,
         CancellationToken ct)
     {
         var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
@@ -709,7 +709,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CheckIn(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/checkin")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/checkin")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         JsonElement body;
@@ -780,7 +780,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> AddNotes(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/notes")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/notes")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         JsonElement body;
@@ -828,7 +828,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(OrderStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdatePayments(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/orders/{bookingRef}/payments")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/orders/{bookingRef}/payments")] HttpRequestData req,
         string bookingRef, CancellationToken ct)
     {
         string body;
@@ -861,7 +861,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> UpdateNote(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/orders/{bookingRef}/notes/{noteId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/orders/{bookingRef}/notes/{noteId}")] HttpRequestData req,
         string bookingRef, string noteId, CancellationToken ct)
     {
         JsonElement body;
@@ -896,7 +896,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteNote(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/orders/{bookingRef}/notes/{noteId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/orders/{bookingRef}/notes/{noteId}")] HttpRequestData req,
         string bookingRef, string noteId, CancellationToken ct)
     {
         var command = new DeleteOrderNoteCommand(bookingRef.ToUpperInvariant().Trim(), noteId.Trim());
@@ -918,7 +918,7 @@ public sealed class OrderFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content — order deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — order does not exist or is not in Draft status")]
     public async Task<HttpResponseData> DeleteDraftOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/orders/{orderId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/orders/{orderId}")] HttpRequestData req,
         string orderId, CancellationToken ct)
     {
         if (!Guid.TryParse(orderId, out var orderGuid))

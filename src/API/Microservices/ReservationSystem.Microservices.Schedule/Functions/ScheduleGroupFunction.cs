@@ -49,7 +49,7 @@ public sealed class ScheduleGroupFunction
     [OpenApiOperation(operationId: "GetScheduleGroups", tags: new[] { "ScheduleGroups" }, Summary = "Retrieve all schedule groups")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetScheduleGroupsResponse), Description = "OK — returns all schedule groups")]
     public async Task<HttpResponseData> GetScheduleGroups(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedule-groups")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/schedule-groups")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         try
@@ -75,7 +75,7 @@ public sealed class ScheduleGroupFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(ScheduleGroupItem), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateScheduleGroup(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedule-groups")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/schedule-groups")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateScheduleGroupRequest>(_logger, cancellationToken);
@@ -123,7 +123,7 @@ public sealed class ScheduleGroupFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ScheduleGroupItem), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateScheduleGroup(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/schedule-groups/{scheduleGroupId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/schedule-groups/{scheduleGroupId}")] HttpRequestData req,
         string scheduleGroupId,
         CancellationToken cancellationToken)
     {
@@ -171,7 +171,7 @@ public sealed class ScheduleGroupFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteScheduleGroup(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/schedule-groups/{scheduleGroupId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/schedule-groups/{scheduleGroupId}")] HttpRequestData req,
         string scheduleGroupId,
         CancellationToken cancellationToken)
     {

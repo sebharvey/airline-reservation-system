@@ -43,7 +43,7 @@ public sealed class BagOfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetBagOffers(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bags/offers")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/bags/offers")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var query = HttpUtility.ParseQueryString(req.Url.Query);
@@ -102,7 +102,7 @@ public sealed class BagOfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetBagOffer(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bags/offers/{bagOfferId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/bags/offers/{bagOfferId}")] HttpRequestData req,
         string bagOfferId,
         CancellationToken cancellationToken)
     {

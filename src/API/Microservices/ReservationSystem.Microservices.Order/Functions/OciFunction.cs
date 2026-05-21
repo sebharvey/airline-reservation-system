@@ -38,7 +38,7 @@ public sealed class OciFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> OciRetrieveOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/orders/oci/retrieve")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/orders/oci/retrieve")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;

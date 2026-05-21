@@ -42,7 +42,7 @@ public sealed class SeatOfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatOffers(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-offers")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/seat-offers")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var query = HttpUtility.ParseQueryString(req.Url.Query);
@@ -158,7 +158,7 @@ public sealed class SeatOfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatOffer(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-offers/{seatOfferId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/seat-offers/{seatOfferId}")] HttpRequestData req,
         string seatOfferId,
         CancellationToken cancellationToken)
     {

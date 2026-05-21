@@ -118,7 +118,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – flight already exists")]
     public async Task<HttpResponseData> CreateFlight(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/flights")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/flights")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -174,7 +174,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> CreateFare(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/flights/{inventoryId:guid}/fares")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/flights/{inventoryId:guid}/fares")] HttpRequestData req,
         Guid inventoryId, CancellationToken ct)
     {
         JsonElement body;
@@ -221,7 +221,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BatchCreateFlightsResponse), Description = "OK — returns counts of created and skipped records with created inventory details")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> BatchCreateFlights(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/flights/batch")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/flights/batch")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -288,7 +288,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SearchOffersResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Search(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/search")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/search")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -374,7 +374,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Gone, Description = "Gone – offer has expired")]
     public async Task<HttpResponseData> GetOffer(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/offers/{offerId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/offers/{offerId:guid}")] HttpRequestData req,
         Guid offerId, CancellationToken ct)
     {
         var sessionIdRaw = req.Query["sessionId"];
@@ -443,7 +443,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Gone, Description = "Gone — offer has expired")]
     public async Task<HttpResponseData> Reprice(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/offers/{offerId:guid}/reprice")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/offers/{offerId:guid}/reprice")] HttpRequestData req,
         Guid offerId,
         CancellationToken ct)
     {
@@ -497,7 +497,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity – insufficient seats")]
     public async Task<HttpResponseData> Hold(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/hold")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/inventory/hold")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -553,7 +553,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
     public async Task<HttpResponseData> Sell(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/sell")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/inventory/sell")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -595,7 +595,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Release(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/release")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/inventory/release")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -633,7 +633,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
     public async Task<HttpResponseData> RebookInventory(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/inventory/rebook")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/inventory/rebook")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -669,7 +669,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CancelInventoryResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Cancel(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/cancel")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/inventory/cancel")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -702,7 +702,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatAvailabilityResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatAvailability(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/{flightId:guid}/seat-availability")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/flights/{flightId:guid}/seat-availability")] HttpRequestData req,
         Guid flightId, CancellationToken ct)
     {
         var result = await _seatAvailabilityHandler.HandleAsync(new GetSeatAvailabilityQuery(flightId), ct);
@@ -734,7 +734,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – seat already reserved")]
     public async Task<HttpResponseData> ReserveSeat(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/flights/{flightId:guid}/seat-reservations")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/flights/{flightId:guid}/seat-reservations")] HttpRequestData req,
         Guid flightId, CancellationToken ct)
     {
         JsonElement body;
@@ -766,7 +766,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateSeatStatusResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSeatStatus(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/flights/{flightId:guid}/seat-availability")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/flights/{flightId:guid}/seat-availability")] HttpRequestData req,
         Guid flightId, CancellationToken ct)
     {
         JsonElement body;
@@ -796,7 +796,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FlightInventoryGroupResponse), Description = "OK — returns flight details for the inventory record")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no inventory record exists for the given ID")]
     public async Task<HttpResponseData> GetFlightByInventoryId(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/{inventoryId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/flights/{inventoryId:guid}")] HttpRequestData req,
         Guid inventoryId, CancellationToken ct)
     {
         var inventory = await _getFlightByInventoryIdHandler.HandleAsync(
@@ -829,7 +829,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no inventory exists for the given flight and date")]
     public async Task<HttpResponseData> GetFlightInventory(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/{flightNumber}/inventory")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/flights/{flightNumber}/inventory")] HttpRequestData req,
         string flightNumber,
         CancellationToken ct)
     {
@@ -905,7 +905,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — list of available flights with per-cabin seat counts")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> GetFlightAvailability(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/flights/availability")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/flights/availability")] HttpRequestData req,
         CancellationToken ct)
     {
         var qs          = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
@@ -958,7 +958,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FlightInventoryWithPinnedResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> GetFlightInventoryByDate(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/inventory")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/admin/inventory")] HttpRequestData req,
         CancellationToken ct)
     {
         var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
@@ -1046,7 +1046,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK — list of holds")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetInventoryHolds(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/inventory/{inventoryId:guid}/holds")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/inventory/{inventoryId:guid}/holds")] HttpRequestData req,
         Guid inventoryId,
         CancellationToken ct)
     {
@@ -1072,7 +1072,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateAircraftType(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/aircraft-type")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/inventory/aircraft-type")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -1110,7 +1110,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateInventoryTimes(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/flight-times")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/inventory/flight-times")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -1155,7 +1155,7 @@ public sealed class OfferFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> SetOperationalData(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/inventory/{inventoryId:guid}/operational-data")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/inventory/{inventoryId:guid}/operational-data")] HttpRequestData req,
         Guid inventoryId,
         CancellationToken ct)
     {

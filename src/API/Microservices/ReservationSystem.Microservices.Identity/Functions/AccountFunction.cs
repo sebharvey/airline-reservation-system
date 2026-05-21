@@ -77,7 +77,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already registered")]
     public async Task<HttpResponseData> CreateAccount(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/accounts")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateAccountRequest>(_logger, cancellationToken);
@@ -114,7 +114,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AccountSummaryResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetAccount(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
@@ -149,7 +149,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AccountSummaryResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetAccountByEmail(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/accounts/by-email/{email}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/accounts/by-email/{email}")] HttpRequestData req,
         string email,
         CancellationToken cancellationToken)
     {
@@ -187,7 +187,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already registered")]
     public async Task<HttpResponseData> UpdateAccount(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
@@ -227,7 +227,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteAccount(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/accounts/{userAccountId:guid}")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
@@ -255,7 +255,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> SetPassword(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/set-password")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/accounts/{userAccountId:guid}/set-password")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
@@ -289,7 +289,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> VerifyEmail(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "v1/accounts/{userAccountId:guid}/verify-email")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
@@ -318,7 +318,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> EmailChangeRequest(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/accounts/{userAccountId:guid}/email/change-request")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/accounts/{userAccountId:guid}/email/change-request")] HttpRequestData req,
         Guid userAccountId,
         CancellationToken cancellationToken)
     {
@@ -356,7 +356,7 @@ public sealed class AccountFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.OK, Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or expired token")]
     public async Task<HttpResponseData> VerifyEmailChange(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/email/verify")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/email/verify")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<VerifyEmailChangeRequest>(_logger, cancellationToken);

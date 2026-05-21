@@ -59,7 +59,7 @@ public sealed class ProductFunction
     [OpenApiOperation(operationId: "GetAllProducts", tags: new[] { "Product" }, Summary = "List all products")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ProductListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/products")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/products")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var products = await _getAllHandler.HandleAsync(new GetAllProductsQuery(), cancellationToken);
@@ -72,7 +72,7 @@ public sealed class ProductFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ProductResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/products/{productId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/products/{productId:guid}")] HttpRequestData req,
         Guid productId,
         CancellationToken cancellationToken)
     {
@@ -88,7 +88,7 @@ public sealed class ProductFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(ProductResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/products")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/products")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateProductRequest>(_logger, cancellationToken);
@@ -116,7 +116,7 @@ public sealed class ProductFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/products/{productId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/products/{productId:guid}")] HttpRequestData req,
         Guid productId,
         CancellationToken cancellationToken)
     {
@@ -144,7 +144,7 @@ public sealed class ProductFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/products/{productId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/products/{productId:guid}")] HttpRequestData req,
         Guid productId,
         CancellationToken cancellationToken)
     {
@@ -164,7 +164,7 @@ public sealed class ProductFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict — currency already has a price for this product")]
     public async Task<HttpResponseData> CreatePrice(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/products/{productId:guid}/prices")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/products/{productId:guid}/prices")] HttpRequestData req,
         Guid productId,
         CancellationToken cancellationToken)
     {
@@ -205,7 +205,7 @@ public sealed class ProductFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdatePrice(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/products/{productId:guid}/prices/{priceId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/products/{productId:guid}/prices/{priceId:guid}")] HttpRequestData req,
         Guid productId,
         Guid priceId,
         CancellationToken cancellationToken)
@@ -235,7 +235,7 @@ public sealed class ProductFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeletePrice(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/products/{productId:guid}/prices/{priceId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/products/{productId:guid}/prices/{priceId:guid}")] HttpRequestData req,
         Guid productId,
         Guid priceId,
         CancellationToken cancellationToken)

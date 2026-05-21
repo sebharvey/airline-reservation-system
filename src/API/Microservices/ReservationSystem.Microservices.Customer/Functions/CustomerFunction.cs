@@ -121,7 +121,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateCustomerResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateCustomerRequest>(_logger, cancellationToken);
@@ -149,7 +149,7 @@ public sealed class CustomerFunction
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SearchCustomersRequest), Required = true, Description = "Search query — contains match on name, exact match on loyalty number (max 50 results)")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerResponse[]), Description = "OK – always returns an array, empty if no matches found")]
     public async Task<HttpResponseData> Search(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/search")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/search")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<SearchCustomersRequest>(_logger, cancellationToken);
@@ -176,7 +176,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetByLoyaltyNumber(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/customers/{loyaltyNumber}")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -200,7 +200,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetByIdentityId(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/by-identity/{identityId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/customers/by-identity/{identityId:guid}")] HttpRequestData req,
         Guid identityId,
         CancellationToken cancellationToken)
     {
@@ -226,7 +226,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/customers/{loyaltyNumber}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/customers/{loyaltyNumber}")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -274,7 +274,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(TransactionsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetTransactions(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/transactions")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/customers/{loyaltyNumber}/transactions")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -303,7 +303,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AuthorisePointsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> AuthorisePoints(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/authorise")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/{loyaltyNumber}/points/authorise")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -335,7 +335,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SettlePointsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> SettlePoints(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/settle")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/{loyaltyNumber}/points/settle")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -367,7 +367,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ReversePointsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> ReversePoints(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/reverse")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/{loyaltyNumber}/points/reverse")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -399,7 +399,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ReinstatePointsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> ReinstatePoints(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/reinstate")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/{loyaltyNumber}/points/reinstate")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -431,7 +431,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AddPointsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> AddPoints(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/add")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/{loyaltyNumber}/points/add")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -475,7 +475,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request — validation failure or insufficient points")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — sender or recipient not found")]
     public async Task<HttpResponseData> TransferPoints(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/points/transfer")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/{loyaltyNumber}/points/transfer")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -518,7 +518,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/customers/{loyaltyNumber}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/customers/{loyaltyNumber}")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -541,7 +541,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerPreferencesResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetPreferences(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -565,7 +565,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Updated")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdatePreferences(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/customers/{loyaltyNumber}/preferences")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -592,7 +592,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Linked")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> AddOrder(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/orders")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/{loyaltyNumber}/orders")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -621,7 +621,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerOrdersResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetOrders(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/orders")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/customers/{loyaltyNumber}/orders")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -656,7 +656,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CustomerNotesResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetNotes(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/customers/{loyaltyNumber}/notes")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/customers/{loyaltyNumber}/notes")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -680,7 +680,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> AddNote(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/customers/{loyaltyNumber}/notes")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/customers/{loyaltyNumber}/notes")] HttpRequestData req,
         string loyaltyNumber,
         CancellationToken cancellationToken)
     {
@@ -715,7 +715,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateNote(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/customers/{loyaltyNumber}/notes/{noteId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/customers/{loyaltyNumber}/notes/{noteId:guid}")] HttpRequestData req,
         string loyaltyNumber,
         Guid noteId,
         CancellationToken cancellationToken)
@@ -746,7 +746,7 @@ public sealed class CustomerFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteNote(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/customers/{loyaltyNumber}/notes/{noteId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/customers/{loyaltyNumber}/notes/{noteId:guid}")] HttpRequestData req,
         string loyaltyNumber,
         Guid noteId,
         CancellationToken cancellationToken)

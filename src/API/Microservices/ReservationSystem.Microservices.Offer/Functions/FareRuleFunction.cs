@@ -50,7 +50,7 @@ public sealed class FareRuleFunction
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(SearchFareRulesRequest), Required = false, Description = "Optional search query")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<FareRuleResponse>), Description = "OK")]
     public async Task<HttpResponseData> Search(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/fare-rules/search")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/fare-rules/search")] HttpRequestData req,
         CancellationToken ct)
     {
         string? query = null;
@@ -74,7 +74,7 @@ public sealed class FareRuleFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(FareRuleResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Get(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/fare-rules/{fareRuleId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/fare-rules/{fareRuleId:guid}")] HttpRequestData req,
         Guid fareRuleId, CancellationToken ct)
     {
         var rule = await _getHandler.HandleAsync(new GetFareRuleQuery(fareRuleId), ct);
@@ -93,7 +93,7 @@ public sealed class FareRuleFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(FareRuleResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/fare-rules")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/fare-rules")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -140,7 +140,7 @@ public sealed class FareRuleFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/fare-rules/{fareRuleId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/fare-rules/{fareRuleId:guid}")] HttpRequestData req,
         Guid fareRuleId, CancellationToken ct)
     {
         JsonElement body;
@@ -187,7 +187,7 @@ public sealed class FareRuleFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/fare-rules/{fareRuleId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/fare-rules/{fareRuleId:guid}")] HttpRequestData req,
         Guid fareRuleId, CancellationToken ct)
     {
         var deleted = await _deleteHandler.HandleAsync(new DeleteFareRuleCommand(fareRuleId), ct);

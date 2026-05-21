@@ -47,7 +47,7 @@ public sealed class BagPricingFunction
     [OpenApiOperation(operationId: "GetAllBagPricings", tags: new[] { "BagPricing" }, Summary = "List all bag pricing rules")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPricingListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-pricing")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/bag-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var pricings = await _getAllHandler.HandleAsync(new GetAllBagPricingsQuery(), cancellationToken);
@@ -61,7 +61,7 @@ public sealed class BagPricingFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPricingResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
         Guid pricingId,
         CancellationToken cancellationToken)
     {
@@ -79,7 +79,7 @@ public sealed class BagPricingFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/bag-pricing")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/bag-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateBagPricingRequest>(_logger, cancellationToken);
@@ -121,7 +121,7 @@ public sealed class BagPricingFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
         Guid pricingId,
         CancellationToken cancellationToken)
     {
@@ -156,7 +156,7 @@ public sealed class BagPricingFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/bag-pricing/{pricingId:guid}")] HttpRequestData req,
         Guid pricingId,
         CancellationToken cancellationToken)
     {

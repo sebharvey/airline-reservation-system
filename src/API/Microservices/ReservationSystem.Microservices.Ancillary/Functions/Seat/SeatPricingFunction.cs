@@ -47,7 +47,7 @@ public sealed class SeatPricingFunction
     [OpenApiOperation(operationId: "GetAllSeatPricings", tags: new[] { "SeatPricing" }, Summary = "List all seat pricing rules")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatPricingResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-pricing")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/seat-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var pricings = await _getAllHandler.HandleAsync(new GetAllSeatPricingsQuery(), cancellationToken);
@@ -62,7 +62,7 @@ public sealed class SeatPricingFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seat-pricing")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/seat-pricing")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateSeatPricingRequest>(_logger, cancellationToken);
@@ -103,7 +103,7 @@ public sealed class SeatPricingFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatPricingResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
         Guid seatPricingId,
         CancellationToken cancellationToken)
     {
@@ -122,7 +122,7 @@ public sealed class SeatPricingFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
         Guid seatPricingId,
         CancellationToken cancellationToken)
     {
@@ -151,7 +151,7 @@ public sealed class SeatPricingFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/seat-pricing/{seatPricingId:guid}")] HttpRequestData req,
         Guid seatPricingId,
         CancellationToken cancellationToken)
     {

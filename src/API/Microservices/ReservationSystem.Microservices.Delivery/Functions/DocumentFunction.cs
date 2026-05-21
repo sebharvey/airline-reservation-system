@@ -49,7 +49,7 @@ public sealed class DocumentFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateDocumentResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateDocument(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/documents")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/documents")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateDocumentRequest>(_logger, cancellationToken);
@@ -80,7 +80,7 @@ public sealed class DocumentFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetDocumentResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetDocument(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/documents/{documentId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/documents/{documentId:guid}")] HttpRequestData req,
         Guid documentId,
         CancellationToken cancellationToken)
     {
@@ -105,7 +105,7 @@ public sealed class DocumentFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetDocumentResponse[]), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> GetDocumentsByBooking(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/documents")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/documents")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var query = HttpUtility.ParseQueryString(req.Url.Query);
@@ -135,7 +135,7 @@ public sealed class DocumentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> VoidDocument(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/documents/{documentNumber}/void")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/documents/{documentNumber}/void")] HttpRequestData req,
         string documentNumber,
         CancellationToken cancellationToken)
     {
@@ -177,7 +177,7 @@ public sealed class DocumentFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object[]), Description = "Raw Document rows as JSON")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> DebugGetDocumentsByBooking(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/debug/documents")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/debug/documents")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var queryParams = HttpUtility.ParseQueryString(req.Url.Query);

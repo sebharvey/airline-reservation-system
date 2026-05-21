@@ -55,7 +55,7 @@ public sealed class ManifestFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no manifest entries for this flight")]
     public async Task<HttpResponseData> GetManifest(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/manifest")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/manifest")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var flightNumber = System.Web.HttpUtility.ParseQueryString(req.Url.Query)["flightNumber"];
@@ -109,7 +109,7 @@ public sealed class ManifestFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> WriteManifest(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/manifest")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/manifest")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<WriteManifestRequest>(_logger, cancellationToken);
@@ -140,7 +140,7 @@ public sealed class ManifestFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound,  Description = "Not Found — no manifest entry for this e-ticket")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> UpdateManifestSeat(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/{eTicketNumber}/seat")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/manifest/{eTicketNumber}/seat")] HttpRequestData req,
         string eTicketNumber,
         CancellationToken cancellationToken)
     {
@@ -180,7 +180,7 @@ public sealed class ManifestFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no manifest entries matched")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> DeleteManifestFlight(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/manifest/{bookingReference}/flight/{flightNumber}/{departureDate}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/manifest/{bookingReference}/flight/{flightNumber}/{departureDate}")] HttpRequestData req,
         string bookingReference,
         string flightNumber,
         string departureDate,
@@ -205,7 +205,7 @@ public sealed class ManifestFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no manifest entries matched")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> UpdateManifestSsrs(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/{bookingReference}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/manifest/{bookingReference}")] HttpRequestData req,
         string bookingReference,
         CancellationToken cancellationToken)
     {
@@ -238,7 +238,7 @@ public sealed class ManifestFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no manifest entries for this flight")]
     public async Task<HttpResponseData> UpdateManifestFlightTimes(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/flight/{flightNumber}/{departureDate}/times")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/manifest/flight/{flightNumber}/{departureDate}/times")] HttpRequestData req,
         string flightNumber,
         string departureDate,
         CancellationToken cancellationToken)
@@ -286,7 +286,7 @@ public sealed class ManifestFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found — no manifest entries matched")]
     public async Task<HttpResponseData> RebookManifestFlight(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/manifest/{bookingReference}/flight/{flightNumber}/{departureDate}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/manifest/{bookingReference}/flight/{flightNumber}/{departureDate}")] HttpRequestData req,
         string bookingReference,
         string flightNumber,
         string departureDate,
