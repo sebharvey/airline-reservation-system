@@ -252,10 +252,14 @@
 
   <!-- Action Links -->
   <div class="action-links">
-    <a routerLink="/manage-booking" class="btn-secondary">&#128203; Manage Booking</a>
+    <button class="btn-secondary" (click)="goToManageBooking()" [disabled]="managingBooking()">
+      <span *ngIf="!managingBooking()">&#128203; Manage Booking</span>
+      <span *ngIf="managingBooking()">Loading&#8230;</span>
+    </button>
     <a routerLink="/check-in" class="btn-secondary">&#127915; Online Check-In</a>
     <a routerLink="/" class="btn-primary">&#127968; Return Home</a>
   </div>
+  <div class="action-error" *ngIf="manageBookingError()">{{ manageBookingError() }}</div>
 
 </div>
 
