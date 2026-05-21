@@ -148,4 +148,36 @@ internal sealed class RetailApiClient : IRetailApiClient
         var result = await response.Content.ReadFromJsonAsync<CreateBasketResponse>(JsonOptions, ct);
         return result ?? throw new InvalidOperationException("Empty response from Retail API admin basket.");
     }
+
+    public async Task AdminGetPaymentSummaryAsync(string basketId, string bearerToken, CancellationToken ct = default)
+    {
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/admin/basket/{basketId}/payment-summary");
+        httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
+
+        var response = await _httpClient.SendAsync(httpRequest, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task AdminAddPassengersAsync(string basketId, List<PassengerRequest> passengers, string bearerToken, CancellationToken ct = default)
+    {
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/basket/{basketId}/passengers");
+        httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
+        httpRequest.Content = JsonContent.Create(passengers, options: JsonOptions);
+
+        var response = await _httpClient.SendAsync(httpRequest, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<ConfirmBasketResponse> AdminConfirmBasketAsync(string basketId, ConfirmBasketRequest request, string bearerToken, CancellationToken ct = default)
+    {
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/admin/basket/{basketId}/confirm");
+        httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
+        httpRequest.Content = JsonContent.Create(request, options: JsonOptions);
+
+        var response = await _httpClient.SendAsync(httpRequest, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ConfirmBasketResponse>(JsonOptions, ct);
+        return result ?? throw new InvalidOperationException("Empty response from Retail API admin confirm basket.");
+    }
 }
