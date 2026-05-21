@@ -89,6 +89,27 @@ export class DisruptionComponent implements OnInit {
     }
   }
 
+  async retryAllFailed(): Promise<void> {
+    this.runningAll.set(true);
+    try {
+      const failedRefs = this.rows()
+        .filter(r => r.rebookStatus === 'failed')
+        .map(r => r.order.bookingReference);
+      for (const ref of failedRefs) {
+        await this.#rebookSingle(ref);
+      }
+    } finally {
+      this.runningAll.set(false);
+    }
+  }
+
+  async retryFromModal(): Promise<void> {
+    const row = this.rebookResultModal();
+    if (!row) return;
+    this.closeRebookModal();
+    await this.rebookOrder(row);
+  }
+
   async #rebookSingle(bookingReference: string): Promise<void> {
     this.rows.update(rows =>
       rows.map(r => r.order.bookingReference === bookingReference
