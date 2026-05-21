@@ -33,4 +33,10 @@ public interface IRetailApiClient
     Task<SearchSliceResponse> AdminSearchSliceAsync(SearchSliceRequest request, string bearerToken, CancellationToken ct = default);
 
     Task<CreateBasketResponse> AdminCreateBasketAsync(CreateBasketRequest request, string bearerToken, CancellationToken ct = default);
+
+    Task AdminGetPaymentSummaryAsync(string basketId, string bearerToken, CancellationToken ct = default);
+
+    Task AdminAddPassengersAsync(string basketId, List<PassengerRequest> passengers, string bearerToken, CancellationToken ct = default);
+
+    Task<ConfirmBasketResponse> AdminConfirmBasketAsync(string basketId, ConfirmBasketRequest request, string bearerToken, CancellationToken ct = default);
 }

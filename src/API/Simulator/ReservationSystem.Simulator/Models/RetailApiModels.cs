@@ -208,7 +208,8 @@ public sealed record SsrRequest(
 public sealed record ConfirmBasketRequest(
     string ChannelCode,
     PaymentRequest Payment,
-    object? LoyaltyPointsToRedeem);
+    object? LoyaltyPointsToRedeem,
+    string? BookingType = null);
 
 public sealed record PaymentRequest(
     string Method,

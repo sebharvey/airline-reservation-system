@@ -134,11 +134,11 @@ public sealed class StandbyBookingSimulatorHandler
         var basketId  = basketRes.BasketId;
 
         // ── Step 4: Get basket summary ─────────────────────────────────────────
-        await _retailApiClient.GetBasketSummaryAsync(basketId, ct);
+        await _retailApiClient.AdminGetPaymentSummaryAsync(basketId, bearerToken, ct);
 
         // ── Step 5: Add single passenger ──────────────────────────────────────
         var passenger  = GenerateStaffPassenger();
-        await _retailApiClient.AddPassengersAsync(basketId, [passenger], ct);
+        await _retailApiClient.AdminAddPassengersAsync(basketId, [passenger], bearerToken, ct);
 
         // ── Step 6: Confirm with payment (taxes only — base fare is zero) ──────
         var confirmReq = new ConfirmBasketRequest(
@@ -149,9 +149,10 @@ public sealed class StandbyBookingSimulatorHandler
                 ExpiryDate:     "12/28",
                 Cvv:            "737",
                 CardholderName: $"{passenger.GivenName} {passenger.Surname}"),
-            LoyaltyPointsToRedeem: null);
+            LoyaltyPointsToRedeem: null,
+            BookingType: "Standby");
 
-        var confirmRes = await _retailApiClient.ConfirmBasketAsync(basketId, confirmReq, ct);
+        var confirmRes = await _retailApiClient.AdminConfirmBasketAsync(basketId, confirmReq, bearerToken, ct);
 
         var routeLabel = $"{route.Origin}→{route.Destination}";
         return (confirmRes.OrderId, confirmRes.BookingReference, routeLabel);
