@@ -9,7 +9,7 @@ namespace ReservationSystem.Orchestration.Operations.Application.AdminDisruption
 public sealed class AdminDisruptionRebookOrderHandler
 {
     private const int AvailabilityLookaheadDays = 7;
-    private const int CheckInCutoffMinutes = 45;
+    private const int TicketingCutoffMinutes = 60;
 
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
@@ -83,7 +83,7 @@ public sealed class AdminDisruptionRebookOrderHandler
                             }
                         ]
                     }))
-                .Where(o => IsRebookable(o.DepartureDate, o.DepartureTime, o.DepartureTimeUtc))
+                .Where(o => IsRebookable(o.DepartureDate, o.DepartureTimeUtc))
                 .ToList();
 
             var replacement = FindBestReplacement(replacementPool, order.Segment.CabinCode, order.Passengers.Count);
@@ -311,21 +311,12 @@ public sealed class AdminDisruptionRebookOrderHandler
     private static AdminDisruptionRebookOrderResponse Failed(string bookingReference, string reason) =>
         new() { BookingReference = bookingReference, Outcome = "Failed", FailureReason = reason };
 
-    private static bool IsRebookable(string departureDate, string departureTime, string? departureTimeUtc)
+    private static bool IsRebookable(string departureDate, string? departureTimeUtc)
     {
         if (departureTimeUtc is null) return false;
-        if (!DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out var localDate)) return false;
-        if (!TimeOnly.TryParseExact(departureTimeUtc, "HH:mm", out var utcTime)) return false;
-
-        // DepartureDate is the local calendar date. When utcTime is later in the day than
-        // the local departure time (e.g. 00:30 BST = 23:30 UTC), the UTC date is the
-        // previous calendar day and must be adjusted to avoid treating a departed flight
-        // as future.
-        var utcDate = TimeOnly.TryParseExact(departureTime, "HH:mm", out var localTime) && utcTime > localTime
-            ? localDate.AddDays(-1)
-            : localDate;
-
-        return utcDate.ToDateTime(utcTime, DateTimeKind.Utc) > DateTime.UtcNow.AddMinutes(CheckInCutoffMinutes);
+        if (!DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out var date)) return false;
+        if (!TimeOnly.TryParseExact(departureTimeUtc, "HH:mm", out var time)) return false;
+        return date.ToDateTime(time, DateTimeKind.Utc) > DateTime.UtcNow.AddMinutes(TicketingCutoffMinutes);
     }
 
     private static RebookReplacementOption? FindBestReplacement(
