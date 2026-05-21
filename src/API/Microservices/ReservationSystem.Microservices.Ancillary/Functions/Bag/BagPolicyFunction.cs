@@ -47,7 +47,7 @@ public sealed class BagPolicyFunction
     [OpenApiOperation(operationId: "GetAllBagPolicies", tags: new[] { "BagPolicies" }, Summary = "List all bag policies")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPoliciesListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-policies")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/bag-policies")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var policies = await _getAllHandler.HandleAsync(new GetAllBagPoliciesQuery(), cancellationToken);
@@ -61,7 +61,7 @@ public sealed class BagPolicyFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BagPolicyResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
         Guid policyId,
         CancellationToken cancellationToken)
     {
@@ -79,7 +79,7 @@ public sealed class BagPolicyFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/bag-policies")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/bag-policies")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateBagPolicyRequest>(_logger, cancellationToken);
@@ -120,7 +120,7 @@ public sealed class BagPolicyFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
         Guid policyId,
         CancellationToken cancellationToken)
     {
@@ -146,7 +146,7 @@ public sealed class BagPolicyFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/bag-policies/{policyId:guid}")] HttpRequestData req,
         Guid policyId,
         CancellationToken cancellationToken)
     {

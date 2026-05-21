@@ -47,7 +47,7 @@ public sealed class OciFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Timatic document or APIS check failed")]
     public async Task<HttpResponseData> OciCheckIn(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/oci/checkin")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/oci/checkin")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         JsonElement body;
@@ -191,7 +191,7 @@ public sealed class OciFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> OciBoardingDocs(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/oci/boarding-docs")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/oci/boarding-docs")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         JsonElement body;

@@ -45,7 +45,7 @@ public sealed class ScheduleFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> ImportSchedules(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/schedules")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/schedules")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<ImportSchedulesRequest>(_logger, cancellationToken);
@@ -144,7 +144,7 @@ public sealed class ScheduleFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSchedulesResponse), Description = "OK — returns flight schedule records with operating date counts")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetSchedules(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/schedules")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/schedules")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         try

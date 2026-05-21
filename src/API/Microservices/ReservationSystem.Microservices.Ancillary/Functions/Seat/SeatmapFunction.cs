@@ -61,7 +61,7 @@ public sealed class SeatmapFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatmap(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seatmap/{aircraftType}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/seatmap/{aircraftType}")] HttpRequestData req,
         string aircraftType,
         CancellationToken cancellationToken)
     {
@@ -90,7 +90,7 @@ public sealed class SeatmapFunction
     [OpenApiOperation(operationId: "GetAllSeatmaps", tags: new[] { "Seatmaps" }, Summary = "List all seatmaps")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapListItemResponse[]), Description = "OK")]
     public async Task<HttpResponseData> GetAllSeatmaps(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seatmaps")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/seatmaps")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var seatmaps = await _seatmapRepository.GetAllAsync(cancellationToken);
@@ -112,7 +112,7 @@ public sealed class SeatmapFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetSeatmapById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/seatmaps/{seatmapId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/seatmaps/{seatmapId:guid}")] HttpRequestData req,
         Guid seatmapId,
         CancellationToken cancellationToken)
     {
@@ -129,7 +129,7 @@ public sealed class SeatmapFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(SeatmapResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateSeatmap(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/seatmaps")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/seatmaps")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateSeatmapRequest>(_logger, cancellationToken);
@@ -171,7 +171,7 @@ public sealed class SeatmapFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSeatmap(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/seatmaps/{seatmapId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/seatmaps/{seatmapId:guid}")] HttpRequestData req,
         Guid seatmapId,
         CancellationToken cancellationToken)
     {
@@ -194,7 +194,7 @@ public sealed class SeatmapFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> DeleteSeatmap(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/seatmaps/{seatmapId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/seatmaps/{seatmapId:guid}")] HttpRequestData req,
         Guid seatmapId,
         CancellationToken cancellationToken)
     {

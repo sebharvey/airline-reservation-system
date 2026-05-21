@@ -66,7 +66,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateBasketResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> CreateBasket(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/basket")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/basket")] HttpRequestData req,
         CancellationToken ct)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateBasketRequest>(_logger, ct);
@@ -94,7 +94,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(BasketResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetBasket(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/basket/{basketId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/basket/{basketId:guid}")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
     {
         var basket = await _getBasketHandler.HandleAsync(new GetBasketQuery(basketId), ct);
@@ -135,7 +135,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> AddOffer(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/basket/{basketId:guid}/offers")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/basket/{basketId:guid}/offers")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
     {
         string body;
@@ -166,7 +166,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateBasketPassengersResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdatePassengers(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/passengers")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/basket/{basketId:guid}/passengers")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
     {
         string body;
@@ -203,7 +203,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateBasketAmountResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSeats(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/seats")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/basket/{basketId:guid}/seats")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
     {
         string body;
@@ -233,7 +233,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateBasketAmountResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateBags(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/bags")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/basket/{basketId:guid}/bags")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
     {
         string body;
@@ -263,7 +263,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateBasketSsrsResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateSsrs(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/ssrs")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/basket/{basketId:guid}/ssrs")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
     {
         string body;
@@ -305,7 +305,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UpdateBasketAmountResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateProducts(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/basket/{basketId:guid}/products")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/basket/{basketId:guid}/products")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
     {
         string body;
@@ -333,7 +333,7 @@ public sealed class BasketFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Expired")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> ExpireBasket(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/basket/{basketId:guid}/expire")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/basket/{basketId:guid}/expire")] HttpRequestData req,
         Guid basketId, CancellationToken ct)
     {
         var expired = await _expireBasketHandler.HandleAsync(new ExpireBasketCommand(basketId), ct);

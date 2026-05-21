@@ -45,7 +45,7 @@ public sealed class ProductGroupFunction
     [OpenApiOperation(operationId: "GetAllProductGroups", tags: new[] { "ProductGroup" }, Summary = "List all product groups")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ProductGroupListResponse), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/product-groups")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/product-groups")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var groups = await _getAllHandler.HandleAsync(new GetAllProductGroupsQuery(), cancellationToken);
@@ -58,7 +58,7 @@ public sealed class ProductGroupFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ProductGroupResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/product-groups/{groupId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/product-groups/{groupId:guid}")] HttpRequestData req,
         Guid groupId,
         CancellationToken cancellationToken)
     {
@@ -75,7 +75,7 @@ public sealed class ProductGroupFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/product-groups")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/product-groups")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateProductGroupRequest>(_logger, cancellationToken);
@@ -105,7 +105,7 @@ public sealed class ProductGroupFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/product-groups/{groupId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/product-groups/{groupId:guid}")] HttpRequestData req,
         Guid groupId,
         CancellationToken cancellationToken)
     {
@@ -131,7 +131,7 @@ public sealed class ProductGroupFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict — product group has associated products")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/product-groups/{groupId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/product-groups/{groupId:guid}")] HttpRequestData req,
         Guid groupId,
         CancellationToken cancellationToken)
     {

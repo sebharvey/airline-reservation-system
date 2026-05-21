@@ -45,7 +45,7 @@ public sealed class SsrFunction
     [OpenApiParameter(name: "flightNumbers", In = ParameterLocation.Query, Required = false, Type = typeof(string), Description = "Comma-separated flight numbers to filter applicable SSRs")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetSsrOptionsResponse), Description = "OK")]
     public async Task<HttpResponseData> GetSsrOptions(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/ssr/options")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/ssr/options")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
@@ -72,7 +72,7 @@ public sealed class SsrFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(CreateSsrOptionResponse), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "SSR code already exists")]
     public async Task<HttpResponseData> CreateSsrOption(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/ssr/options")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/ssr/options")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var body = await req.ReadFromJsonAsync<CreateSsrOptionRequest>(cancellationToken);
@@ -107,7 +107,7 @@ public sealed class SsrFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CreateSsrOptionResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "SSR code not found")]
     public async Task<HttpResponseData> UpdateSsrOption(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/ssr/options/{ssrCode}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/ssr/options/{ssrCode}")] HttpRequestData req,
         string ssrCode,
         CancellationToken cancellationToken)
     {
@@ -140,7 +140,7 @@ public sealed class SsrFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deactivated")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "SSR code not found")]
     public async Task<HttpResponseData> DeactivateSsrOption(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/ssr/options/{ssrCode}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/ssr/options/{ssrCode}")] HttpRequestData req,
         string ssrCode,
         CancellationToken cancellationToken)
     {

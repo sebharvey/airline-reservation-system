@@ -71,7 +71,7 @@ public sealed class UserFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – validation error")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – username or email already exists")]
     public async Task<HttpResponseData> AddUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/users")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/users")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<AddUserRequest>(_logger, cancellationToken);
@@ -107,7 +107,7 @@ public sealed class UserFunction
     [OpenApiOperation(operationId: "GetAllUsers", tags: new[] { "Users" }, Summary = "Retrieve all employee user accounts")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(List<UserResponse>), Description = "OK – returns list of user accounts (passwords excluded)")]
     public async Task<HttpResponseData> GetAllUsers(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/users")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/users")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var query = new GetAllUsersQuery();
@@ -125,7 +125,7 @@ public sealed class UserFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(UserResponse), Description = "OK – returns the user account (password excluded)")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
     public async Task<HttpResponseData> GetUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/users/{userId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/users/{userId:guid}")] HttpRequestData req,
         Guid userId,
         CancellationToken cancellationToken)
     {
@@ -151,7 +151,7 @@ public sealed class UserFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict – email already in use")]
     public async Task<HttpResponseData> UpdateUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/users/{userId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/users/{userId:guid}")] HttpRequestData req,
         Guid userId,
         CancellationToken cancellationToken)
     {
@@ -191,7 +191,7 @@ public sealed class UserFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – status updated")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
     public async Task<HttpResponseData> SetUserStatus(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/users/{userId:guid}/status")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/users/{userId:guid}/status")] HttpRequestData req,
         Guid userId,
         CancellationToken cancellationToken)
     {
@@ -217,7 +217,7 @@ public sealed class UserFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – account unlocked")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
     public async Task<HttpResponseData> UnlockUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/users/{userId:guid}/unlock")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/users/{userId:guid}/unlock")] HttpRequestData req,
         Guid userId,
         CancellationToken cancellationToken)
     {
@@ -242,7 +242,7 @@ public sealed class UserFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – validation error")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
     public async Task<HttpResponseData> ResetPassword(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/users/{userId:guid}/reset-password")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/users/{userId:guid}/reset-password")] HttpRequestData req,
         Guid userId,
         CancellationToken cancellationToken)
     {
@@ -272,7 +272,7 @@ public sealed class UserFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "No Content – user deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found – user does not exist")]
     public async Task<HttpResponseData> DeleteUser(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/users/{userId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/users/{userId:guid}")] HttpRequestData req,
         Guid userId,
         CancellationToken cancellationToken)
     {

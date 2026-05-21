@@ -47,7 +47,7 @@ public sealed class FareFamilyFunction
     [OpenApiOperation(operationId: "GetFareFamilies", tags: new[] { "Fare Families" }, Summary = "List all fare families")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object[]), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/fare-families")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/fare-families")] HttpRequestData req,
         CancellationToken ct)
     {
         var families = await _getAllHandler.HandleAsync(new GetFareFamiliesQuery(), ct);
@@ -62,7 +62,7 @@ public sealed class FareFamilyFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Get(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/fare-families/{fareFamilyId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/fare-families/{fareFamilyId:guid}")] HttpRequestData req,
         Guid fareFamilyId, CancellationToken ct)
     {
         var family = await _getHandler.HandleAsync(new GetFareFamilyQuery(fareFamilyId), ct);
@@ -81,7 +81,7 @@ public sealed class FareFamilyFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.Created, contentType: "application/json", bodyType: typeof(object), Description = "Created")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/fare-families")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/fare-families")] HttpRequestData req,
         CancellationToken ct)
     {
         JsonElement body;
@@ -111,7 +111,7 @@ public sealed class FareFamilyFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/fare-families/{fareFamilyId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/fare-families/{fareFamilyId:guid}")] HttpRequestData req,
         Guid fareFamilyId, CancellationToken ct)
     {
         JsonElement body;
@@ -141,7 +141,7 @@ public sealed class FareFamilyFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/fare-families/{fareFamilyId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/fare-families/{fareFamilyId:guid}")] HttpRequestData req,
         Guid fareFamilyId, CancellationToken ct)
     {
         var deleted = await _deleteHandler.HandleAsync(new DeleteFareFamilyCommand(fareFamilyId), ct);

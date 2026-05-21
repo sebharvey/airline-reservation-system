@@ -45,7 +45,7 @@ public sealed class WatchlistFunction
     [OpenApiOperation(operationId: "GetAllWatchlistEntries", tags: new[] { "Watchlist" }, Summary = "List all watchlist entries")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<WatchlistEntryResponse>), Description = "OK")]
     public async Task<HttpResponseData> GetAll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/watchlist-entries")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/watchlist-entries")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var entries = await _getAllHandler.HandleAsync(new GetAllWatchlistEntriesQuery(), cancellationToken);
@@ -58,7 +58,7 @@ public sealed class WatchlistFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(WatchlistEntryResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/watchlist-entries/{watchlistId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/watchlist-entries/{watchlistId:guid}")] HttpRequestData req,
         Guid watchlistId,
         CancellationToken cancellationToken)
     {
@@ -75,7 +75,7 @@ public sealed class WatchlistFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict — passport number already on watchlist")]
     public async Task<HttpResponseData> Create(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/watchlist-entries")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/watchlist-entries")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<CreateWatchlistEntryRequest>(_logger, cancellationToken);
@@ -110,7 +110,7 @@ public sealed class WatchlistFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Update(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/watchlist-entries/{watchlistId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/watchlist-entries/{watchlistId:guid}")] HttpRequestData req,
         Guid watchlistId,
         CancellationToken cancellationToken)
     {
@@ -146,7 +146,7 @@ public sealed class WatchlistFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NoContent, Description = "Deleted")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> Delete(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/watchlist-entries/{watchlistId:guid}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/watchlist-entries/{watchlistId:guid}")] HttpRequestData req,
         Guid watchlistId,
         CancellationToken cancellationToken)
     {

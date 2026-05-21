@@ -73,7 +73,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> Initialise(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/initialise")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/payment/initialise")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<InitialisePaymentRequest>(_logger, cancellationToken);
@@ -121,7 +121,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> Authorise(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/{paymentId}/authorise")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/payment/{paymentId}/authorise")] HttpRequestData req,
         string paymentId,
         CancellationToken cancellationToken)
     {
@@ -203,7 +203,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Settle(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/{paymentId}/settle")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/payment/{paymentId}/settle")] HttpRequestData req,
         string paymentId,
         CancellationToken cancellationToken)
     {
@@ -257,7 +257,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Void(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/{paymentId}/void")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/payment/{paymentId}/void")] HttpRequestData req,
         string paymentId,
         CancellationToken cancellationToken)
     {
@@ -316,7 +316,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Conflict, Description = "Conflict")]
     public async Task<HttpResponseData> Refund(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/payment/{paymentId}/refund")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/payment/{paymentId}/refund")] HttpRequestData req,
         string paymentId,
         CancellationToken cancellationToken)
     {
@@ -372,7 +372,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetPayment(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/payment/{paymentId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/payment/{paymentId}")] HttpRequestData req,
         string paymentId,
         CancellationToken cancellationToken)
     {
@@ -407,7 +407,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetPaymentEvents(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/payment/{paymentId}/events")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/payment/{paymentId}/events")] HttpRequestData req,
         string paymentId,
         CancellationToken cancellationToken)
     {
@@ -441,7 +441,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request – invalid or missing date")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetPaymentsByDate(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/payment")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/payment")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var dateStr = req.Url.Query
@@ -478,7 +478,7 @@ public sealed class PaymentFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> UpdateBookingReference(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/payment/{paymentId}/booking-reference")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/payment/{paymentId}/booking-reference")] HttpRequestData req,
         string paymentId,
         CancellationToken cancellationToken)
     {

@@ -54,7 +54,7 @@ public sealed class TicketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(IReadOnlyList<GetTicketResponse>), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> GetTicketsByBooking(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/tickets")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/tickets")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var queryParams = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
@@ -75,7 +75,7 @@ public sealed class TicketFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> IssueTickets(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/tickets")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/tickets")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<IssueTicketsRequest>(_logger, cancellationToken);
@@ -106,7 +106,7 @@ public sealed class TicketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetCouponValueResponse), Description = "Derived coupon value (fareShare, taxShare, total)")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Ticket or coupon not found")]
     public async Task<HttpResponseData> GetCouponValue(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/tickets/{eTicketNumber}/coupons/{couponNumber}/value")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/tickets/{eTicketNumber}/coupons/{couponNumber}/value")] HttpRequestData req,
         string eTicketNumber,
         int couponNumber,
         CancellationToken cancellationToken)
@@ -131,7 +131,7 @@ public sealed class TicketFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.UnprocessableEntity, Description = "Unprocessable Entity")]
     public async Task<HttpResponseData> VoidTicket(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "patch", Route = "v1/tickets/{eTicketNumber}/void")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "patch", Route = "v1/tickets/{eTicketNumber}/void")] HttpRequestData req,
         string eTicketNumber,
         CancellationToken cancellationToken)
     {
@@ -167,7 +167,7 @@ public sealed class TicketFunction
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> ReissueTickets(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/tickets/reissue")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/tickets/reissue")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var (request, error) = await req.TryDeserializeBodyAsync<ReissueTicketsRequest>(_logger, cancellationToken);
@@ -192,7 +192,7 @@ public sealed class TicketFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object[]), Description = "Raw Ticket rows as JSON")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
     public async Task<HttpResponseData> DebugGetTicketsByBooking(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/debug/tickets")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/debug/tickets")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         var queryParams = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
