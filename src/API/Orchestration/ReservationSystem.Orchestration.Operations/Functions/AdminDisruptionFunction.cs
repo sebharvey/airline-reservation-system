@@ -223,6 +223,14 @@ public sealed class AdminDisruptionFunction
         {
             return req.CreateResponse(HttpStatusCode.NotImplemented);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return await req.NotFoundAsync(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.UnprocessableEntityAsync(ex.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Aircraft change disruption failed for flight {FlightNumber} on {DepartureDate}",
@@ -287,6 +295,14 @@ public sealed class AdminDisruptionFunction
         catch (NotImplementedException)
         {
             return req.CreateResponse(HttpStatusCode.NotImplemented);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return await req.NotFoundAsync(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return await req.UnprocessableEntityAsync(ex.Message);
         }
         catch (Exception ex)
         {

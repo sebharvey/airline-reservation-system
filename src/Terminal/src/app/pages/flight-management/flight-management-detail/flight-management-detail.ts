@@ -195,6 +195,8 @@ export class FlightManagementDetailComponent implements OnInit {
     return entry.baggage.reduce((sum, b) => sum + (b.weightKg ?? 0), 0);
   }
 
+  isTicketingClosed = computed(() => this.flight()?.status === 'Ticketing Closed');
+
   // Disruption modal state
   disruptionModalOpen = signal(false);
   cancelConfirmMode = signal(false);
