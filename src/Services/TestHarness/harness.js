@@ -608,6 +608,12 @@
         lines.push('');
         lines.push('='.repeat(80));
         lines.push('End of log (' + apiLog.length + ' interactions)');
+        const timedEntries = apiLog.filter(e => e.durationMs !== null && e.durationMs !== undefined);
+        if (timedEntries.length) {
+            const totalMs = timedEntries.reduce((sum, e) => sum + e.durationMs, 0);
+            const stepTimings = timedEntries.map(e => 'Step ' + e.step + ': ' + e.durationMs + ' ms').join('  |  ');
+            lines.push('Total time: ' + totalMs + ' ms  (' + stepTimings + ')');
+        }
         lines.push('='.repeat(80));
 
         return lines.join('\n');
@@ -1820,7 +1826,8 @@
     function formatLogEntry(entry) {
         const lines = [];
         lines.push('-'.repeat(80));
-        lines.push('Step ' + entry.step + ': ' + entry.name);
+        const timingLabel = (entry.durationMs !== null && entry.durationMs !== undefined) ? '  [' + entry.durationMs + ' ms]' : '';
+        lines.push('Step ' + entry.step + ': ' + entry.name + timingLabel);
         lines.push('-'.repeat(80));
         lines.push('');
         lines.push('REQUEST');
