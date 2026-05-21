@@ -653,8 +653,11 @@ async function loadExceptions() {
 
     try {
         const hostKey = getHostKey();
-        const url = hostKey ? `${API_BASE}?code=${encodeURIComponent(hostKey)}` : API_BASE;
-        const res = await fetch(url);
+        const headers = {};
+        if (hostKey) {
+            headers['x-functions-key'] = btoa(hostKey);
+        }
+        const res = await fetch(API_BASE, { headers });
         if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
         const data = await res.json();
 
