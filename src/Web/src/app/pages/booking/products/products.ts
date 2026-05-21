@@ -4,75 +4,7 @@ import { CommonModule } from '@angular/common';
 import { BookingStateService } from '../../../services/booking-state.service';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Product, ProductGroup } from '../../../models/flight.model';
-import { Basket, BasketProductSelection } from '../../../models/order.model';
-
-type RuleConditionField = 'departureAirport' | 'arrivalAirport' | 'cabinClass' | 'passengerType' | 'route' | 'flightNumber' | 'dayOfWeek';
-type RuleConditionOperator = 'is' | 'isNot';
-
-interface ProductRuleCondition {
-  field: RuleConditionField;
-  operator: RuleConditionOperator;
-  value: string;
-}
-
-interface ProductAvailabilityRule {
-  id: string;
-  conditions: ProductRuleCondition[];
-}
-
-const DAY_MAP: Record<number, string> = { 0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT' };
-
-function evaluateCondition(condition: ProductRuleCondition, basket: Basket): boolean {
-  const { field, operator, value } = condition;
-  const upper = value.toUpperCase();
-  const offers = basket.flightOffers;
-
-  let matches: boolean;
-  switch (field) {
-    case 'departureAirport':
-      matches = offers.some(o => o.origin.toUpperCase() === upper);
-      break;
-    case 'arrivalAirport':
-      matches = offers.some(o => o.destination.toUpperCase() === upper);
-      break;
-    case 'cabinClass':
-      matches = offers.some(o => o.cabinCode.toUpperCase() === upper);
-      break;
-    case 'passengerType':
-      matches = basket.passengers.some(p => p.type.toUpperCase() === upper);
-      break;
-    case 'route':
-      matches = offers.some(o => `${o.origin}-${o.destination}`.toUpperCase() === upper);
-      break;
-    case 'flightNumber':
-      matches = offers.some(o => o.flightNumber.toUpperCase() === upper);
-      break;
-    case 'dayOfWeek': {
-      const depDate = offers[0]?.departureDateTime;
-      const day = depDate ? DAY_MAP[new Date(depDate).getUTCDay()] : undefined;
-      matches = day === upper;
-      break;
-    }
-    default:
-      matches = false;
-  }
-
-  return operator === 'is' ? matches : !matches;
-}
-
-function productPassesRules(product: Product, basket: Basket): boolean {
-  if (!product.availabilityRules) return true;
-  let rules: ProductAvailabilityRule[];
-  try {
-    rules = JSON.parse(product.availabilityRules) as ProductAvailabilityRule[];
-  } catch {
-    return true;
-  }
-  if (rules.length === 0) return true;
-  return rules.every(rule =>
-    rule.conditions.length === 0 || rule.conditions.every(c => evaluateCondition(c, basket))
-  );
-}
+import { BasketProductSelection } from '../../../models/order.model';
 
 interface PaxSegmentEntry {
   basketItemId: string;
@@ -124,18 +56,15 @@ export class ProductsComponent implements OnInit {
   }
 
   private loadProducts(): void {
-    this.retailApi.getProducts().subscribe({
+    const basketId = this.basket()!.basketId;
+    this.retailApi.getProducts(basketId).subscribe({
       next: (response) => {
         const currency = this.currency();
-        const basket = this.basket()!;
 
         const groups = response.productGroups
           .map(g => ({
             ...g,
-            products: g.products.filter(p =>
-              p.prices.some(pr => pr.currencyCode === currency) &&
-              productPassesRules(p, basket)
-            )
+            products: g.products.filter(p => p.prices.some(pr => pr.currencyCode === currency))
           }))
           .filter(g => g.products.length > 0);
 

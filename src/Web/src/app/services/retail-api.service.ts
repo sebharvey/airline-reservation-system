@@ -574,9 +574,9 @@ export class RetailApiService {
    * GET /v1/products
    * Retrieve all active retail products with prices from the Ancillary MS via the Retail API.
    */
-  getProducts(): Observable<ProductsResponse> {
+  getProducts(basketId: string): Observable<ProductsResponse> {
     const base = environment.retailApiBaseUrl;
-    return this.#http.get<ProductsResponse>(`${base}/api/v1/products?channel=WEB`);
+    return this.#http.get<ProductsResponse>(`${base}/api/v1/products?channel=WEB&basketId=${basketId}`);
   }
 
   /**
