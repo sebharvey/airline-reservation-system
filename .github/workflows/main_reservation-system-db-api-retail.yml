@@ -10,6 +10,7 @@ on:
     paths:
       - 'src/API/Orchestration/ReservationSystem.Orchestration.Retail/**'
       - 'src/API/Shared/**'
+      - 'src/API/ReservationSystem.sln'
       - '.github/workflows/main_reservation-system-db-api-retail.yml'
 
 env:

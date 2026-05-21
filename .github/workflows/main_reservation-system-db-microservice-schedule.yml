@@ -9,6 +9,7 @@ on:
     paths:
       - 'src/API/Microservices/ReservationSystem.Microservices.Schedule/**'
       - 'src/API/Shared/**'
+      - 'src/API/ReservationSystem.sln'
       - '.github/workflows/main_reservation-system-db-microservice-schedule.yml'
 
 env:

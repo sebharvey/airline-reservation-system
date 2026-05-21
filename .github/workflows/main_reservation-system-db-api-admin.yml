@@ -9,6 +9,7 @@ on:
     branches: [ main ]
     paths:
       - 'src/API/Orchestration/ReservationSystem.Orchestration.Admin/**'
+      - 'src/API/ReservationSystem.sln'
       - '.github/workflows/main_reservation-system-db-api-admin.yml'
 
 env:

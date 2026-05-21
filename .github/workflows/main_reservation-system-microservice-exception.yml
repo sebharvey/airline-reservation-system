@@ -10,6 +10,7 @@ on:
     paths:
       - 'src/API/Microservices/ReservationSystem.Microservices.Exceptions/**'
       - 'src/API/Shared/**'
+      - 'src/API/ReservationSystem.sln'
       - '.github/workflows/main_reservation-system-microservice-exception.yml'
 
 env:
