@@ -51,13 +51,10 @@ public sealed class ConfirmBasketHandler
         var basketDataJsonEarly = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
         var repricedOffers = await RepriceAndValidateOffersAsync(basketDataJsonEarly, cancellationToken);
 
-        var seatAmount    = ParseSeatAmountFromBasketData(basketDataJsonEarly);
-        var bagAmount     = ParseBagAmountFromBasketData(basketDataJsonEarly);
-        var productAmount = ParseProductAmountFromBasketData(basketDataJsonEarly);
-        // Prices are locked at search time in the stored offer snapshot (CLAUDE.md rule #3).
-        // Reprice is called for validation only — basket amounts are authoritative for charging.
-        var totalAmount = CalculateTotalFromBasket(basketDataJsonEarly);
-        var fareAmount  = totalAmount - seatAmount - bagAmount - productAmount;
+        // Parse all amounts in a single JSON pass — prices locked at search time (stored offer pattern).
+        var (fareOnlyTotal, seatAmount, bagAmount, productAmount) = ParseAllAmountsFromBasketData(basketDataJsonEarly);
+        var totalAmount = fareOnlyTotal + seatAmount + bagAmount + productAmount;
+        var fareAmount  = fareOnlyTotal;
         var currency = basket.CurrencyCode;
         var bookingType = string.Equals(command.BookingType, "Standby", StringComparison.OrdinalIgnoreCase)
             ? "Standby"
@@ -127,7 +124,7 @@ public sealed class ConfirmBasketHandler
         //   - Issue e-tickets + write back to order
         //   - Settle payment
         //   - Link order to customer loyalty account
-        var basketDataJson = basket.BasketData.HasValue ? basket.BasketData.Value.GetRawText() : null;
+        var basketDataJson = basketDataJsonEarly;
 
         var inventoryTask   = RunInventorySellAsync(basketDataJson, draftOrder.OrderId, command.BasketId, bookingType == "Standby", cancellationToken);
         var ticketsTask     = RunTicketIssuanceAsync(basketDataJson, command, paymentId, fareAmount, currency, confirmedOrder, repricedOffers, cancellationToken);
@@ -177,19 +174,21 @@ public sealed class ConfirmBasketHandler
         string? basketDataJson, CancellationToken cancellationToken)
     {
         var offerRefs = ParseOfferRefsFromBasketData(basketDataJson);
-        var result = new Dictionary<Guid, RepriceOfferDto>();
 
-        foreach (var (offerId, sessionId) in offerRefs)
+        // Reprice all offers in parallel — each call is independent.
+        var repriceTasks = offerRefs.Select(async tuple =>
         {
+            var (offerId, sessionId) = tuple;
             var repriced = await _offerServiceClient.RepriceOfferAsync(offerId, sessionId, cancellationToken);
             if (repriced is null)
                 throw new InvalidOperationException($"Offer {offerId} could not be found or has expired. Customer must re-search.");
             if (!repriced.Validated)
                 throw new InvalidOperationException($"Offer {offerId} needs to be priced before it can be confirmed.");
-            result[offerId] = repriced;
-        }
+            return (offerId, repriced);
+        });
 
-        return result;
+        var results = await Task.WhenAll(repriceTasks);
+        return results.ToDictionary(r => r.offerId, r => r.repriced);
     }
 
     /// <summary>
@@ -735,80 +734,39 @@ public sealed class ConfirmBasketHandler
         return null;
     }
 
-    private static decimal CalculateTotalFromBasket(string? basketDataJson)
+    private static (decimal FlightTotal, decimal SeatAmount, decimal BagAmount, decimal ProductAmount)
+        ParseAllAmountsFromBasketData(string? basketDataJson)
     {
-        decimal flightTotal = 0m;
-        if (basketDataJson != null)
-        {
-            try
-            {
-                using var doc = JsonDocument.Parse(basketDataJson);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("flightOffers", out var offersEl) && offersEl.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var offer in offersEl.EnumerateArray())
-                    {
-                        if (offer.TryGetProperty("totalAmount", out var tot) && tot.ValueKind == JsonValueKind.Number)
-                            flightTotal += tot.GetDecimal();
-                    }
-                }
-            }
-            catch { }
-        }
-
-        return flightTotal + ParseSeatAmountFromBasketData(basketDataJson) + ParseBagAmountFromBasketData(basketDataJson) + ParseProductAmountFromBasketData(basketDataJson);
-    }
-
-    private static decimal ParseSeatAmountFromBasketData(string? basketDataJson)
-    {
-        if (basketDataJson is null) return 0m;
+        if (basketDataJson is null) return (0m, 0m, 0m, 0m);
         try
         {
             using var doc = JsonDocument.Parse(basketDataJson);
             var root = doc.RootElement;
-            if (!root.TryGetProperty("seats", out var seatsEl) || seatsEl.ValueKind != JsonValueKind.Array) return 0m;
-            decimal total = 0m;
-            foreach (var seat in seatsEl.EnumerateArray())
-                total += seat.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
-            return total;
-        }
-        catch { return 0m; }
-    }
 
-    private static decimal ParseBagAmountFromBasketData(string? basketDataJson)
-    {
-        if (basketDataJson is null) return 0m;
-        try
-        {
-            using var doc = JsonDocument.Parse(basketDataJson);
-            var root = doc.RootElement;
-            if (!root.TryGetProperty("bags", out var bagsEl) || bagsEl.ValueKind != JsonValueKind.Array) return 0m;
-            decimal total = 0m;
-            foreach (var bag in bagsEl.EnumerateArray())
-                total += bag.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
-            return total;
-        }
-        catch { return 0m; }
-    }
+            decimal flightTotal = 0m;
+            if (root.TryGetProperty("flightOffers", out var offersEl) && offersEl.ValueKind == JsonValueKind.Array)
+                foreach (var offer in offersEl.EnumerateArray())
+                    if (offer.TryGetProperty("totalAmount", out var tot) && tot.ValueKind == JsonValueKind.Number)
+                        flightTotal += tot.GetDecimal();
 
-    private static decimal ParseProductAmountFromBasketData(string? basketDataJson)
-    {
-        if (basketDataJson is null) return 0m;
-        try
-        {
-            using var doc = JsonDocument.Parse(basketDataJson);
-            var root = doc.RootElement;
-            if (!root.TryGetProperty("products", out var productsEl) || productsEl.ValueKind != JsonValueKind.Array)
-                return 0m;
-            decimal total = 0m;
-            foreach (var product in productsEl.EnumerateArray())
-            {
-                var price = product.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
-                total += price;
-            }
-            return total;
+            decimal seatTotal = 0m;
+            if (root.TryGetProperty("seats", out var seatsEl) && seatsEl.ValueKind == JsonValueKind.Array)
+                foreach (var seat in seatsEl.EnumerateArray())
+                    seatTotal += seat.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
+
+            decimal bagTotal = 0m;
+            if (root.TryGetProperty("bags", out var bagsEl) && bagsEl.ValueKind == JsonValueKind.Array)
+                foreach (var bag in bagsEl.EnumerateArray())
+                    bagTotal += bag.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
+
+            decimal productTotal = 0m;
+            if (root.TryGetProperty("products", out var productsEl) && productsEl.ValueKind == JsonValueKind.Array)
+                foreach (var product in productsEl.EnumerateArray())
+                    productTotal += product.TryGetProperty("price", out var p) ? p.GetDecimal() : 0m;
+
+            return (flightTotal, seatTotal, bagTotal, productTotal);
         }
-        catch { return 0m; }
+        catch { return (0m, 0m, 0m, 0m); }
     }
 
     private static List<(Guid OfferId, Guid? SessionId)> ParseOfferRefsFromBasketData(string? basketDataJson)
@@ -969,11 +927,11 @@ public sealed class ConfirmBasketHandler
         {
             var (passengers, segments) = ParseBasketDataForTickets(basketDataJson);
 
-            var segmentIndex = 0;
-            foreach (var segment in segments)
+            // Write manifests for all segments in parallel — each segment is independent.
+            var manifestTasks = segments.Select((segment, i) =>
             {
-                segmentIndex++;
-                if (!Guid.TryParse(segment.InventoryId, out var inventoryId)) continue;
+                var segmentIndex = i + 1;
+                if (!Guid.TryParse(segment.InventoryId, out var inventoryId)) return Task.CompletedTask;
 
                 var entries = passengers.Select(pax =>
                 {
@@ -999,7 +957,7 @@ public sealed class ConfirmBasketHandler
                     };
                 }).ToList();
 
-                await _deliveryServiceClient.WriteManifestAsync(
+                return _deliveryServiceClient.WriteManifestAsync(
                     bookingReference, orderId, inventoryId,
                     segmentIndex,
                     segment.FlightNumber,
@@ -1011,7 +969,9 @@ public sealed class ConfirmBasketHandler
                     segment.ArrivalTime,
                     bookingType,
                     entries, ct);
-            }
+            });
+
+            await Task.WhenAll(manifestTasks);
         }
         catch (Exception ex)
         {
