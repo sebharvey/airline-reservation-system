@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    Override vulnerable transitive package versions across all projects.
+    System.Net.Http 4.3.0 - GHSA-7jgj-8wvc-jh57 (High) - fixed in 4.3.4
+    System.Text.RegularExpressions 4.3.0 - GHSA-cmhx-cq75-c4mj (High) - fixed in 4.3.1
+  -->
+  <ItemGroup>
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+  </ItemGroup>
+</Project>
