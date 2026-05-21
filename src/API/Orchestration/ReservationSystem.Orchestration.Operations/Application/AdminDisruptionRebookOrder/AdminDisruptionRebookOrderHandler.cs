@@ -9,7 +9,7 @@ namespace ReservationSystem.Orchestration.Operations.Application.AdminDisruption
 public sealed class AdminDisruptionRebookOrderHandler
 {
     private const int AvailabilityLookaheadDays = 7;
-    private const int CheckInCutoffMinutes = 45;
+    private const int TicketingCutoffMinutes = 60;
 
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
@@ -316,7 +316,7 @@ public sealed class AdminDisruptionRebookOrderHandler
         if (departureTimeUtc is null) return false;
         if (!DateOnly.TryParseExact(departureDate, "yyyy-MM-dd", out var date)) return false;
         if (!TimeOnly.TryParseExact(departureTimeUtc, "HH:mm", out var time)) return false;
-        return date.ToDateTime(time, DateTimeKind.Utc) > DateTime.UtcNow.AddMinutes(CheckInCutoffMinutes);
+        return date.ToDateTime(time, DateTimeKind.Utc) > DateTime.UtcNow.AddMinutes(TicketingCutoffMinutes);
     }
 
     private static RebookReplacementOption? FindBestReplacement(
