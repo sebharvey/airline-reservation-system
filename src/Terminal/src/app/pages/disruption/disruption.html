@@ -42,17 +42,30 @@
           <span class="irops-stat-sep">·</span>
           <span class="muted">{{ rows().length }} total</span>
         </div>
-        @if (pendingCount() > 0) {
-          <button class="btn-run-all" [disabled]="runningAll()" (click)="runAll()">
-            @if (runningAll()) {
-              <span class="btn-spinner-sm btn-spinner-sm-light"></span>
-              Running…
-            } @else {
-              <lucide-icon name="play" [size]="13" />
-              Run all
-            }
-          </button>
-        }
+        <div class="irops-progress-actions">
+          @if (pendingCount() > 0) {
+            <button class="btn-run-all" [disabled]="runningAll()" (click)="runAll()">
+              @if (runningAll()) {
+                <span class="btn-spinner-sm btn-spinner-sm-light"></span>
+                Running…
+              } @else {
+                <lucide-icon name="play" [size]="13" />
+                Run all
+              }
+            </button>
+          }
+          @if (failedCount() > 0 && pendingCount() === 0) {
+            <button class="btn-retry-all" [disabled]="runningAll()" (click)="retryAllFailed()">
+              @if (runningAll()) {
+                <span class="btn-spinner-sm btn-spinner-sm-light"></span>
+                Retrying…
+              } @else {
+                <lucide-icon name="refresh-cw" [size]="13" />
+                Retry all failed
+              }
+            </button>
+          }
+        </div>
       </div>
       <div class="irops-progress-track">
         <div class="irops-progress-fill irops-progress-rebooked" [style.width.%]="rows().length > 0 ? (rebookedCount() / rows().length * 100) : 0"></div>
@@ -138,8 +151,16 @@
                   <button class="btn-rebook btn-rebook-loading" disabled>
                     <span class="btn-spinner-sm"></span>
                   </button>
-                } @else if (row.rebookStatus === 'rebooked' || row.rebookStatus === 'failed') {
+                } @else if (row.rebookStatus === 'rebooked') {
                   <button class="btn-view-result" (click)="rebookResultModal.set(row)">View result</button>
+                } @else if (row.rebookStatus === 'failed') {
+                  <div class="col-action-failed">
+                    <button class="btn-rebook btn-rebook-retry" [disabled]="runningAll()" (click)="rebookOrder(row)">
+                      <lucide-icon name="refresh-cw" [size]="12" />
+                      Retry
+                    </button>
+                    <button class="btn-view-result" (click)="rebookResultModal.set(row)">Details</button>
+                  </div>
                 }
               </td>
             </tr>
@@ -215,12 +236,18 @@
           </div>
           <h3 class="rebook-result-title">Rebooking failed</h3>
           <p class="rebook-result-reason">{{ row.rebookResult?.failureReason ?? 'An unexpected error occurred.' }}</p>
-          <p class="rebook-result-note">The booking remains on the cancelled flight. You can retry by clicking Rebook on the list.</p>
+          <p class="rebook-result-note">The booking remains on the cancelled flight.</p>
         </div>
       }
     </div>
 
     <div class="modal-footer">
+      @if (row.rebookStatus === 'failed') {
+        <button class="btn-retry-modal" (click)="retryFromModal()">
+          <lucide-icon name="refresh-cw" [size]="14" />
+          Retry rebooking
+        </button>
+      }
       <button class="btn-primary" (click)="closeRebookModal()">Close</button>
     </div>
   </div>

@@ -151,7 +151,7 @@
 }
 
 .col-action {
-  width: 120px;
+  width: 160px;
   text-align: right;
 }
 
@@ -228,6 +228,36 @@
 .btn-run-all:hover:not(:disabled) { opacity: 0.88; }
 .btn-run-all:disabled { opacity: 0.7; cursor: not-allowed; }
 
+.irops-progress-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-retry-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: transparent;
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-retry-all:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.08);
+}
+
+.btn-retry-all:disabled { opacity: 0.7; cursor: not-allowed; }
+
 .btn-spinner-sm-light {
   border-color: rgba(255, 255, 255, 0.4);
   border-top-color: #fff;
@@ -252,6 +282,25 @@
 .btn-rebook:hover:not(:disabled) { opacity: 0.88; }
 .btn-rebook:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-rebook-loading { padding: 5px 10px; }
+
+.col-action-failed {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-rebook-retry {
+  background: transparent;
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+}
+
+.btn-rebook-retry:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.08);
+  opacity: 1;
+}
 
 .btn-view-result {
   display: inline-flex;
@@ -450,6 +499,25 @@
   justify-content: flex-end;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.btn-retry-modal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: transparent;
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-retry-modal:hover {
+  background: rgba(248, 81, 73, 0.08);
 }
 
 .btn-primary {
