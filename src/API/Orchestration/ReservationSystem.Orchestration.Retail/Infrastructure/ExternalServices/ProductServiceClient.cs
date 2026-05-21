@@ -68,6 +68,9 @@ public sealed class ProductDto
     [JsonPropertyName("availableChannels")]
     public string AvailableChannels { get; init; } = """["WEB","APP","NDC","GDS","KIOSK","CC","AIRPORT"]""";
 
+    [JsonPropertyName("availabilityRules")]
+    public string? AvailabilityRules { get; init; }
+
     [JsonPropertyName("isActive")]
     public bool IsActive { get; init; }
 

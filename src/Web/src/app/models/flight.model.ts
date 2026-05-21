@@ -137,6 +137,7 @@ export interface Product {
   imageBase64: string | null;
   ssrCode: string | null;
   isSegmentSpecific: boolean;
+  availabilityRules: string | null;
   prices: ProductPrice[];
 }
 

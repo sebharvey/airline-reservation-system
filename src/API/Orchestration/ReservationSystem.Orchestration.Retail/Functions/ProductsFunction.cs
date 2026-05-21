@@ -72,13 +72,14 @@ public sealed class ProductsFunction
                 productGroupName = groupNames.TryGetValue(g.Key, out var gn) ? gn : string.Empty,
                 products         = g.Select(p => new
                 {
-                    productId         = p.ProductId,
-                    name              = p.Name,
-                    description       = p.Description,
-                    imageBase64       = p.ImageBase64,
-                    ssrCode           = p.SsrCode,
-                    isSegmentSpecific = p.IsSegmentSpecific,
-                    prices            = p.Prices
+                    productId           = p.ProductId,
+                    name                = p.Name,
+                    description         = p.Description,
+                    imageBase64         = p.ImageBase64,
+                    ssrCode             = p.SsrCode,
+                    isSegmentSpecific   = p.IsSegmentSpecific,
+                    availabilityRules   = p.AvailabilityRules,
+                    prices              = p.Prices
                         .Where(pr => pr.IsActive)
                         .Select(pr => new
                         {
