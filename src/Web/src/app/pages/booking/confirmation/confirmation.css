@@ -603,3 +603,28 @@
   opacity: 0.85;
   transform: translateY(-1px);
 }
+
+button.btn-primary,
+button.btn-secondary {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+button.btn-primary:disabled,
+button.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-error {
+  width: 100%;
+  font-size: 0.85rem;
+  color: #c0392b;
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  background: rgba(192, 57, 43, 0.05);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(192, 57, 43, 0.2);
+}

@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { BookingStateService } from '../../../services/booking-state.service';
+import { RetailApiService } from '../../../services/retail-api.service';
 import { Order, FlightSegment, Passenger, OrderItem, ETicket } from '../../../models/order.model';
 
 export interface ItinerarySegment {
@@ -23,10 +24,13 @@ export interface ItinerarySegment {
 export class ConfirmationComponent implements OnInit {
   private router = inject(Router);
   private bookingState = inject(BookingStateService);
+  private retailApi = inject(RetailApiService);
 
   order: Order | null = null;
   copiedText = signal<string | null>(null);
   showTaxModal = signal(false);
+  managingBooking = signal(false);
+  manageBookingError = signal<string | null>(null);
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
@@ -132,6 +136,31 @@ export class ConfirmationComponent implements OnInit {
 
   openTaxModal(): void { this.showTaxModal.set(true); }
   closeTaxModal(): void { this.showTaxModal.set(false); }
+
+  goToManageBooking(): void {
+    const pax = this.order?.passengers[0];
+    if (!pax || !this.order) return;
+
+    this.managingBooking.set(true);
+    this.manageBookingError.set(null);
+
+    this.retailApi.validateOrder({
+      bookingReference: this.order.bookingReference,
+      givenName: pax.givenName,
+      surname: pax.surname
+    }).subscribe({
+      next: () => {
+        this.managingBooking.set(false);
+        this.router.navigate(['/manage-booking/detail'], {
+          state: { givenName: pax.givenName, surname: pax.surname }
+        });
+      },
+      error: (err: { message?: string }) => {
+        this.managingBooking.set(false);
+        this.manageBookingError.set(err?.message ?? 'Unable to load booking. Please try again.');
+      }
+    });
+  }
 
   getPassengerName(passengerId: string): string {
     const pax = this.order?.passengers.find(p => p.passengerId === passengerId);
