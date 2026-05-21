@@ -56,7 +56,8 @@ export class ProductsComponent implements OnInit {
   }
 
   private loadProducts(): void {
-    this.retailApi.getProducts().subscribe({
+    const basketId = this.basket()!.basketId;
+    this.retailApi.getProducts(basketId).subscribe({
       next: (response) => {
         const currency = this.currency();
 
