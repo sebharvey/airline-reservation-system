@@ -31,7 +31,7 @@ public sealed class ExceptionsFunction
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(GetExceptionsResponse), Description = "OK — returns exceptions from the last hour")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.InternalServerError, Description = "Internal Server Error")]
     public async Task<HttpResponseData> GetExceptions(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/exceptions")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/exceptions")] HttpRequestData req,
         CancellationToken cancellationToken)
     {
         try

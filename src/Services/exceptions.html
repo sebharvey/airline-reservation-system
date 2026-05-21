@@ -345,6 +345,43 @@
             font-size: 12px;
             font-weight: 600;
         }
+
+        .host-key-bar {
+            background: #13151f;
+            border-bottom: 1px solid #2d3148;
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .host-key-bar label {
+            font-size: 13px;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .host-key-input {
+            flex: 1;
+            max-width: 420px;
+            background: #1a1d27;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 13px;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .host-key-input:focus {
+            border-color: #6366f1;
+        }
+
+        .host-key-input::placeholder {
+            color: #4b5563;
+        }
     </style>
 </head>
 <body>
@@ -360,6 +397,11 @@
         <div class="subtitle">reservation-system-microservice-exception</div>
     </div>
 </header>
+
+<div class="host-key-bar">
+    <label for="hostKeyInput">Host key</label>
+    <input type="password" id="hostKeyInput" class="host-key-input" placeholder="Enter Azure Functions host key…" oninput="saveHostKey(this.value)" autocomplete="off" />
+</div>
 
 <div class="controls">
     <button class="refresh-btn" id="refreshBtn" onclick="loadExceptions()">
@@ -378,8 +420,17 @@
 
 <script>
 const API_BASE = 'https://reservation-system-microservice-exception-h2bzhegcfnhja4fq.uksouth-01.azurewebsites.net/api/v1/exceptions';
+const HOST_KEY_STORAGE_KEY = 'apexair_exceptions_host_key';
 
 let allExceptions = [];
+
+function saveHostKey(value) {
+    localStorage.setItem(HOST_KEY_STORAGE_KEY, value);
+}
+
+function getHostKey() {
+    return localStorage.getItem(HOST_KEY_STORAGE_KEY) || '';
+}
 
 function severityLabel(level) {
     const map = { 0: 'Verbose', 1: 'Info', 2: 'Warning', 3: 'Error', 4: 'Critical' };
@@ -601,8 +652,12 @@ async function loadExceptions() {
     statusBar.textContent = 'Fetching exceptions…';
 
     try {
-        const url = API_BASE;
-        const res = await fetch(url);
+        const hostKey = getHostKey();
+        const headers = {};
+        if (hostKey) {
+            headers['x-functions-key'] = btoa(hostKey);
+        }
+        const res = await fetch(API_BASE, { headers });
         if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
         const data = await res.json();
 
@@ -626,6 +681,11 @@ async function loadExceptions() {
         btn.disabled = false;
         btn.innerHTML = '&#8635; Refresh';
     }
+}
+
+const savedKey = getHostKey();
+if (savedKey) {
+    document.getElementById('hostKeyInput').value = savedKey;
 }
 
 loadExceptions();
