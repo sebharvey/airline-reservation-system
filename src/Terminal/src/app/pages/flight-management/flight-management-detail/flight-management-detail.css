@@ -1627,6 +1627,25 @@
   align-items: flex-start;
 }
 
+.disruption-action-card-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.disruption-closed-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  color: #f85149;
+  font-size: 0.83rem;
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
 .disruption-confirm-text {
   display: flex;
   align-items: flex-start;

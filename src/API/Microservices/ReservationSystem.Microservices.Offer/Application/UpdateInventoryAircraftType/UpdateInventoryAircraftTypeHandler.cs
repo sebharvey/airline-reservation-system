@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Microservices.Offer.Domain.Entities;
 using ReservationSystem.Microservices.Offer.Domain.Repositories;
 
 namespace ReservationSystem.Microservices.Offer.Application.UpdateInventoryAircraftType;
@@ -23,6 +24,9 @@ public sealed class UpdateInventoryAircraftTypeHandler
 
         if (inventories.Count == 0)
             throw new KeyNotFoundException($"No inventory found for {command.FlightNumber} on {command.DepartureDate}.");
+
+        if (inventories.Any(i => i.Status == InventoryStatus.TicketingClosed))
+            throw new InvalidOperationException($"Flight {command.FlightNumber} on {command.DepartureDate} has closed for ticketing and cannot be disrupted.");
 
         var updatedCount = 0;
         foreach (var inventory in inventories)

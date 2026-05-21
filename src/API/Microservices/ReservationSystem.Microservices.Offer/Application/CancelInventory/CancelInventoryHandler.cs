@@ -28,6 +28,9 @@ public sealed class CancelInventoryHandler
         if (alreadyCancelled)
             throw new InvalidOperationException($"All inventory for {command.FlightNumber} on {command.DepartureDate} is already cancelled.");
 
+        if (inventories.Any(i => i.Status == Domain.Entities.InventoryStatus.TicketingClosed))
+            throw new InvalidOperationException($"Flight {command.FlightNumber} on {command.DepartureDate} has closed for ticketing and cannot be disrupted.");
+
         var cancelledCount = 0;
         foreach (var inventory in inventories)
         {

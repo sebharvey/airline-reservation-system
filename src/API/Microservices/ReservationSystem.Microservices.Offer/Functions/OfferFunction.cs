@@ -1101,6 +1101,7 @@ public sealed class OfferFunction
             });
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
     }
 
     // PATCH /v1/inventory/flight-times
@@ -1145,6 +1146,7 @@ public sealed class OfferFunction
             });
         }
         catch (KeyNotFoundException ex) { return await req.NotFoundAsync(ex.Message); }
+        catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
     }
 
     // PATCH /v1/inventory/{inventoryId}/operational-data

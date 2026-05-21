@@ -159,6 +159,7 @@ public static class InventoryStatus
     public const string Active = "Active";
     public const string Cancelled = "Cancelled";
     public const string Delayed = "Delayed";
+    public const string TicketingClosed = "Ticketing Closed";
 }
 
 public sealed class Fare

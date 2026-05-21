@@ -229,6 +229,9 @@ public sealed class OfferServiceClient
         if (response.StatusCode == HttpStatusCode.BadRequest)
             throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
 
+        if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            throw new InvalidOperationException(await response.ReadErrorMessageAsync(cancellationToken));
+
         response.EnsureSuccessStatusCode();
 
         using var doc = await System.Text.Json.JsonDocument.ParseAsync(
@@ -251,6 +254,9 @@ public sealed class OfferServiceClient
 
         if (response.StatusCode == HttpStatusCode.BadRequest)
             throw new ArgumentException(await response.ReadErrorMessageAsync(cancellationToken));
+
+        if (response.StatusCode == HttpStatusCode.UnprocessableEntity)
+            throw new InvalidOperationException(await response.ReadErrorMessageAsync(cancellationToken));
 
         response.EnsureSuccessStatusCode();
     }
