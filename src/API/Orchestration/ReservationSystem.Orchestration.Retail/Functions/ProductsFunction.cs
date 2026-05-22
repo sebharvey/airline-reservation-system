@@ -186,8 +186,8 @@ public sealed class ProductsFunction
 
         if (rules.Length == 0) return true;
 
-        // All rules must be satisfied (each rule is an AND of its conditions)
-        return rules.All(rule => RulePasses(rule, ctx));
+        // Any single rule passing makes the product available (OR between rules, AND within each rule)
+        return rules.Any(rule => RulePasses(rule, ctx));
     }
 
     private static bool RulePasses(JsonElement rule, BasketContext ctx)
