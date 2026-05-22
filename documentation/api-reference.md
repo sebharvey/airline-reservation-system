@@ -316,7 +316,7 @@ Endpoints called exclusively by the Flight Operations System (FOS). Authenticate
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/v1/disruptions/delay` | Notify the system of a flight delay; updates all affected orders and manifests synchronously; returns `200 OK` when all records are updated |
-| `POST` | `/v1/disruptions/cancellation` | Notify the system of a flight cancellation; **synchronously** closes flight inventory (Offer MS) and returns `202 Accepted`; per-passenger rebooking is processed **asynchronously** via Service Bus — each affected booking is published as an individual message and processed independently to prevent a single failure blocking the entire cohort; for the 72-hour no-rebooking window scenario, passengers are notified and bookings cancelled with full IROPS refund |
+| `POST` | `/v1/disruptions/cancellation` | Notify the system of a flight cancellation; **synchronously** closes flight inventory (Offer MS), initiates rebooking processing, and returns `200 OK` once inventory is closed and rebooking is initiated; per-passenger rebooking is processed **asynchronously** internally — each affected booking is handled independently to prevent a single failure blocking the entire cohort; for the 72-hour no-rebooking window scenario, passengers are notified and bookings cancelled with full IROPS refund |
 
 ---
 
