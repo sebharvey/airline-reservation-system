@@ -199,7 +199,14 @@ public sealed class ChangeOrderHandler
                 if (newTickets.Count > 0)
                 {
                     var eTicketsJson = System.Text.Json.JsonSerializer.Serialize(
-                        newTickets.Select(t => new { t.PassengerId, t.SegmentIds, t.ETicketNumber }));
+                        newTickets.Select(t => new
+                        {
+                            t.PassengerId,
+                            PaxId = t.PassengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
+                                    int.TryParse(t.PassengerId[4..], out var pid) ? pid : (int?)null,
+                            t.SegmentIds,
+                            t.ETicketNumber
+                        }));
                     await _orderServiceClient.UpdateOrderETicketsAsync(bookingReference, eTicketsJson, ct);
                 }
             }

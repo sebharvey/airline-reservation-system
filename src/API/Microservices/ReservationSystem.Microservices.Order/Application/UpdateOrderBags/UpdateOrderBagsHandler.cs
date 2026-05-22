@@ -52,10 +52,11 @@ public sealed class UpdateOrderBagsHandler
             foreach (var bag in bagsArray)
             {
                 if (bag is not JsonObject bagObj) continue;
-                newBagItems.Add(new JsonObject
+                var bagPassengerId = bagObj["passengerId"]?.GetValue<string>();
+                var bagItem = new JsonObject
                 {
                     ["productType"]    = "BAG",
-                    ["passengerId"]    = bagObj["passengerId"]?.GetValue<string>(),
+                    ["passengerId"]    = bagPassengerId,
                     ["segmentId"]      = bagObj["segmentId"]?.GetValue<string>(),
                     ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
                     ["bagOfferId"]     = bagObj["bagOfferId"]?.DeepClone(),
@@ -63,7 +64,12 @@ public sealed class UpdateOrderBagsHandler
                     ["tax"]            = bagObj["tax"]?.DeepClone(),
                     ["currency"]       = bagObj["currency"]?.DeepClone(),
                     ["paymentReference"] = bagObj["paymentReference"]?.GetValue<string>(),
-                });
+                };
+                if (bagPassengerId is not null &&
+                    bagPassengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
+                    int.TryParse(bagPassengerId[4..], out var paxId))
+                    bagItem["paxId"] = paxId;
+                newBagItems.Add(bagItem);
             }
         }
 
