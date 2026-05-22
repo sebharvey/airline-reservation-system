@@ -886,7 +886,13 @@ public sealed class ConfirmBasketHandler
         if (issuedTickets.Count > 0)
         {
             var eTicketsJson = JsonSerializer.Serialize(
-                issuedTickets.Select(t => new { t.PassengerId, t.SegmentIds, t.ETicketNumber }),
+                issuedTickets.Select(t => new
+                {
+                    t.PassengerId,
+                    PaxId = ExtractPaxIdFromString(t.PassengerId),
+                    t.SegmentIds,
+                    t.ETicketNumber
+                }),
                 SharedJsonOptions.CamelCase);
             await _orderServiceClient.UpdateOrderETicketsAsync(
                 confirmedOrder.BookingReference, eTicketsJson, cancellationToken);
@@ -1331,6 +1337,15 @@ public sealed class ConfirmBasketHandler
         {
             return null;
         }
+    }
+
+    private static int? ExtractPaxIdFromString(string? passengerId)
+    {
+        if (passengerId is not null &&
+            passengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(passengerId[4..], out var id))
+            return id;
+        return null;
     }
 
     private static string ExtractCarrierCode(string flightNumber)
