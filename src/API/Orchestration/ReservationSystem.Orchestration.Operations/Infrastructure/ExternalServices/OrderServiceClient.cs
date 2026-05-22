@@ -281,6 +281,23 @@ public sealed class OrderServiceClient
     }
 
     /// <summary>
+    /// Records bag selections on an order via Order MS PATCH /v1/orders/{bookingRef}/bags.
+    /// Used for free OLCI bag selection (no payment reference required).
+    /// </summary>
+    public async Task UpdateOrderBagsPostSaleAsync(string bookingReference, object bagsData, CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(bagsData, JsonOptions);
+        using var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PatchAsync(
+            $"/api/v1/orders/{Uri.EscapeDataString(bookingReference)}/bags", content, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.ReadErrorMessageAsync(ct);
+            throw new InvalidOperationException($"Failed to update order bags for {bookingReference}: {error}");
+        }
+    }
+
+    /// <summary>
     /// Updates seat assignments on a confirmed order via Order MS PATCH /v1/orders/{bookingRef}/seats.
     /// Best-effort — the manifest is the authoritative departure record.
     /// </summary>

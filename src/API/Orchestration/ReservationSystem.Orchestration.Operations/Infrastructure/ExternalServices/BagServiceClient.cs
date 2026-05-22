@@ -22,6 +22,20 @@ public sealed class BagServiceClient
         _httpClient = httpClientFactory.CreateClient("AncillaryMs");
     }
 
+    // ── Bag Offers ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Validates a bag offer by ID via Ancillary MS GET /v1/bags/offers/{bagOfferId}.
+    /// Returns null when the offer does not exist.
+    /// </summary>
+    public async Task<BagOfferValidationDto?> GetBagOfferAsync(string bagOfferId, CancellationToken ct = default)
+    {
+        using var response = await _httpClient.GetAsync($"/api/v1/bags/offers/{Uri.EscapeDataString(bagOfferId)}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<BagOfferValidationDto>(JsonOptions, ct);
+    }
+
     // ── Bag Policy ────────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<BagPolicyDto>> GetAllBagPoliciesAsync(CancellationToken ct = default)

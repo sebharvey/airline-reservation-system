@@ -126,7 +126,7 @@ public sealed class OciCheckInHandler
                 CheckInHelper.BuildTimaticNotes(ex.TimaticNotes, paxNameByTicket, paxIdByTicket, segmentId),
                 "OCI check-in",
                 ct);
-            throw new InvalidOperationException(ex.Message);
+            throw; // Re-throw to preserve structured Timatic notes for the 422 response
         }
 
         var checkedInSet = result.Tickets.ToDictionary(t => t.TicketNumber, t => t.Status, StringComparer.OrdinalIgnoreCase);

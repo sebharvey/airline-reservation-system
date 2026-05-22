@@ -2,9 +2,11 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
+using ReservationSystem.Orchestration.Operations.Application.OciBags;
 using ReservationSystem.Orchestration.Operations.Application.OciCheckIn;
 using ReservationSystem.Orchestration.Operations.Application.OciPax;
 using ReservationSystem.Orchestration.Operations.Application.OciRetrieve;
+using ReservationSystem.Orchestration.Operations.Application.OciSeats;
 using ReservationSystem.Orchestration.Operations.Infrastructure.ExternalServices;
 using ReservationSystem.Shared.Common.Http;
 using System.Net;
@@ -23,6 +25,8 @@ public sealed class OciFunction
     private readonly OciRetrieveHandler _retrieveHandler;
     private readonly OciPaxHandler _paxHandler;
     private readonly OciCheckInHandler _checkInHandler;
+    private readonly OciSeatsHandler _seatsHandler;
+    private readonly OciBagsHandler _bagsHandler;
     private readonly DeliveryServiceClient _deliveryServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<OciFunction> _logger;
@@ -41,6 +45,8 @@ public sealed class OciFunction
         OciRetrieveHandler retrieveHandler,
         OciPaxHandler paxHandler,
         OciCheckInHandler checkInHandler,
+        OciSeatsHandler seatsHandler,
+        OciBagsHandler bagsHandler,
         DeliveryServiceClient deliveryServiceClient,
         OrderServiceClient orderServiceClient,
         ILogger<OciFunction> logger)
@@ -48,6 +54,8 @@ public sealed class OciFunction
         _retrieveHandler = retrieveHandler;
         _paxHandler = paxHandler;
         _checkInHandler = checkInHandler;
+        _seatsHandler = seatsHandler;
+        _bagsHandler = bagsHandler;
         _deliveryServiceClient = deliveryServiceClient;
         _orderServiceClient = orderServiceClient;
         _logger = logger;
@@ -224,10 +232,12 @@ public sealed class OciFunction
 
     [Function("OciSeats")]
     [OpenApiOperation(operationId: "OciSeats", tags: new[] { "OCI" },
-        Summary = "Submit seat selection for check-in (not implemented — returns success)")]
+        Summary = "Submit free seat selection per passenger per segment during OLCI")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
-        Description = "{ bookingReference, departureAirport }")]
+        Description = "{ bookingReference, seats: [{ passengerId, segmentId, seatNumber }] }")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> OciSeats(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/oci/seats")] HttpRequestData req,
         CancellationToken ct)
@@ -236,17 +246,66 @@ public sealed class OciFunction
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, JsonOptions, ct); }
         catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
 
-        var bookingReference = body.TryGetProperty("bookingReference", out var brEl) ? brEl.GetString() : null;
-        if (string.IsNullOrWhiteSpace(bookingReference))
+        if (!body.TryGetProperty("bookingReference", out var brEl) || string.IsNullOrWhiteSpace(brEl.GetString()))
             return await req.BadRequestAsync("'bookingReference' is required.");
 
-        var ref1 = bookingReference.ToUpperInvariant().Trim();
-        var docError1 = await GetTravelDocumentErrorAsync(ref1, ct);
-        if (docError1 is not null)
-            return await req.BadRequestAsync(docError1);
+        if (!body.TryGetProperty("seats", out var seatsEl) || seatsEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'seats' array is required.");
 
-        // Seat selection is not implemented at this time — return success
-        return await req.OkJsonAsync(new { bookingReference = ref1, success = true });
+        var bookingReference = brEl.GetString()!.ToUpperInvariant().Trim();
+
+        var docError = await GetTravelDocumentErrorAsync(bookingReference, ct);
+        if (docError is not null)
+            return await req.BadRequestAsync(docError);
+
+        var selections = new List<OciSeatSelection>();
+        foreach (var s in seatsEl.EnumerateArray())
+        {
+            var passengerId = s.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() : null;
+            var segmentId   = s.TryGetProperty("segmentId",   out var sidEl) ? sidEl.GetString() : null;
+            var seatNumber  = s.TryGetProperty("seatNumber",  out var snEl)  ? snEl.GetString()  : null;
+
+            if (string.IsNullOrWhiteSpace(passengerId) ||
+                string.IsNullOrWhiteSpace(segmentId)   ||
+                string.IsNullOrWhiteSpace(seatNumber))
+                return await req.BadRequestAsync("Each seat selection requires 'passengerId', 'segmentId', and 'seatNumber'.");
+
+            selections.Add(new OciSeatSelection(passengerId, segmentId, seatNumber));
+        }
+
+        if (selections.Count == 0)
+            return await req.BadRequestAsync("At least one seat selection is required.");
+
+        try
+        {
+            var command = new OciSeatsCommand(bookingReference, selections);
+            var result = await _seatsHandler.HandleAsync(command, ct);
+
+            if (result is null)
+                return req.CreateResponse(HttpStatusCode.NotFound);
+
+            return await req.OkJsonAsync(new
+            {
+                bookingReference = result.BookingReference,
+                seats = result.Assignments.Select(a => new
+                {
+                    passengerId = a.PassengerId,
+                    segmentId   = a.SegmentRef,
+                    seatNumber  = a.SeatNumber,
+                    updated     = a.Updated
+                })
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("OCI seats failed for {BookingReference} — {Message}", bookingReference, ex.Message);
+            return await req.BadRequestAsync(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "OCI seats failed for {BookingReference}", bookingReference);
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -255,10 +314,12 @@ public sealed class OciFunction
 
     [Function("OciBags")]
     [OpenApiOperation(operationId: "OciBags", tags: new[] { "OCI" },
-        Summary = "Submit baggage selection for check-in (not implemented — returns success)")]
+        Summary = "Submit baggage selection per passenger during OLCI; validates bag offer when bagOfferId is supplied")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
-        Description = "{ bookingReference, departureAirport }")]
+        Description = "{ bookingReference, bags: [{ passengerId, bagCount, bagOfferId? }] }")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(object), Description = "OK")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
+    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> OciBags(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/oci/bags")] HttpRequestData req,
         CancellationToken ct)
@@ -267,17 +328,63 @@ public sealed class OciFunction
         try { body = await JsonSerializer.DeserializeAsync<JsonElement>(req.Body, JsonOptions, ct); }
         catch (JsonException) { return await req.BadRequestAsync("Invalid JSON."); }
 
-        var bookingReference = body.TryGetProperty("bookingReference", out var brEl) ? brEl.GetString() : null;
-        if (string.IsNullOrWhiteSpace(bookingReference))
+        if (!body.TryGetProperty("bookingReference", out var brEl) || string.IsNullOrWhiteSpace(brEl.GetString()))
             return await req.BadRequestAsync("'bookingReference' is required.");
 
-        var ref2 = bookingReference.ToUpperInvariant().Trim();
-        var docError2 = await GetTravelDocumentErrorAsync(ref2, ct);
-        if (docError2 is not null)
-            return await req.BadRequestAsync(docError2);
+        if (!body.TryGetProperty("bags", out var bagsEl) || bagsEl.ValueKind != JsonValueKind.Array)
+            return await req.BadRequestAsync("'bags' array is required.");
 
-        // Baggage selection is not implemented at this time — return success
-        return await req.OkJsonAsync(new { bookingReference = ref2, success = true });
+        var bookingReference = brEl.GetString()!.ToUpperInvariant().Trim();
+
+        var docError = await GetTravelDocumentErrorAsync(bookingReference, ct);
+        if (docError is not null)
+            return await req.BadRequestAsync(docError);
+
+        var selections = new List<OciBagSelection>();
+        foreach (var b in bagsEl.EnumerateArray())
+        {
+            var passengerId = b.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() : null;
+            if (string.IsNullOrWhiteSpace(passengerId))
+                return await req.BadRequestAsync("Each bag selection requires 'passengerId'.");
+
+            var bagCount   = b.TryGetProperty("bagCount",   out var bcEl)  && bcEl.TryGetInt32(out var bc) ? bc : 1;
+            var bagOfferId = b.TryGetProperty("bagOfferId", out var boEl) ? boEl.GetString() : null;
+
+            selections.Add(new OciBagSelection(passengerId, bagCount, bagOfferId));
+        }
+
+        if (selections.Count == 0)
+            return await req.BadRequestAsync("At least one bag selection is required.");
+
+        try
+        {
+            var command = new OciBagsCommand(bookingReference, selections);
+            var result = await _bagsHandler.HandleAsync(command, ct);
+
+            if (result is null)
+                return req.CreateResponse(HttpStatusCode.NotFound);
+
+            return await req.OkJsonAsync(new
+            {
+                bookingReference = result.BookingReference,
+                bags = result.Assignments.Select(a => new
+                {
+                    passengerId = a.PassengerId,
+                    bagCount    = a.BagCount,
+                    bagOfferId  = a.BagOfferId
+                })
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("OCI bags failed for {BookingReference} — {Message}", bookingReference, ex.Message);
+            return await req.BadRequestAsync(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "OCI bags failed for {BookingReference}", bookingReference);
+            return await req.InternalServerErrorAsync();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -327,6 +434,24 @@ public sealed class OciFunction
                 alreadyCheckedIn = result.AlreadyCheckedIn,
                 checkedIn = result.CheckedIn
             });
+        }
+        catch (OciTimaticBlockedException ex)
+        {
+            _logger.LogWarning("OCI check-in: Timatic blocked {BookingReference} — {Message}", bookingReference, ex.Message);
+            var blocked = req.CreateResponse(HttpStatusCode.UnprocessableEntity);
+            blocked.Headers.Add("Content-Type", "application/json");
+            await blocked.WriteStringAsync(JsonSerializer.Serialize(new
+            {
+                error = ex.Message,
+                timaticNotes = ex.TimaticNotes.Select(n => new
+                {
+                    checkType    = n.CheckType,
+                    ticketNumber = n.TicketNumber,
+                    status       = n.Status,
+                    detail       = n.Detail,
+                }),
+            }, JsonOptions));
+            return blocked;
         }
         catch (InvalidOperationException ex)
         {

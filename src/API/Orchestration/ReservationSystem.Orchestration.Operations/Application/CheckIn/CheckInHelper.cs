@@ -212,6 +212,45 @@ public static class CheckInHelper
     }
 
     /// <summary>
+    /// Builds a map from segment reference (e.g. "SEG-1") or 1-based flight-item index
+    /// to the inventory ID of the corresponding flight orderItem.
+    /// </summary>
+    public static Dictionary<string, Guid> ParseSegmentInventoryMap(JsonElement? orderData)
+    {
+        var map = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return map;
+
+        if (!el.TryGetProperty("orderItems", out var orderItems) || orderItems.ValueKind != JsonValueKind.Array)
+            return map;
+
+        var flightIndex = 0;
+        foreach (var item in orderItems.EnumerateArray())
+        {
+            var productType = item.TryGetProperty("productType", out var pt) ? pt.GetString() : null;
+            var itemType    = item.TryGetProperty("type",        out var tp) ? tp.GetString() : null;
+            var isFlight    = string.Equals(productType, "FLIGHT", StringComparison.OrdinalIgnoreCase)
+                           || string.Equals(itemType,    "Flight", StringComparison.OrdinalIgnoreCase);
+            if (!isFlight) continue;
+
+            flightIndex++;
+
+            if (!item.TryGetProperty("inventoryId", out var invEl) ||
+                !Guid.TryParse(invEl.GetString(), out var inventoryId))
+                continue;
+
+            var segmentRef = item.TryGetProperty("segmentRef", out var sr) ? sr.GetString() : null;
+            if (segmentRef is not null)
+                map[segmentRef] = inventoryId;
+
+            // Also keyed by 1-based index so callers can reference by "1", "2", etc.
+            map[flightIndex.ToString()] = inventoryId;
+        }
+
+        return map;
+    }
+
+    /// <summary>
     /// Parses the inventory ID from flight segments whose origin matches <paramref name="departureAirport"/>.
     /// Returns null when no matching segment is found.
     /// </summary>

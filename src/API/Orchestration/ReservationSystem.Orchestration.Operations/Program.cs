@@ -13,7 +13,9 @@ using ReservationSystem.Orchestration.Operations.Application.ImportSsim;
 using ReservationSystem.Orchestration.Operations.Application.ImportSchedulesToInventory;
 using ReservationSystem.Orchestration.Operations.Application.OciRetrieve;
 using ReservationSystem.Orchestration.Operations.Application.OciPax;
+using ReservationSystem.Orchestration.Operations.Application.OciBags;
 using ReservationSystem.Orchestration.Operations.Application.OciCheckIn;
+using ReservationSystem.Orchestration.Operations.Application.OciSeats;
 using ReservationSystem.Orchestration.Operations.Application.HandleDelay;
 using ReservationSystem.Orchestration.Operations.Application.HandleCancellation;
 using ReservationSystem.Orchestration.Operations.Application.AdminDisruptionCancel;
@@ -119,6 +121,8 @@ var host = new HostBuilder()
         services.AddScoped<OciRetrieveHandler>();
         services.AddScoped<OciPaxHandler>();
         services.AddScoped<OciCheckInHandler>();
+        services.AddScoped<OciSeatsHandler>();
+        services.AddScoped<OciBagsHandler>();
         services.AddScoped<HandleDelayHandler>();
         services.AddScoped<HandleCancellationHandler>();
         services.AddScoped<AdminDisruptionCancelHandler>();
