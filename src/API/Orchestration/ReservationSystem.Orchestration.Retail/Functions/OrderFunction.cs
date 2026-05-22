@@ -16,8 +16,10 @@ using ReservationSystem.Orchestration.Retail.Application.ConfirmBasket;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Models.Requests;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Text.Json;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -301,12 +303,59 @@ public sealed class OrderFunction
         try { body = await new StreamReader(req.Body).ReadToEndAsync(cancellationToken); }
         catch { return await req.BadRequestAsync("Failed to read request body."); }
 
+        var ref_ = bookingRef.ToUpperInvariant();
+
+        var order = await _orderServiceClient.GetOrderByRefAsync(ref_, cancellationToken);
+        if (order is null) return req.CreateResponse(HttpStatusCode.NotFound);
+
+        if (IsWithinSsrAmendmentCutoff(order))
+            return await req.UnprocessableEntityAsync("SSR changes are not permitted within 24 hours of departure.");
+
         try
         {
-            await _orderServiceClient.UpdateOrderSsrsAsync(bookingRef.ToUpperInvariant(), body, cancellationToken);
+            await _orderServiceClient.UpdateOrderSsrsAsync(ref_, body, cancellationToken);
             return req.CreateResponse(HttpStatusCode.OK);
         }
         catch (InvalidOperationException ex) { return await req.UnprocessableEntityAsync(ex.Message); }
+    }
+
+    private static bool IsWithinSsrAmendmentCutoff(OrderMsOrderResult order)
+    {
+        if (!order.OrderData.HasValue) return false;
+
+        var earliestDeparture = DateTime.MaxValue;
+
+        try
+        {
+            var data = order.OrderData.Value;
+            if (!data.TryGetProperty("orderItems", out var items)) return false;
+
+            foreach (var item in items.EnumerateArray())
+            {
+                if (!item.TryGetProperty("productType", out var pt) ||
+                    !string.Equals(pt.GetString(), "FLIGHT", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (!item.TryGetProperty("departureDate", out var dd)) continue;
+                var dateStr = dd.GetString() ?? "";
+                if (string.IsNullOrEmpty(dateStr)) continue;
+
+                var timeStr = item.TryGetProperty("departureTime", out var dt) ? dt.GetString() ?? "00:00" : "00:00";
+                if (!timeStr.Contains(':')) timeStr = "00:00";
+
+                if (DateTime.TryParse($"{dateStr}T{timeStr}:00Z",
+                        null, System.Globalization.DateTimeStyles.RoundtripKind, out var departure)
+                    && departure < earliestDeparture)
+                {
+                    earliestDeparture = departure;
+                }
+            }
+        }
+        catch { return false; }
+
+        if (earliestDeparture == DateTime.MaxValue) return false;
+
+        return DateTime.UtcNow >= earliestDeparture.AddHours(-24);
     }
 
     // -------------------------------------------------------------------------

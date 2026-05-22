@@ -644,7 +644,7 @@ CREATE TABLE [order].[SsrCatalogue] (
     UpdatedAt      DATETIME2        NOT NULL CONSTRAINT DF_SsrCatalogue_Updated  DEFAULT SYSUTCDATETIME(),
     CONSTRAINT PK_SsrCatalogue      PRIMARY KEY (SsrCatalogueId),
     CONSTRAINT UQ_SsrCatalogue_Code UNIQUE (SsrCode),
-    CONSTRAINT CHK_SsrCatalogue_Cat CHECK (Category IN ('Meal','Mobility','Accessibility'))
+    CONSTRAINT CHK_SsrCatalogue_Cat CHECK (Category IN ('Meal','Mobility','Accessibility','Medical','Assistance'))
 );
 GO
 

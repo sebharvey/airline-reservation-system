@@ -33,6 +33,9 @@ A pre-built JSON schedule payload for the 2026 season is available at `res/sched
 | DepartureTime | TIME | No | | | Local time at origin airport |
 | ArrivalTime | TIME | No | | | Local time at destination airport |
 | ArrivalDayOffset | TINYINT | No | 0 | | `0` = same calendar day; `1` = next day at destination |
+| DepartureTimeUtc | TIME | Yes | | | UTC equivalent of `DepartureTime`; derived from the SSIM UTC offset field (Type 3 positions 46–49) during import |
+| ArrivalTimeUtc | TIME | Yes | | | UTC equivalent of `ArrivalTime`; derived from the SSIM UTC offset field (Type 3 positions 46–49) during import |
+| ArrivalDayOffsetUtc | TINYINT | Yes | | | UTC equivalent of `ArrivalDayOffset`; derived from the SSIM UTC offset field during import |
 | DaysOfWeek | TINYINT | No | | | Bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64; daily = 127 |
 | AircraftType | VARCHAR(4) | No | | | IATA 4-char code, e.g. `A351`, `B789`, `A339` |
 | ValidFrom | DATE | No | | | First operating date (inclusive) |
@@ -164,6 +167,8 @@ The Operations API `SsimParser` processes Type 2 records to extract carrier and 
 | 68–200 | 133 | Space-padded to record width | |
 
 All field positions are 0-indexed in `SsimParser`. A line must be at least 68 characters long to be processed.
+
+During import the parser extracts the UTC offset from positions 46–49 of each Type 3 record (e.g. `+00`, `-05`) and applies it to the local departure and arrival times to compute `DepartureTimeUtc`, `ArrivalTimeUtc`, and `ArrivalDayOffsetUtc` on the resulting `FlightSchedule` row.
 
 ### Days-of-week encoding
 
