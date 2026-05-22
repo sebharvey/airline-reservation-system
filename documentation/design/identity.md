@@ -156,6 +156,20 @@ sequenceDiagram
 
 > **Enumeration protection:** The identical `202 Accepted` response for both known and unknown email addresses in the reset-request flow is a deliberate security control, consistent with the duplicate-email handling behaviour described in the Register section above.
 
+## Set password
+
+Admin/internal direct password override — sets a new password without requiring the current password or a reset token.
+
+- **Endpoint:** `POST /v1/accounts/{userAccountId}/set-password`
+- **Purpose:** Directly sets a new Argon2id password hash on the specified account. Bypasses the two-step self-service reset flow; intended for staff-initiated password set operations.
+- **When to use:** First-time account setup where an email reset link cannot be delivered, or any staff-initiated credential override. Requires a valid staff JWT.
+- **Behaviour:**
+  - Hashes the supplied `newPassword` with Argon2id and writes it to `PasswordHash`.
+  - Sets `PasswordChangedAt` to UTC now.
+  - Sets `IsRevoked = 1` on all active refresh tokens for the account, invalidating all existing sessions.
+  - Clears `IsLocked` (`0`) and resets `FailedLoginAttempts` to `0`.
+- **Security note:** This endpoint bypasses the normal credential-change audit trail and must only be callable by authenticated staff with an admin role. It must not be exposed through any customer-facing channel.
+
 ## Data Schema — Identity
 
 The Identity domain owns the `identity.*` schema — the sole store of authentication credentials, holding one row per login account linked to Customer via `IdentityReference`. Passwords are stored as Argon2id salted hashes only; plain text is never persisted.

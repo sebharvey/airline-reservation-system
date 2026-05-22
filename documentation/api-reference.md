@@ -552,6 +552,7 @@ The Ancillary microservice owns seat ancillaries (seatmap definitions, fleet-wid
 | `GET` | `/v1/accounts/{userAccountId}` | Retrieve account summary (user account ID, email, and email verification status) by identity account ID; called by the Loyalty API during points transfer to verify the recipient's email address against their loyalty number |
 | `GET` | `/v1/accounts/by-email/{email}` | Retrieve account summary by email address; returns `404` if no account exists for the given email; called by the Loyalty API during admin customer search to resolve a customer by email |
 | `GET`, `POST` | `/v1/accounts/{userAccountId}/verify-email` | Mark an email address as verified; GET is used when the user follows the link in their confirmation email, POST is used for direct API calls |
+| `POST` | `/v1/accounts/{userAccountId}/set-password` | Admin/internal direct password override — sets a new Argon2id password hash without requiring the current password or a reset token; invalidates all active refresh tokens and clears account lockout; requires staff JWT |
 | `POST` | `/v1/accounts/{identityReference}/email/change-request` | Initiate an email change; generates verification token and sends link to new address |
 | `POST` | `/v1/email/verify` | Validate a change-request token; updates email and invalidates all active refresh tokens |
 
