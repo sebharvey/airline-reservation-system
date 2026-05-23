@@ -1,0 +1,14 @@
+{
+  "year": 2026,
+  "dates": [
+    { "date": "2026-05-23", "timetable": "timetable-c" },
+    { "date": "2026-05-24", "timetable": "timetable-c" },
+    { "date": "2026-05-25", "timetable": "timetable-c" },
+    { "date": "2026-05-26", "timetable": "timetable-c" },
+    { "date": "2026-05-27", "timetable": "timetable-c" },
+    { "date": "2026-05-28", "timetable": "timetable-c" },
+    { "date": "2026-05-29", "timetable": "timetable-c" },
+    { "date": "2026-05-30", "timetable": "timetable-c" },
+    { "date": "2026-05-31", "timetable": "timetable-c" }
+  ]
+}
