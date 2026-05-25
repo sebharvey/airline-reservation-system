@@ -68,7 +68,7 @@ export class ManageBookingDetailComponent implements OnInit {
     return o ? o.orderItems.some(i => i.isRefundable) : false;
   });
 
-  readonly canAddBags = computed(() => {
+  readonly canAddBagsForSegment = computed(() => {
     const o = this.order();
     return o ? o.orderStatus === 'Confirmed' : false;
   });
@@ -237,9 +237,9 @@ export class ManageBookingDetailComponent implements OnInit {
     return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amount);
   }
 
-  navigateToAddBags(): void {
+  navigateToAddBagsForSegment(segmentId: string): void {
     this.router.navigate(['/manage-booking/bags'], {
-      state: { givenName: this.givenName(), surname: this.surname() }
+      state: { givenName: this.givenName(), surname: this.surname(), segmentId }
     });
   }
 
