@@ -5,10 +5,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
+using ReservationSystem.Orchestration.Retail.Application.GetInventorySalesPerformance;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using System.Net;
-using System.Text.Json.Nodes;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -21,17 +21,20 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 public sealed class InventoryManagementFunction
 {
     private readonly GetFlightInventoryHandler _getFlightInventoryHandler;
+    private readonly GetInventorySalesPerformanceHandler _getSalesPerformanceHandler;
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<InventoryManagementFunction> _logger;
 
     public InventoryManagementFunction(
         GetFlightInventoryHandler getFlightInventoryHandler,
+        GetInventorySalesPerformanceHandler getSalesPerformanceHandler,
         OfferServiceClient offerServiceClient,
         OrderServiceClient orderServiceClient,
         ILogger<InventoryManagementFunction> logger)
     {
         _getFlightInventoryHandler = getFlightInventoryHandler;
+        _getSalesPerformanceHandler = getSalesPerformanceHandler;
         _offerServiceClient = offerServiceClient;
         _orderServiceClient = orderServiceClient;
         _logger = logger;
@@ -92,7 +95,6 @@ public sealed class InventoryManagementFunction
     [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
     [OpenApiParameter(name: "days", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "Number of days to look back (1–90, default 21)")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SalesPerformanceResponse), Description = "OK")]
-    [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     public async Task<HttpResponseData> GetInventorySalesPerformance(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/inventory/{inventoryId:guid}/sales-performance")] HttpRequestData req,
         Guid inventoryId,
@@ -101,101 +103,10 @@ public sealed class InventoryManagementFunction
         var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
         if (!int.TryParse(qs["days"], out var days) || days < 1 || days > 90) days = 21;
 
-        var holds = await _offerServiceClient.GetInventoryHoldsAsync(inventoryId, cancellationToken);
-        var revenueHolds = holds.Where(h => h.HoldType == "Revenue").ToList();
+        var result = await _getSalesPerformanceHandler.HandleAsync(
+            new GetInventorySalesPerformanceQuery(inventoryId, days), cancellationToken);
 
-        var orderIds = revenueHolds.Select(h => h.OrderId).Distinct().ToList();
-        var bookingRefs = await _orderServiceClient.GetBookingReferencesAsync(orderIds, cancellationToken);
-
-        var orderTasks = bookingRefs
-            .Where(kv => kv.Value != null)
-            .Select(async kv => (kv.Key, await _orderServiceClient.GetOrderByRefAsync(kv.Value!, cancellationToken)));
-        var orders = (await Task.WhenAll(orderTasks))
-            .Where(r => r.Item2 != null)
-            .ToDictionary(r => r.Key, r => r.Item2!);
-
-        var currency = orders.Values.FirstOrDefault()?.CurrencyCode ?? "GBP";
-        var inventoryIdStr = inventoryId.ToString();
-
-        // Build a zero-filled bucket for each day in [today-days+1 .. today].
-        var today = DateTime.UtcNow.Date;
-        var startDate = today.AddDays(-days + 1);
-        var dayMap = new Dictionary<string, (int orderCount, int passengerCount, decimal revenue, decimal ancillary)>();
-        for (var d = startDate; d <= today; d = d.AddDays(1))
-            dayMap[d.ToString("yyyy-MM-dd")] = (0, 0, 0m, 0m);
-
-        // Group holds by UTC booking date, then aggregate per day.
-        var holdsByDate = revenueHolds
-            .Select(h => {
-                var ok = System.DateTimeOffset.TryParse(
-                    h.CreatedAt, null,
-                    System.Globalization.DateTimeStyles.AssumeUniversal,
-                    out var dt);
-                return (Hold: h, Ok: ok, Date: ok ? dt.UtcDateTime.Date.ToString("yyyy-MM-dd") : null);
-            })
-            .Where(x => x.Ok && x.Date != null && dayMap.ContainsKey(x.Date!))
-            .GroupBy(x => x.Date!);
-
-        foreach (var dateGroup in holdsByDate)
-        {
-            var dateKey = dateGroup.Key;
-            var (ordCnt, paxCnt, rev, anc) = dayMap[dateKey];
-
-            var uniqueOrderIds = dateGroup.Select(x => x.Hold.OrderId).Distinct().ToList();
-            ordCnt += uniqueOrderIds.Count;
-            paxCnt += dateGroup.Sum(x => x.Hold.PaxCount);
-
-            foreach (var orderId in uniqueOrderIds)
-            {
-                if (!orders.TryGetValue(orderId, out var order) || !order.OrderData.HasValue) continue;
-                var orderData = JsonNode.Parse(order.OrderData.Value.GetRawText())?.AsObject();
-                if (orderData?["orderItems"] is not JsonArray items) continue;
-
-                // Flight fare for this segment.
-                foreach (var item in items)
-                {
-                    if (item is not JsonObject oi) continue;
-                    var invId = oi["inventoryId"]?.GetValue<string>();
-                    if (!string.Equals(invId, inventoryIdStr, StringComparison.OrdinalIgnoreCase)) continue;
-                    rev += (oi["baseFareAmount"]?.GetValue<decimal>() ?? 0m)
-                         + (oi["taxAmount"]?.GetValue<decimal>() ?? 0m);
-                    break;
-                }
-
-                // Ancillaries for this segment.
-                foreach (var item in items)
-                {
-                    if (item is not JsonObject oi) continue;
-                    var pt = oi["productType"]?.GetValue<string>();
-                    var segId = oi["segmentId"]?.GetValue<string>();
-                    if (!string.Equals(segId, inventoryIdStr, StringComparison.OrdinalIgnoreCase)) continue;
-                    if (pt is "SEAT" or "BAG" or "PRODUCT")
-                        anc += oi["price"]?.GetValue<decimal>() ?? 0m;
-                }
-            }
-
-            dayMap[dateKey] = (ordCnt, paxCnt, rev, anc);
-        }
-
-        var dayDtos = dayMap
-            .OrderBy(kv => kv.Key)
-            .Select(kv => new SalesPerformanceDayDto
-            {
-                Date             = kv.Key,
-                OrderCount       = kv.Value.orderCount,
-                PassengerCount   = kv.Value.passengerCount,
-                Revenue          = Math.Round(kv.Value.revenue,  2, MidpointRounding.AwayFromZero),
-                AncillaryRevenue = Math.Round(kv.Value.ancillary, 2, MidpointRounding.AwayFromZero),
-            })
-            .ToList();
-
-        return await req.OkJsonAsync(new SalesPerformanceResponse
-        {
-            InventoryId = inventoryIdStr,
-            Currency    = currency,
-            TotalDays   = days,
-            Days        = dayDtos,
-        });
+        return await req.OkJsonAsync(result);
     }
 
     // -------------------------------------------------------------------------

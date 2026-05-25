@@ -19,6 +19,7 @@ using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDetail;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderDocuments;
 using ReservationSystem.Orchestration.Retail.Application.GetAdminOrderTickets;
 using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
+using ReservationSystem.Orchestration.Retail.Application.GetInventorySalesPerformance;
 using ReservationSystem.Orchestration.Retail.Application.GetSsrOptions;
 using ReservationSystem.Orchestration.Retail.Application.CancelOrder;
 using ReservationSystem.Orchestration.Retail.Application.AddOrderBags;
@@ -131,6 +132,7 @@ var host = new HostBuilder()
         services.AddScoped<GetOrderHandler>();
         services.AddScoped<ValidateOrderHandler>();
         services.AddScoped<GetFlightInventoryHandler>();
+        services.AddScoped<GetInventorySalesPerformanceHandler>();
         services.AddScoped<GetAdminOrdersHandler>();
         services.AddScoped<GetAdminOrderDetailHandler>();
         services.AddScoped<GetAdminOrderTicketsHandler>();
