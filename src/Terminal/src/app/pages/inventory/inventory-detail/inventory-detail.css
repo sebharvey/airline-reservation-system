@@ -395,6 +395,153 @@
 .badge-inactive { background: rgba(248, 81, 73, 0.12);  color: #f85149; }
 .badge-warning  { background: rgba(210, 153, 34, 0.15); color: #d29922; }
 
+/* ── Performance section ──────────────────────────────────────────────────── */
+.perf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.perf-header .section-title { margin: 0; }
+
+.period-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.period-btn {
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.period-btn:hover { background: var(--bg-light); color: var(--text); }
+.period-btn.active {
+  background: var(--grad-start, #6366f1);
+  border-color: var(--grad-start, #6366f1);
+  color: #fff;
+}
+
+.period-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  margin-left: 4px;
+}
+.period-refresh:hover { background: var(--bg-light); color: var(--text); }
+
+.perf-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 12px 0;
+}
+
+.perf-strip { margin-bottom: 16px; }
+
+/* ── Charts row ───────────────────────────────────────────────────────────── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px 10px;
+  overflow: hidden;
+}
+
+.chart-card-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+/* SVG element classes — use style="" so CSS vars resolve inside SVG */
+.chart-grid  { stroke: var(--border); stroke-width: 1; fill: none; }
+.chart-axis  { stroke: var(--border); stroke-width: 1.5; fill: none; }
+.chart-area  { fill: url(#revAreaGrad); }
+.chart-line  {
+  fill: none;
+  stroke: var(--grad-start, #6366f1);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart-label {
+  font-size: 10px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  fill: var(--text-muted);
+}
+.chart-label-y { text-anchor: end; }
+.chart-label-x { text-anchor: middle; }
+
+.bar-orders { fill: var(--grad-start, #6366f1); fill-opacity: 0.85; }
+.bar-pax    { fill: #3fb950; fill-opacity: 0.8; }
+
+/* ── Chart legend ─────────────────────────────────────────────────────────── */
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: auto;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.legend-orders { background: var(--grad-start, #6366f1); }
+.legend-pax    { background: #3fb950; }
+
+/* ── Refresh spin animation ───────────────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinning { animation: spin 0.7s linear infinite; }
+
 @media (max-width: 900px) {
   .cabin-chart-card { max-width: 100%; }
+  .charts-row { grid-template-columns: 1fr; }
 }

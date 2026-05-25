@@ -5,6 +5,7 @@ import {
   InventoryService,
   InventoryOrders,
   InventoryOrderRow,
+  SalesPerformance,
 } from '../../../services/inventory.service';
 
 interface OrderLine {
@@ -38,6 +39,37 @@ interface FareFamilyStat {
   revenue: number;
 }
 
+interface ChartTick { pos: number; label: string; }
+interface ChartBar  { x: number; y: number; w: number; h: number; }
+
+interface RevenueChartData {
+  areaPath: string;
+  linePath: string;
+  yTicks: ChartTick[];
+  xLabels: ChartTick[];
+  xAxisY: number;
+  xMin: number;
+  xMax: number;
+}
+
+interface OrdersChartData {
+  orderBars: ChartBar[];
+  paxBars: ChartBar[];
+  yTicks: ChartTick[];
+  xLabels: ChartTick[];
+  xAxisY: number;
+  xMin: number;
+  xMax: number;
+}
+
+interface PerfSummary {
+  totalRevenue: number;
+  totalOrders: number;
+  totalPax: number;
+  avgRevPerOrder: number;
+  currency: string;
+}
+
 @Component({
   selector: 'app-inventory-detail',
   templateUrl: './inventory-detail.html',
@@ -49,11 +81,25 @@ export class InventoryDetailComponent implements OnInit {
   #router = inject(Router);
   #inventoryService = inject(InventoryService);
 
+  #inventoryId = '';
+
+  // ── Orders state ──────────────────────────────────────────────────────────
   loading = signal(true);
   error = signal('');
   data = signal<InventoryOrders | null>(null);
   copiedRef = signal<string | null>(null);
 
+  // ── Performance state ─────────────────────────────────────────────────────
+  performanceDays = signal(21);
+  performanceData = signal<SalesPerformance | null>(null);
+  performanceLoading = signal(false);
+  performanceError = signal('');
+
+  // ── Chart geometry constants ───────────────────────────────────────────────
+  readonly #REV  = { VW: 600, VH: 200, L: 56, R: 20, T: 15, B: 45 };
+  readonly #ORD  = { VW: 600, VH: 180, L: 40, R: 20, T: 15, B: 40 };
+
+  // ── Derived order data ─────────────────────────────────────────────────────
   cabinRows = computed(() => {
     const d = this.data();
     if (!d?.cabins) return [];
@@ -65,7 +111,6 @@ export class InventoryDetailComponent implements OnInit {
     return rows;
   });
 
-  /** Groups per-passenger rows by booking reference and expands each into individual order lines. */
   groupedOrders = computed<OrderGroup[]>(() => {
     const orders = this.data()?.orders ?? [];
     const map = new Map<string, InventoryOrderRow[]>();
@@ -74,7 +119,6 @@ export class InventoryDetailComponent implements OnInit {
       arr.push(row);
       map.set(row.bookingReference, arr);
     }
-
     return Array.from(map.entries()).map(([bookingRef, rows]) => {
       const lines: OrderLine[] = [];
       for (const row of rows) {
@@ -87,7 +131,6 @@ export class InventoryDetailComponent implements OnInit {
           total: row.totalFareAmount,
           currency: row.currency,
         });
-
         for (const anc of row.ancillaries) {
           lines.push({
             itemType: anc.productType as 'Seat' | 'Bag' | 'Product',
@@ -140,8 +183,105 @@ export class InventoryDetailComponent implements OnInit {
       .sort((a, b) => b.revenue - a.revenue);
   });
 
+  // ── Performance chart computed ─────────────────────────────────────────────
+  performanceSummary = computed<PerfSummary | null>(() => {
+    const d = this.performanceData();
+    if (!d || d.days.length === 0) return null;
+    const totalRevenue = d.days.reduce((s, x) => s + x.revenue + x.ancillaryRevenue, 0);
+    const totalOrders  = d.days.reduce((s, x) => s + x.orderCount, 0);
+    const totalPax     = d.days.reduce((s, x) => s + x.passengerCount, 0);
+    return {
+      totalRevenue:   Math.round(totalRevenue * 100) / 100,
+      totalOrders,
+      totalPax,
+      avgRevPerOrder: totalOrders > 0 ? Math.round(totalRevenue / totalOrders * 100) / 100 : 0,
+      currency: d.currency,
+    };
+  });
+
+  revenueChart = computed<RevenueChartData | null>(() => {
+    const d = this.performanceData();
+    if (!d || d.days.length === 0) return null;
+    const { VW, VH, L, R, T, B } = this.#REV;
+    const PW = VW - L - R;
+    const PH = VH - T - B;
+    const days = d.days;
+    const n = days.length;
+    const maxVal = Math.max(...days.map(x => x.revenue + x.ancillaryRevenue), 1);
+
+    const px = (i: number) => n > 1 ? L + (i / (n - 1)) * PW : L + PW / 2;
+    const py = (v: number) => T + (1 - v / maxVal) * PH;
+
+    const pts = days.map((x, i) =>
+      `${px(i).toFixed(1)},${py(x.revenue + x.ancillaryRevenue).toFixed(1)}`);
+    const linePath = `M ${pts.join(' L ')}`;
+    const bottom = (T + PH).toFixed(1);
+    const areaPath = `${linePath} L ${(L + PW).toFixed(1)},${bottom} L ${L},${bottom} Z`;
+
+    const yTicks: ChartTick[] = [0, 0.33, 0.67, 1].map(pct => ({
+      pos:   py(maxVal * pct),
+      label: this.#shortAmount(maxVal * pct, d.currency),
+    }));
+
+    const step = n > 14 ? 7 : n > 7 ? 3 : 1;
+    const xLabels: ChartTick[] = days
+      .map((x, i) => ({ pos: px(i), label: x.date.slice(5).replace('-', '/'), i }))
+      .filter(({ i }) => i === 0 || i === n - 1 || i % step === 0)
+      .map(({ pos, label }) => ({ pos, label }));
+
+    return { areaPath, linePath, yTicks, xLabels, xAxisY: T + PH, xMin: L, xMax: L + PW };
+  });
+
+  ordersChart = computed<OrdersChartData | null>(() => {
+    const d = this.performanceData();
+    if (!d || d.days.length === 0) return null;
+    const { VW, VH, L, R, T, B } = this.#ORD;
+    const PW = VW - L - R;
+    const PH = VH - T - B;
+    const days = d.days;
+    const n = days.length;
+    const maxOrders = Math.max(...days.map(x => x.orderCount), 1);
+    const maxPax    = Math.max(...days.map(x => x.passengerCount), 1);
+    const maxVal    = Math.max(maxOrders, maxPax);
+    const bottom    = T + PH;
+    const slotW     = PW / n;
+    const barW      = Math.max((slotW - 4) / 2, 2);
+
+    const orderBars: ChartBar[] = days.map((x, i) => {
+      const h = n === 0 ? 0 : (x.orderCount / maxVal) * PH;
+      return { x: L + slotW * i + 1, y: bottom - h, w: barW, h };
+    });
+    const paxBars: ChartBar[] = days.map((x, i) => {
+      const h = n === 0 ? 0 : (x.passengerCount / maxVal) * PH;
+      return { x: L + slotW * i + 1 + barW + 2, y: bottom - h, w: barW, h };
+    });
+
+    const py = (pct: number) => T + (1 - pct) * PH;
+    const yTicks: ChartTick[] = [0, 0.5, 1].map(pct => ({
+      pos:   py(pct),
+      label: Math.round(maxVal * pct).toString(),
+    }));
+
+    const step = n > 14 ? 7 : n > 7 ? 3 : 1;
+    const xLabels: ChartTick[] = days
+      .map((x, i) => ({ pos: L + slotW * i + slotW / 2, label: x.date.slice(5).replace('-', '/'), i }))
+      .filter(({ i }) => i === 0 || i === n - 1 || i % step === 0)
+      .map(({ pos, label }) => ({ pos, label }));
+
+    return { orderBars, paxBars, yTicks, xLabels, xAxisY: bottom, xMin: L, xMax: L + PW };
+  });
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
   async ngOnInit(): Promise<void> {
     const inventoryId = this.#route.snapshot.paramMap.get('inventoryId') ?? '';
+    this.#inventoryId = inventoryId;
+    await Promise.all([
+      this.#loadOrders(inventoryId),
+      this.#loadPerformance(inventoryId),
+    ]);
+  }
+
+  async #loadOrders(inventoryId: string): Promise<void> {
     try {
       const result = await this.#inventoryService.getInventoryOrders(inventoryId);
       this.data.set(result);
@@ -152,10 +292,34 @@ export class InventoryDetailComponent implements OnInit {
     }
   }
 
+  async #loadPerformance(inventoryId: string): Promise<void> {
+    this.performanceLoading.set(true);
+    this.performanceError.set('');
+    try {
+      const result = await this.#inventoryService.getSalesPerformance(inventoryId, this.performanceDays());
+      this.performanceData.set(result);
+    } catch {
+      this.performanceError.set('Failed to load performance data.');
+    } finally {
+      this.performanceLoading.set(false);
+    }
+  }
+
+  async setDays(days: number): Promise<void> {
+    this.performanceDays.set(days);
+    await this.#loadPerformance(this.#inventoryId);
+  }
+
+  async refreshPerformance(): Promise<void> {
+    await this.#loadPerformance(this.#inventoryId);
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
   goBack(): void {
     this.#router.navigate(['/inventory']);
   }
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   soldPct(cabin: { totalSeats: number; seatsSold: number; seatsHeld: number }): number {
     if (cabin.totalSeats === 0) return 0;
     return Math.round((cabin.seatsSold + cabin.seatsHeld) / cabin.totalSeats * 100);
@@ -201,5 +365,13 @@ export class InventoryDetailComponent implements OnInit {
       this.copiedRef.set(ref);
       setTimeout(() => this.copiedRef.set(null), 2000);
     });
+  }
+
+  #shortAmount(amount: number, currency: string): string {
+    if (amount === 0) return '0';
+    const sym = currency === 'GBP' ? '£' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '';
+    if (amount >= 1_000_000) return `${sym}${(amount / 1_000_000).toFixed(1)}M`;
+    if (amount >= 1_000)     return `${sym}${(amount / 1_000).toFixed(0)}k`;
+    return `${sym}${amount.toFixed(0)}`;
   }
 }

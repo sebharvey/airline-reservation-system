@@ -229,6 +229,21 @@ export interface FlightInventoryWithPinned {
   pinnedFlights: FlightInventoryGroup[];
 }
 
+export interface SalesPerformanceDay {
+  date: string;
+  orderCount: number;
+  passengerCount: number;
+  revenue: number;
+  ancillaryRevenue: number;
+}
+
+export interface SalesPerformance {
+  inventoryId: string;
+  currency: string;
+  totalDays: number;
+  days: SalesPerformanceDay[];
+}
+
 export interface AutoAssignSeatOutcome {
   bookingReference: string;
   eTicketNumber: string;
@@ -372,6 +387,15 @@ export class InventoryService {
     return firstValueFrom(
       this.#http.get<InventoryOrders>(
         `${this.#baseUrl}/inventory/${inventoryId}/inventory-orders`
+      )
+    );
+  }
+
+  async getSalesPerformance(inventoryId: string, days: number): Promise<SalesPerformance> {
+    return firstValueFrom(
+      this.#http.get<SalesPerformance>(
+        `${this.#baseUrl}/inventory/${inventoryId}/sales-performance`,
+        { params: { days: days.toString() } }
       )
     );
   }
