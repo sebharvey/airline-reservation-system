@@ -59,14 +59,8 @@
     </div>
 
     <!-- ── Action Tiles ── -->
-    @if (canChangeSeat() || canChangeFlight() || canCancel()) {
+    @if (canChangeFlight() || canCancel()) {
       <div class="action-tiles">
-        @if (canChangeSeat()) {
-          <button type="button" class="at-tile" (click)="navigateToSeat()">
-            <span class="at-icon">&#128186;</span>
-            <span class="at-label">Change Seat</span>
-          </button>
-        }
         @if (canChangeFlight()) {
           <button type="button" class="at-tile" (click)="navigateToChangeFlight()">
             <span class="at-icon">&#9992;</span>
@@ -168,11 +162,14 @@
             </div>
           </div>
 
-          <!-- Add bags footer -->
+          <!-- Segment actions footer -->
           @if (canAddBagsForSegment()) {
             <div class="bp-card-footer">
+              <button type="button" class="btn-change-seat" (click)="navigateToSeatForSegment(sd.segment.segmentId)">
+                &#128186; Change seat
+              </button>
               <button type="button" class="btn-add-bags" (click)="navigateToAddBagsForSegment(sd.segment.segmentId)">
-                &#129524; Add bags to this flight
+                &#129524; Add bags
               </button>
             </div>
           }
