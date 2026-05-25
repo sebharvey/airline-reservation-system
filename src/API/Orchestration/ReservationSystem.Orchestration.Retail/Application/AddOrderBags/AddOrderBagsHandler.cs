@@ -48,8 +48,9 @@ public sealed class AddOrderBagsHandler
         if (order.OrderStatus != "Confirmed" && order.OrderStatus != "Changed")
             throw new InvalidOperationException($"Order is not mutable. Status: {order.OrderStatus}");
 
-        if (HasAnySegmentDeparted(order.OrderData ?? default))
-            throw new InvalidOperationException("Bag purchases are not permitted after departure.");
+        var requestedInventoryIds = command.BagSelections.Select(s => s.InventoryId);
+        if (HasRequestedSegmentsDeparted(order.OrderData ?? default, requestedInventoryIds))
+            throw new InvalidOperationException("Bag purchases are not permitted for segments that have already departed.");
 
         var currency = order.CurrencyCode;
 
@@ -174,9 +175,11 @@ public sealed class AddOrderBagsHandler
         };
     }
 
-    private static bool HasAnySegmentDeparted(JsonElement data)
+    private static bool HasRequestedSegmentsDeparted(JsonElement data, IEnumerable<string> inventoryIds)
     {
         if (data.Equals(default)) return false;
+        var ids = new HashSet<string>(inventoryIds, StringComparer.OrdinalIgnoreCase);
+        if (ids.Count == 0) return false;
         try
         {
             if (!data.TryGetProperty("orderItems", out var items)) return false;
@@ -185,6 +188,9 @@ public sealed class AddOrderBagsHandler
                 if (!item.TryGetProperty("productType", out var pt) ||
                     !string.Equals(pt.GetString(), "FLIGHT", StringComparison.OrdinalIgnoreCase))
                     continue;
+                var invId = item.TryGetProperty("inventoryId", out var inv) ? inv.GetString() ?? "" : "";
+                var basketId = item.TryGetProperty("basketItemId", out var bid) ? bid.GetString() ?? "" : "";
+                if (!ids.Contains(invId) && !ids.Contains(basketId)) continue;
                 if (!item.TryGetProperty("departureDate", out var dd)) continue;
                 var dateStr = dd.GetString() ?? "";
                 if (string.IsNullOrEmpty(dateStr)) continue;

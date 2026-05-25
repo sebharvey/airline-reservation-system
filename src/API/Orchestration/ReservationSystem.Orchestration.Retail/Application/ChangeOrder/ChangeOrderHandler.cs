@@ -56,8 +56,8 @@ public sealed class ChangeOrderHandler
 
         var orderData = order.OrderData ?? default;
 
-        if (HasAnySegmentDeparted(orderData))
-            throw new InvalidOperationException("Flight change is not permitted after departure.");
+        if (HasAllSegmentsDeparted(orderData))
+            throw new InvalidOperationException("Flight change is not permitted after all segments have departed.");
 
         var bookingType = ExtractBookingType(orderData);
 
@@ -237,9 +237,11 @@ public sealed class ChangeOrderHandler
         };
     }
 
-    private static bool HasAnySegmentDeparted(JsonElement data)
+    private static bool HasAllSegmentsDeparted(JsonElement data)
     {
         if (data.Equals(default)) return false;
+        var flightCount = 0;
+        var departedCount = 0;
         try
         {
             if (!data.TryGetProperty("orderItems", out var items)) return false;
@@ -248,6 +250,7 @@ public sealed class ChangeOrderHandler
                 if (!item.TryGetProperty("productType", out var pt) ||
                     !string.Equals(pt.GetString(), "FLIGHT", StringComparison.OrdinalIgnoreCase))
                     continue;
+                flightCount++;
                 if (!item.TryGetProperty("departureDate", out var dd)) continue;
                 var dateStr = dd.GetString() ?? "";
                 if (string.IsNullOrEmpty(dateStr)) continue;
@@ -256,11 +259,11 @@ public sealed class ChangeOrderHandler
                 if (DateTime.TryParse($"{dateStr}T{timeStr}:00Z",
                         null, System.Globalization.DateTimeStyles.RoundtripKind, out var departure)
                     && DateTime.UtcNow >= departure)
-                    return true;
+                    departedCount++;
             }
         }
         catch { }
-        return false;
+        return flightCount > 0 && flightCount == departedCount;
     }
 
     private static bool IsChangeable(JsonElement data)
