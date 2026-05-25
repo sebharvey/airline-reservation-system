@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
+using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using ReservationSystem.Orchestration.Retail.Models.Responses;
 
 namespace ReservationSystem.Orchestration.Retail.Application.GetOrder;
@@ -163,13 +164,20 @@ public sealed class GetOrderHandler
                     {
                         var paymentRef = p.TryGetProperty("paymentReference", out var pr) ? pr.GetString() ?? "" : "";
 
+                        // Fetch live payment detail and events in parallel from the Payment MS.
+                        // The order data only stores the paymentReference; all other fields
+                        // (amount, status, card info, timestamps) must come from the Payment MS.
+                        PaymentDetailDto? paymentDetail = null;
                         IReadOnlyList<ManagedPaymentEvent> events = [];
                         if (!string.IsNullOrEmpty(paymentRef))
                         {
-                            try
+                            var detailTask = _paymentServiceClient.GetPaymentAsync(paymentRef, cancellationToken);
+                            var eventsTask = _paymentServiceClient.GetPaymentEventsAsync(paymentRef, cancellationToken);
+                            try { await Task.WhenAll(detailTask, eventsTask); } catch { /* Non-fatal */ }
+                            if (detailTask.IsCompletedSuccessfully) paymentDetail = detailTask.Result;
+                            if (eventsTask.IsCompletedSuccessfully)
                             {
-                                var rawEvents = await _paymentServiceClient.GetPaymentEventsAsync(paymentRef, cancellationToken);
-                                events = rawEvents.Select(e => new ManagedPaymentEvent
+                                events = eventsTask.Result.Select(e => new ManagedPaymentEvent
                                 {
                                     PaymentEventId = e.PaymentEventId.ToString(),
                                     EventType      = e.EventType,
@@ -180,23 +188,34 @@ public sealed class GetOrderHandler
                                     CreatedAt      = e.CreatedAt
                                 }).ToList();
                             }
-                            catch { /* Non-fatal: return payment without events */ }
                         }
+
+                        // Read stored fields; fall back to live Payment MS data for anything missing.
+                        var storedDescription    = p.TryGetProperty("description",      out var desc) ? desc.GetString() ?? "" : "";
+                        var storedMethod         = p.TryGetProperty("method",           out var meth) ? meth.GetString() ?? "" : "";
+                        var storedCardLast4      = p.TryGetProperty("cardLast4",        out var cl4)  ? cl4.GetString()  ?? "" : "";
+                        var storedCardType       = p.TryGetProperty("cardType",         out var ct)   ? ct.GetString()   ?? "" : "";
+                        var storedAuthorisedAmt  = p.TryGetProperty("authorisedAmount", out var amt)  ? amt.GetDecimal()      : 0m;
+                        var storedSettledAmt     = p.TryGetProperty("settledAmount",    out var samt) ? samt.GetDecimal()     : 0m;
+                        var storedCurrency       = p.TryGetProperty("currency",         out var cur)  ? cur.GetString()        : null;
+                        var storedStatus         = p.TryGetProperty("status",           out var st)   ? st.GetString()  ?? "" : "";
+                        var storedAuthorisedAt   = p.TryGetProperty("authorisedAt",     out var aat)  ? aat.GetString()        : null;
+                        var storedSettledAt      = p.TryGetProperty("settledAt",        out var sat)  ? sat.GetString()        : null;
 
                         payments.Add(new ManagedPayment
                         {
                             PaymentReference = paymentRef,
-                            Description = p.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : "",
-                            Method = p.TryGetProperty("method", out var meth) ? meth.GetString() ?? "" : "",
-                            CardLast4 = p.TryGetProperty("cardLast4", out var cl4) ? cl4.GetString() ?? "" : "",
-                            CardType = p.TryGetProperty("cardType", out var ct) ? ct.GetString() ?? "" : "",
-                            AuthorisedAmount = p.TryGetProperty("authorisedAmount", out var amt) ? amt.GetDecimal() : 0m,
-                            SettledAmount = p.TryGetProperty("settledAmount", out var samt) ? samt.GetDecimal() : 0m,
-                            Currency = p.TryGetProperty("currency", out var cur) ? cur.GetString() ?? order.CurrencyCode : order.CurrencyCode,
-                            Status = p.TryGetProperty("status", out var st) ? st.GetString() ?? "" : "",
-                            AuthorisedAt = p.TryGetProperty("authorisedAt", out var aat) ? aat.GetString() : null,
-                            SettledAt = p.TryGetProperty("settledAt", out var sat) ? sat.GetString() : null,
-                            Events = events
+                            Description      = !string.IsNullOrEmpty(storedDescription)  ? storedDescription  : (paymentDetail?.Description ?? ""),
+                            Method           = !string.IsNullOrEmpty(storedMethod)       ? storedMethod       : (paymentDetail?.Method      ?? ""),
+                            CardLast4        = !string.IsNullOrEmpty(storedCardLast4)    ? storedCardLast4    : (paymentDetail?.CardLast4   ?? ""),
+                            CardType         = !string.IsNullOrEmpty(storedCardType)     ? storedCardType     : (paymentDetail?.CardType    ?? ""),
+                            AuthorisedAmount = storedAuthorisedAmt != 0                  ? storedAuthorisedAmt : (paymentDetail?.AuthorisedAmount ?? paymentDetail?.Amount ?? 0m),
+                            SettledAmount    = storedSettledAmt    != 0                  ? storedSettledAmt    : (paymentDetail?.SettledAmount    ?? paymentDetail?.Amount ?? 0m),
+                            Currency         = !string.IsNullOrEmpty(storedCurrency)     ? storedCurrency!    : (paymentDetail?.CurrencyCode ?? order.CurrencyCode),
+                            Status           = !string.IsNullOrEmpty(storedStatus)       ? storedStatus       : (paymentDetail?.Status      ?? ""),
+                            AuthorisedAt     = !string.IsNullOrEmpty(storedAuthorisedAt) ? storedAuthorisedAt : paymentDetail?.AuthorisedAt?.ToString("o"),
+                            SettledAt        = !string.IsNullOrEmpty(storedSettledAt)    ? storedSettledAt    : paymentDetail?.SettledAt?.ToString("o"),
+                            Events           = events
                         });
                     }
                 }
