@@ -54,26 +54,27 @@ export class ManageBookingDetailComponent implements OnInit {
   givenName = signal('');
   surname = signal('');
 
-  readonly isAnySegmentDeparted = computed(() => {
+  readonly canChangeFlight = computed(() => {
     const o = this.order();
     if (!o) return false;
     const now = new Date();
-    return o.flightSegments.some(seg => seg.departureDateTime && new Date(seg.departureDateTime) < now);
-  });
-
-  readonly canChangeFlight = computed(() => {
-    const o = this.order();
-    return o ? o.orderItems.some(i => i.isChangeable) && !this.isAnySegmentDeparted() : false;
+    const hasChangeableFare = o.orderItems.some(i => i.isChangeable);
+    const hasUnflownSegment = o.flightSegments.some(seg => seg.departureDateTime && new Date(seg.departureDateTime) > now);
+    return hasChangeableFare && hasUnflownSegment;
   });
 
   readonly canCancel = computed(() => {
     const o = this.order();
-    return o ? o.orderItems.some(i => i.isRefundable) && !this.isAnySegmentDeparted() : false;
+    if (!o) return false;
+    const now = new Date();
+    const hasRefundableFare = o.orderItems.some(i => i.isRefundable);
+    const hasUnflownSegment = o.flightSegments.some(seg => seg.departureDateTime && new Date(seg.departureDateTime) > now);
+    return hasRefundableFare && hasUnflownSegment;
   });
 
   readonly canAddBagsForSegment = computed(() => {
     const o = this.order();
-    return o ? o.orderStatus === 'Confirmed' && !this.isAnySegmentDeparted() : false;
+    return o ? o.orderStatus === 'Confirmed' : false;
   });
 
   readonly segmentDisplays = computed((): SegmentDisplay[] => {
