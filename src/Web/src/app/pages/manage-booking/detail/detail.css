@@ -465,7 +465,7 @@
 .pax-table-header,
 .pax-table-row {
   display: grid;
-  grid-template-columns: 1fr 70px 90px 90px 80px;
+  grid-template-columns: 1fr 70px 90px 90px 90px 80px;
   gap: 8px;
   padding: 8px 12px;
   align-items: center;
@@ -508,6 +508,23 @@
 
 .pax-checkin--pending {
   color: var(--text-muted);
+}
+
+.pax-bags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.83rem;
+  color: var(--text-muted);
+}
+
+.pax-bags-free {
+  color: var(--text-muted);
+}
+
+.pax-bags-extra {
+  font-weight: 600;
+  color: var(--grad-start);
 }
 
 .pax-col-right,

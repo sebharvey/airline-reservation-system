@@ -11,6 +11,7 @@ interface PassengerSeatInfo {
   isCheckedIn: boolean;
   fareAmount: number | null;
   totalAmount: number | null;
+  bagInfo: { additionalBags: number; freeBagsIncluded: number } | null;
 }
 
 interface SegmentDisplay {
@@ -95,7 +96,13 @@ export class ManageBookingDetailComponent implements OnInit {
         const flightItem = flightItems.find(oi => oi.passengerRefs.includes(pax.passengerId));
         const fareAmount = flightItem?.unitPrice ?? null;
         const totalAmount = flightItem?.totalPrice ?? null;
-        return { passenger: pax, seatNumber, eTicketNumber, isCheckedIn, fareAmount, totalAmount };
+        const bagItem = o.orderItems.find(
+          oi => oi.type === 'Bag' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
+        );
+        const bagInfo = bagItem
+          ? { additionalBags: bagItem.additionalBags ?? 0, freeBagsIncluded: bagItem.freeBagsIncluded ?? 0 }
+          : null;
+        return { passenger: pax, seatNumber, eTicketNumber, isCheckedIn, fareAmount, totalAmount, bagInfo };
       });
       const isTicketed = passengerSeats.some(ps => ps.eTicketNumber != null);
       const checkedInCount = passengerSeats.filter(ps => ps.isCheckedIn).length;
