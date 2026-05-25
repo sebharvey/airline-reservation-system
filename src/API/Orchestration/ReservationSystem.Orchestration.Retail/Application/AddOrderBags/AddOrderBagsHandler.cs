@@ -104,6 +104,37 @@ public sealed class AddOrderBagsHandler
         await _paymentServiceClient.SettleAsync(paymentId, totalBagAmount, ct);
         try { await _paymentServiceClient.UpdateBookingReferenceAsync(paymentId, bookingReference, ct); } catch { }
 
+        // 4a. Record payment in the order — appends it to the payments array
+        var bagSettledAt = DateTime.UtcNow;
+        var bagCardLast4 = command.Payment.CardNumber.Length >= 4 ? command.Payment.CardNumber[^4..] : string.Empty;
+        try
+        {
+            await _orderServiceClient.UpdateOrderPaymentsAsync(
+                bookingReference,
+                new[]
+                {
+                    new
+                    {
+                        paymentReference = paymentId,
+                        description      = $"Bag ancillary — {bookingReference}",
+                        method           = command.Payment.Method,
+                        cardLast4        = bagCardLast4,
+                        cardType         = "CreditCard",
+                        authorisedAmount = totalBagAmount,
+                        settledAmount    = totalBagAmount,
+                        currency,
+                        status           = "Settled",
+                        authorisedAt     = bagSettledAt.ToString("O"),
+                        settledAt        = bagSettledAt.ToString("O")
+                    }
+                },
+                ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AddOrderBags] Payment record update failed for {BookingReference}", bookingReference);
+        }
+
         // 5. Update order bags in Order MS
         var bagsPayload = validatedBags.Select(b => new
         {
