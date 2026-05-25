@@ -50,6 +50,14 @@ All services expose the following standard endpoints relative to their base URL:
 
 ---
 
+## Developer tools
+
+| Service | How to run | Notes |
+|---------|-----------|-------|
+| Database MCP | `dotnet run --project src/API/Microservices/ReservationSystem.Microservices.DatabaseMcp` | Local only — listens on `http://localhost:5100`. Requires `ConnectionStrings:Database` and `ApiKey` in `appsettings.Development.json`. |
+
+---
+
 ## Configuration keys
 
 Each orchestration API reads downstream base URLs from Azure App Settings. The keys follow the pattern `<ServiceName>:BaseUrl`. If a key is absent the `BaseAddress` is `null` and the service client will throw on first use.
