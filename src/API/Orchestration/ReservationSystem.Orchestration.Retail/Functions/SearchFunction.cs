@@ -68,7 +68,17 @@ public sealed class SearchFunction
             request.BookingType,
             CustomerContext: customerContext);
 
-        var result = await _searchHandler.HandleAsync(command, cancellationToken);
+        SliceSearchResponse result;
+        try
+        {
+            result = await _searchHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Search/slice failed for {Origin}-{Destination} on {DepartureDate}", command.Origin, command.Destination, command.DepartureDate);
+            return await req.InternalServerErrorAsync();
+        }
+
         return await req.OkJsonAsync(result);
     }
 
@@ -147,7 +157,17 @@ public sealed class SearchFunction
             "Revenue",
             CustomerContext: customerContext);
 
-        var result = await _searchHandler.HandleAsync(command, cancellationToken);
+        SliceSearchResponse result;
+        try
+        {
+            result = await _searchHandler.HandleAsync(command, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Search failed for {Origin}-{Destination} on {DepartureDate}", command.Origin, command.Destination, command.DepartureDate);
+            return await req.InternalServerErrorAsync();
+        }
+
         return await req.OkJsonAsync(result);
     }
 }

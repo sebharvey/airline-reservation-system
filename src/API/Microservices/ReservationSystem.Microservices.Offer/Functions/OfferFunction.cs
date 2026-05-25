@@ -303,7 +303,16 @@ public sealed class OfferFunction
             BookingType: body.TryGetProperty("bookingType", out var bt) ? bt.GetString()! : "Revenue",
             IncludePrivateFares: body.TryGetProperty("includePrivateFares", out var ipf) && ipf.ValueKind == JsonValueKind.True);
 
-        var result = await _searchHandler.HandleAsync(command, ct);
+        SearchOfferResult? result;
+        try
+        {
+            result = await _searchHandler.HandleAsync(command, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Search failed for {Origin}-{Destination} on {DepartureDate}", command.Origin, command.Destination, command.DepartureDate);
+            return await req.InternalServerErrorAsync();
+        }
 
         var sessionId = result?.Offer.SessionId ?? Guid.NewGuid();
 

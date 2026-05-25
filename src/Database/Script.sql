@@ -2084,16 +2084,16 @@ BEGIN TRY
 
     INSERT INTO [offer].[FareRule]
         (FareRuleId, FlightNumber, FareBasisCode, FareFamily, CabinCode, BookingClass,
-         CurrencyCode, MinAmount, TaxAmount,
+         CurrencyCode, MinAmount, TaxLines,
          IsRefundable, IsChangeable, ChangeFeeAmount, CancellationFeeAmount,
          MinPoints, PointsTaxes, ValidFrom, ValidTo)
     VALUES
     -- Tier 1: global defaults (no flight, no dates)
-    (@FareRuleId_JFLEXGB,      NULL,   'JFLEXGB','Business Flex','J','J','GBP',1250.00,182.50,1,1,  0.00,  0.00,125000,182.50,NULL,NULL),
-    (@FareRuleId_YFLEXGB,      NULL,   'YFLEXGB','Economy Flex', 'Y','Y','GBP', 350.00, 97.25,1,1,  0.00,  0.00, 35000, 97.25,NULL,NULL),
-    (@FareRuleId_YLOWUK,       NULL,   'YLOWUK', 'Economy Light','Y','Y','GBP', 149.00, 97.25,0,0,  0.00,149.00,  NULL,  NULL,NULL,NULL),
+    (@FareRuleId_JFLEXGB,      NULL,   'JFLEXGB','Business Flex','J','J','GBP',1250.00,'[{"code":"APD","amount":182.50,"description":"Air Passenger Duty"}]',1,1,  0.00,  0.00,125000,182.50,NULL,NULL),
+    (@FareRuleId_YFLEXGB,      NULL,   'YFLEXGB','Economy Flex', 'Y','Y','GBP', 350.00,'[{"code":"APD","amount":97.25,"description":"Air Passenger Duty"}]', 1,1,  0.00,  0.00, 35000, 97.25,NULL,NULL),
+    (@FareRuleId_YLOWUK,       NULL,   'YLOWUK', 'Economy Light','Y','Y','GBP', 149.00,'[{"code":"APD","amount":97.25,"description":"Air Passenger Duty"}]', 0,0,  0.00,149.00,  NULL,  NULL,NULL,NULL),
     -- Tier 2: AX411 pays higher taxes on this long-haul route (overrides global YLOWUK)
-    (@FareRuleId_AX411_YLOWUK, 'AX411','YLOWUK', 'Economy Light','Y','Y','GBP', 199.00,110.50,0,0,  0.00,199.00,  NULL,  NULL,NULL,NULL);
+    (@FareRuleId_AX411_YLOWUK, 'AX411','YLOWUK', 'Economy Light','Y','Y','GBP', 199.00,'[{"code":"APD","amount":110.50,"description":"Air Passenger Duty"}]',0,0,  0.00,199.00,  NULL,  NULL,NULL,NULL);
 
     -- payment.Payment ---------------------------------------------------------
     DECLARE @PayId1 UNIQUEIDENTIFIER = NEWID();
