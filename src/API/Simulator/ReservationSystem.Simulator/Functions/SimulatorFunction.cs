@@ -68,10 +68,10 @@ public sealed class SimulatorFunction
         return response;
     }
 
-    // Runs every 20 minutes: "0 */20 * * * *"
+    // Runs every 90 minutes: "0 */90 * * * *"
     [Function("FlightOperationalDataSimulator")]
     public async Task RunFlightUpdates(
-        [TimerTrigger("0 */20 * * * *")] TimerInfo timerInfo,
+        [TimerTrigger("0 */90 * * * *")] TimerInfo timerInfo,
         CancellationToken ct)
     {
         _logger.LogInformation("FlightUpdate timer triggered at {UtcNow:O}", DateTime.UtcNow);
@@ -122,10 +122,10 @@ public sealed class SimulatorFunction
         return response;
     }
 
-    // Runs every 15 minutes: "0 */15 * * * *"
+    // Runs every 90 minutes: "0 */90 * * * *"
     [Function("CheckInSimulator")]
     public async Task RunCheckIn(
-        [TimerTrigger("0 */15 * * * *")] TimerInfo timerInfo,
+        [TimerTrigger("0 */90 * * * *")] TimerInfo timerInfo,
         CancellationToken ct)
     {
         _logger.LogInformation("CheckIn simulator timer triggered at {UtcNow:O}", DateTime.UtcNow);
