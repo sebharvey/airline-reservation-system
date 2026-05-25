@@ -53,11 +53,6 @@ export class ManageBookingDetailComponent implements OnInit {
   givenName = signal('');
   surname = signal('');
 
-  readonly canChangeSeat = computed(() => {
-    const o = this.order();
-    return o ? o.orderStatus === 'Confirmed' : false;
-  });
-
   readonly canChangeFlight = computed(() => {
     const o = this.order();
     return o ? o.orderItems.some(i => i.isChangeable) : false;
@@ -243,9 +238,9 @@ export class ManageBookingDetailComponent implements OnInit {
     });
   }
 
-  navigateToSeat(): void {
+  navigateToSeatForSegment(segmentId: string): void {
     this.router.navigate(['/manage-booking/seat'], {
-      state: { givenName: this.givenName(), surname: this.surname() }
+      state: { givenName: this.givenName(), surname: this.surname(), segmentId }
     });
   }
 

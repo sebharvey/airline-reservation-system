@@ -543,25 +543,42 @@
   font-weight: 600;
 }
 
-/* ── Boarding pass footer (add-bags CTA) ── */
+/* ── Boarding pass footer (segment action buttons) ── */
 .bp-card-footer {
   padding: 10px 20px 14px;
   border-top: 1px dashed var(--border);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
+.btn-change-seat,
 .btn-add-bags {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
   background: none;
-  border: 1.5px solid var(--grad-start);
   border-radius: var(--radius-sm);
-  color: var(--grad-start);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.btn-change-seat {
+  border: 1.5px solid var(--border);
+  color: var(--text-muted);
+}
+
+.btn-change-seat:hover {
+  border-color: var(--grad-start);
+  color: var(--grad-start);
+}
+
+.btn-add-bags {
+  border: 1.5px solid var(--grad-start);
+  color: var(--grad-start);
 }
 
 .btn-add-bags:hover {

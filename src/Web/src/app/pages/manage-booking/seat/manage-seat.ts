@@ -1,10 +1,10 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { RetailApiService } from '../../../services/retail-api.service';
-import { Order, Passenger } from '../../../models/order.model';
+import { Order, Passenger, CardDetails, FlightSegment } from '../../../models/order.model';
 import { Seatmap, CabinSeatmap, SeatOffer } from '../../../models/flight.model';
+import { PaymentFormComponent } from '../../../components/payment-form/payment-form';
 
 interface SeatSelection {
   passengerId: string;
@@ -21,7 +21,7 @@ interface SeatSelection {
 @Component({
   selector: 'app-manage-seat',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, PaymentFormComponent],
   templateUrl: './manage-seat.html',
   styleUrl: './manage-seat.css'
 })
@@ -31,30 +31,23 @@ export class ManageSeatComponent implements OnInit {
   loading = signal(true);
   seatmapLoading = signal(false);
   errorMessage = signal('');
-  successMessage = signal('');
   submitting = signal(false);
-  submitted = signal(false);
+  paying = signal(false);
+  paymentError = signal('');
 
   bookingRef = signal('');
   givenName = signal('');
   surname = signal('');
+  segmentId = signal('');
 
+  segment = signal<FlightSegment | null>(null);
   activePassengerIndex = signal(0);
   selections = signal<SeatSelection[]>([]);
 
-  // Payment form fields (shown only when paid seats are selected)
-  cardholderName = signal('');
-  cardNumber = signal('');
-  expiryMonth = signal('');
-  expiryYear = signal('');
-  cvv = signal('');
-
   readonly activeCabin = computed((): CabinSeatmap | null => {
     const sm = this.seatmap();
-    const o = this.order();
-    if (!sm || !o) return null;
-    const seg = o.flightSegments[0];
-    if (!seg) return null;
+    const seg = this.segment();
+    if (!sm || !seg) return null;
     return sm.cabins.find(c => c.cabinCode === seg.cabinCode) ?? sm.cabins[0] ?? null;
   });
 
@@ -65,7 +58,9 @@ export class ManageSeatComponent implements OnInit {
   });
 
   readonly totalSeatCost = computed((): number =>
-    this.selections().reduce((sum, sel) => sum + sel.price, 0)
+    this.selections()
+      .filter(s => s.segmentId === this.segmentId())
+      .reduce((sum, sel) => sum + sel.price, 0)
   );
 
   readonly currency = computed((): string => {
@@ -77,24 +72,9 @@ export class ManageSeatComponent implements OnInit {
 
   readonly hasPaidSeats = computed(() => this.totalSeatCost() > 0);
 
-  readonly cardDisplayNumber = computed(() => {
-    const raw = this.cardNumber().replace(/\D/g, '').substring(0, 16);
-    return raw.replace(/(.{4})/g, '$1 ').trim();
-  });
-
-  readonly expiryYears = computed(() => {
-    const current = new Date().getFullYear();
-    return Array.from({ length: 12 }, (_, i) => current + i);
-  });
-
-  readonly expiryMonths = [
-    { value: '01', label: '01 - Jan' }, { value: '02', label: '02 - Feb' },
-    { value: '03', label: '03 - Mar' }, { value: '04', label: '04 - Apr' },
-    { value: '05', label: '05 - May' }, { value: '06', label: '06 - Jun' },
-    { value: '07', label: '07 - Jul' }, { value: '08', label: '08 - Aug' },
-    { value: '09', label: '09 - Sep' }, { value: '10', label: '10 - Oct' },
-    { value: '11', label: '11 - Nov' }, { value: '12', label: '12 - Dec' }
-  ];
+  readonly hasAnySelection = computed(() =>
+    this.selections().some(s => s.segmentId === this.segmentId())
+  );
 
   readonly seatRows = computed((): { rowNumber: number; seats: (SeatOffer | null)[] }[] => {
     const cabin = this.activeCabin();
@@ -124,14 +104,16 @@ export class ManageSeatComponent implements OnInit {
     const navState = (this.router.getCurrentNavigation()?.extras.state ?? history.state) as Record<string, string>;
     const gn = navState?.['givenName'] ?? '';
     const sn = navState?.['surname'] ?? '';
+    const sid = navState?.['segmentId'] ?? '';
 
-    if (!this.retailApi.hasActiveManageBookingSession() || !gn || !sn) {
+    if (!this.retailApi.hasActiveManageBookingSession() || !gn || !sn || !sid) {
       this.router.navigate(['/manage-booking']);
       return;
     }
 
     this.givenName.set(gn);
     this.surname.set(sn);
+    this.segmentId.set(sid);
     this.loadOrder();
   }
 
@@ -141,31 +123,34 @@ export class ManageSeatComponent implements OnInit {
       next: (order) => {
         this.bookingRef.set(order.bookingReference);
         this.order.set(order);
-        this.loading.set(false);
-        const seg = order.flightSegments[0];
-        if (seg) {
-          this.loadSeatmap(seg.segmentId, seg.flightNumber, seg.aircraftType, seg.cabinCode);
+
+        const seg = order.flightSegments.find(s => s.segmentId === this.segmentId());
+        if (!seg) {
+          this.errorMessage.set('Flight segment not found.');
+          this.loading.set(false);
+          return;
         }
-        // Pre-populate existing seat assignments (free — no offer ID needed)
+        this.segment.set(seg);
+        this.loading.set(false);
+        this.loadSeatmap(seg.segmentId, seg.flightNumber, seg.aircraftType, seg.cabinCode);
+
         const existing: SeatSelection[] = [];
         for (const pax of order.passengers) {
-          for (const seg2 of order.flightSegments) {
-            const seatItem = order.orderItems.find(
-              oi => oi.type === 'Seat' && oi.segmentRef === seg2.segmentId && oi.passengerRefs.includes(pax.passengerId)
-            );
-            if (seatItem?.seatNumber) {
-              existing.push({
-                passengerId: pax.passengerId,
-                segmentId: seg2.segmentId,
-                seatNumber: seatItem.seatNumber,
-                seatOfferId: '',
-                inventoryId: seg2.segmentId,
-                cabinCode: seg2.cabinCode,
-                price: 0,
-                tax: 0,
-                currency: order.currency ?? 'GBP'
-              });
-            }
+          const seatItem = order.orderItems.find(
+            oi => oi.type === 'Seat' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
+          );
+          if (seatItem?.seatNumber) {
+            existing.push({
+              passengerId: pax.passengerId,
+              segmentId: seg.segmentId,
+              seatNumber: seatItem.seatNumber,
+              seatOfferId: '',
+              inventoryId: seg.segmentId,
+              cabinCode: seg.cabinCode,
+              price: 0,
+              tax: 0,
+              currency: order.currency ?? 'GBP'
+            });
           }
         }
         this.selections.set(existing);
@@ -198,24 +183,24 @@ export class ManageSeatComponent implements OnInit {
   isSeatSelected(seat: SeatOffer): boolean {
     const pax = this.activePassenger();
     if (!pax) return false;
-    const seg = this.order()?.flightSegments[0];
+    const segId = this.segmentId();
     return this.selections().some(
-      s => s.passengerId === pax.passengerId && s.segmentId === (seg?.segmentId ?? '') && s.seatNumber === seat.seatNumber
+      s => s.passengerId === pax.passengerId && s.segmentId === segId && s.seatNumber === seat.seatNumber
     );
   }
 
   isSeatTakenByOther(seat: SeatOffer): boolean {
     const pax = this.activePassenger();
-    const seg = this.order()?.flightSegments[0];
+    const segId = this.segmentId();
     return this.selections().some(
-      s => s.seatNumber === seat.seatNumber && s.segmentId === (seg?.segmentId ?? '') && s.passengerId !== pax?.passengerId
+      s => s.seatNumber === seat.seatNumber && s.segmentId === segId && s.passengerId !== pax?.passengerId
     );
   }
 
   selectSeat(seat: SeatOffer): void {
     if (seat.availability !== 'available' || this.isSeatTakenByOther(seat)) return;
     const pax = this.activePassenger();
-    const seg = this.order()?.flightSegments[0];
+    const seg = this.segment();
     const sm = this.seatmap();
     if (!pax || !seg || !sm) return;
 
@@ -239,77 +224,76 @@ export class ManageSeatComponent implements OnInit {
   }
 
   getSeatLabel(passengerId: string): string {
-    const seg = this.order()?.flightSegments[0];
-    const sel = this.selections().find(s => s.passengerId === passengerId && s.segmentId === (seg?.segmentId ?? ''));
+    const segId = this.segmentId();
+    const sel = this.selections().find(s => s.passengerId === passengerId && s.segmentId === segId);
     return sel?.seatNumber ?? 'Not selected';
-  }
-
-  onCardNumberInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const digits = input.value.replace(/\D/g, '').substring(0, 16);
-    this.cardNumber.set(digits);
-    input.value = digits.replace(/(.{4})/g, '$1 ').trim();
-  }
-
-  isPaymentFormValid(): boolean {
-    if (!this.hasPaidSeats()) return true;
-    const name = this.cardholderName().trim();
-    const num = this.cardNumber().replace(/\D/g, '');
-    const month = this.expiryMonth();
-    const year = this.expiryYear();
-    const cvv = this.cvv().trim();
-    return !!(name && num.length === 16 && month && year && cvv.length >= 3);
-  }
-
-  confirmSelection(): void {
-    this.submitted.set(true);
-    if (this.submitting()) return;
-    if (!this.isPaymentFormValid()) return;
-
-    this.submitting.set(true);
-    this.errorMessage.set('');
-
-    const seatSelections = this.selections().map(s => ({
-      passengerId: s.passengerId,
-      segmentId: s.segmentId,
-      seatNumber: s.seatNumber,
-      seatOfferId: s.seatOfferId || undefined,
-      inventoryId: s.inventoryId || undefined,
-      cabinCode: s.cabinCode || undefined,
-      price: s.price,
-      tax: s.tax,
-      currency: s.currency
-    }));
-
-    const payment = this.hasPaidSeats() ? {
-      method: 'CreditCard',
-      cardNumber: this.cardNumber().replace(/\D/g, ''),
-      expiryDate: `${this.expiryMonth()}/${this.expiryYear()}`,
-      cvv: this.cvv().trim(),
-      cardholderName: this.cardholderName().trim()
-    } : undefined;
-
-    this.retailApi.updateSeats(this.bookingRef(), seatSelections, payment).subscribe({
-      next: (res) => {
-        this.submitting.set(false);
-        if (res.success) {
-          this.successMessage.set('Seat selection updated successfully!');
-        } else {
-          this.errorMessage.set('Seat update failed. Please try again.');
-        }
-      },
-      error: (err: { message?: string }) => {
-        this.submitting.set(false);
-        this.errorMessage.set(err?.message ?? 'Seat update failed. Please try again.');
-      }
-    });
   }
 
   formatCurrency(amount: number, currency: string): string {
     return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(amount);
   }
 
-  get detailState() {
-    return { givenName: this.givenName(), surname: this.surname() };
+  onPay(card: CardDetails): void {
+    this.paying.set(true);
+    this.paymentError.set('');
+    this.submitSeats({
+      method: 'CreditCard',
+      cardNumber: card.cardNumber,
+      expiryDate: `${card.expiryMonth}/${card.expiryYear}`,
+      cvv: card.cvv,
+      cardholderName: card.cardholderName
+    });
+  }
+
+  confirmSelection(): void {
+    if (this.submitting()) return;
+    this.submitting.set(true);
+    this.errorMessage.set('');
+    this.submitSeats(undefined);
+  }
+
+  private submitSeats(payment?: { method: string; cardNumber: string; expiryDate: string; cvv: string; cardholderName: string }): void {
+    const segSelections = this.selections()
+      .filter(s => s.segmentId === this.segmentId())
+      .map(s => ({
+        passengerId: s.passengerId,
+        segmentId: s.segmentId,
+        seatNumber: s.seatNumber,
+        seatOfferId: s.seatOfferId || undefined,
+        inventoryId: s.inventoryId || undefined,
+        cabinCode: s.cabinCode || undefined,
+        price: s.price,
+        tax: s.tax,
+        currency: s.currency
+      }));
+
+    this.retailApi.updateSeats(this.bookingRef(), segSelections, payment).subscribe({
+      next: (res) => {
+        this.paying.set(false);
+        this.submitting.set(false);
+        if (res.success) {
+          this.router.navigate(['/manage-booking/detail'], {
+            state: { givenName: this.givenName(), surname: this.surname() }
+          });
+        } else {
+          this.errorMessage.set('Seat update failed. Please try again.');
+        }
+      },
+      error: (err: { message?: string }) => {
+        this.paying.set(false);
+        this.submitting.set(false);
+        if (this.hasPaidSeats()) {
+          this.paymentError.set(err?.message ?? 'Seat update failed. Please try again.');
+        } else {
+          this.errorMessage.set(err?.message ?? 'Seat update failed. Please try again.');
+        }
+      }
+    });
+  }
+
+  onBack(): void {
+    this.router.navigate(['/manage-booking/detail'], {
+      state: { givenName: this.givenName(), surname: this.surname() }
+    });
   }
 }
