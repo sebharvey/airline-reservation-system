@@ -48,7 +48,7 @@ export class ManageBagsPaymentComponent implements OnInit {
     this.surname.set(sn);
 
     if (this.manageBookingState.bagSelections().length === 0) {
-      this.router.navigate(['/manage-booking/bags'], {
+      this.router.navigate(['/manage-booking/detail'], {
         state: { givenName: gn, surname: sn }
       });
       return;
@@ -118,7 +118,11 @@ export class ManageBagsPaymentComponent implements OnInit {
 
   onBack(): void {
     this.router.navigate(['/manage-booking/bags'], {
-      state: { givenName: this.givenName(), surname: this.surname() }
+      state: {
+        givenName: this.givenName(),
+        surname: this.surname(),
+        segmentId: this.manageBookingState.currentSegmentId()
+      }
     });
   }
 }

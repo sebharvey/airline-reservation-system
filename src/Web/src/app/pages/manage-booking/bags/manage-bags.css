@@ -64,6 +64,125 @@ h3 {
   font-size: 0.9rem;
 }
 
+/* Segment card */
+.segment-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.seg-strip {
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seg-fn {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.06em;
+}
+
+.seg-pill {
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.seg-mono {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.seg-route {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.seg-endpoint {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.seg-endpoint--right {
+  text-align: right;
+}
+
+.seg-iata {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.seg-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.seg-track {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seg-track-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--grad-start), var(--grad-end));
+  border-radius: 2px;
+  opacity: 0.3;
+}
+
+.seg-track-plane {
+  font-size: 1rem;
+  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  flex-shrink: 0;
+}
+
+/* Policy banner */
+.policy-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(34, 197, 94, 0.06);
+  border: 1.5px solid rgba(34, 197, 94, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.policy-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1.5px solid rgba(34, 197, 94, 0.4);
+  border-radius: 50%;
+  font-size: 0.65rem;
+  color: #15803d;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
 /* Section */
 .section {
   display: flex;
