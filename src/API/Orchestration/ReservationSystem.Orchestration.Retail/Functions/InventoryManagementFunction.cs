@@ -5,10 +5,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
 using ReservationSystem.Orchestration.Retail.Application.GetFlightInventory;
+using ReservationSystem.Orchestration.Retail.Application.GetInventorySalesPerformance;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices.Dto;
 using System.Net;
-using System.Text.Json.Nodes;
 
 namespace ReservationSystem.Orchestration.Retail.Functions;
 
@@ -21,17 +21,20 @@ namespace ReservationSystem.Orchestration.Retail.Functions;
 public sealed class InventoryManagementFunction
 {
     private readonly GetFlightInventoryHandler _getFlightInventoryHandler;
+    private readonly GetInventorySalesPerformanceHandler _getSalesPerformanceHandler;
     private readonly OfferServiceClient _offerServiceClient;
     private readonly OrderServiceClient _orderServiceClient;
     private readonly ILogger<InventoryManagementFunction> _logger;
 
     public InventoryManagementFunction(
         GetFlightInventoryHandler getFlightInventoryHandler,
+        GetInventorySalesPerformanceHandler getSalesPerformanceHandler,
         OfferServiceClient offerServiceClient,
         OrderServiceClient orderServiceClient,
         ILogger<InventoryManagementFunction> logger)
     {
         _getFlightInventoryHandler = getFlightInventoryHandler;
+        _getSalesPerformanceHandler = getSalesPerformanceHandler;
         _offerServiceClient = offerServiceClient;
         _orderServiceClient = orderServiceClient;
         _logger = logger;
@@ -81,6 +84,29 @@ public sealed class InventoryManagementFunction
             .Select(g => g!.Value)
             .ToList()
             .AsReadOnly();
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /v1/admin/inventory/{inventoryId}/sales-performance?days=21
+    // -------------------------------------------------------------------------
+
+    [Function("AdminGetInventorySalesPerformance")]
+    [OpenApiOperation(operationId: "AdminGetInventorySalesPerformance", tags: new[] { "Admin Inventory" }, Summary = "Get daily sales performance for a flight over a rolling window (staff)")]
+    [OpenApiParameter(name: "inventoryId", In = ParameterLocation.Path, Required = true, Type = typeof(Guid), Description = "Flight inventory ID")]
+    [OpenApiParameter(name: "days", In = ParameterLocation.Query, Required = false, Type = typeof(int), Description = "Number of days to look back (1–90, default 21)")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(SalesPerformanceResponse), Description = "OK")]
+    public async Task<HttpResponseData> GetInventorySalesPerformance(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/inventory/{inventoryId:guid}/sales-performance")] HttpRequestData req,
+        Guid inventoryId,
+        CancellationToken cancellationToken)
+    {
+        var qs = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+        if (!int.TryParse(qs["days"], out var days) || days < 1 || days > 90) days = 21;
+
+        var result = await _getSalesPerformanceHandler.HandleAsync(
+            new GetInventorySalesPerformanceQuery(inventoryId, days), cancellationToken);
+
+        return await req.OkJsonAsync(result);
     }
 
     // -------------------------------------------------------------------------
