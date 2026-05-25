@@ -154,12 +154,13 @@
                   <span class="pax-name">{{ ps.passenger.givenName }} {{ ps.passenger.surname }}</span>
                   <span class="pax-seat">{{ ps.seatNumber ?? 'TBA' }}</span>
                   <span class="pax-bags">
-                    @if (ps.bagInfo) {
-                      <span class="pax-bags-free">{{ ps.bagInfo.freeBagsIncluded }} free</span>
-                      @if (ps.bagInfo.additionalBags > 0) {
-                        <span class="pax-bags-extra">+{{ ps.bagInfo.additionalBags }}</span>
-                      }
-                    } @else {
+                    @if (ps.bagInfo.allowance !== null) {
+                      <span class="pax-bags-free">{{ ps.bagInfo.allowance }} free</span>
+                    }
+                    @if (ps.bagInfo.purchased > 0) {
+                      <span class="pax-bags-extra">+{{ ps.bagInfo.purchased }}</span>
+                    }
+                    @if (ps.bagInfo.allowance === null && ps.bagInfo.purchased === 0) {
                       &ndash;
                     }
                   </span>

@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RetailApiService } from '../../../services/retail-api.service';
 import { Order, OrderItem, Passenger, FlightSegment, BoardingPass, Ticket } from '../../../models/order.model';
+import { BagPolicy } from '../../../models/flight.model';
 
 interface PassengerSeatInfo {
   passenger: Passenger;
@@ -11,7 +12,7 @@ interface PassengerSeatInfo {
   isCheckedIn: boolean;
   fareAmount: number | null;
   totalAmount: number | null;
-  bagInfo: { additionalBags: number; freeBagsIncluded: number } | null;
+  bagInfo: { purchased: number; allowance: number | null };
 }
 
 interface SegmentDisplay {
@@ -36,6 +37,7 @@ export class ManageBookingDetailComponent implements OnInit {
   copiedText = signal<string | null>(null);
 
   selectedTicket = signal<Ticket | null>(null);
+  bagPolicies = signal<Map<string, BagPolicy>>(new Map());
 
   readonly activeTickets = computed<Ticket[]>(() => (this.order()?.tickets ?? []).filter(t => !t.isVoided));
   readonly voidedTickets = computed<Ticket[]>(() => (this.order()?.tickets ?? []).filter(t => t.isVoided));
@@ -75,6 +77,16 @@ export class ManageBookingDetailComponent implements OnInit {
     const o = this.order();
     if (!o) return [];
     const bps = this.boardingPasses();
+    const policies = this.bagPolicies();
+
+    // Bag items store inventory IDs (not segment UUIDs) as segmentRef — map by position.
+    const bagInventoryRefs = [...new Set(
+      o.orderItems.filter(oi => oi.type === 'Bag').map(oi => oi.segmentRef)
+    )];
+    const bagRefToSegmentId = new Map<string, string>(
+      bagInventoryRefs.map((ref, idx) => [ref, o.flightSegments[idx]?.segmentId ?? ''])
+    );
+
     return o.flightSegments.map(seg => {
       const flightItems = o.orderItems.filter(
         oi => oi.type === 'Flight' && oi.segmentRef === seg.segmentId
@@ -97,11 +109,15 @@ export class ManageBookingDetailComponent implements OnInit {
         const fareAmount = flightItem?.unitPrice ?? null;
         const totalAmount = flightItem?.totalPrice ?? null;
         const bagItem = o.orderItems.find(
-          oi => oi.type === 'Bag' && oi.segmentRef === seg.segmentId && oi.passengerRefs.includes(pax.passengerId)
+          oi => oi.type === 'Bag' &&
+                bagRefToSegmentId.get(oi.segmentRef) === seg.segmentId &&
+                oi.passengerRefs.includes(pax.passengerId)
         );
-        const bagInfo = bagItem
-          ? { additionalBags: bagItem.additionalBags ?? 0, freeBagsIncluded: bagItem.freeBagsIncluded ?? 0 }
-          : null;
+        const policy = policies.get(seg.segmentId) ?? null;
+        const bagInfo = {
+          purchased: bagItem?.additionalBags ?? 0,
+          allowance: policy?.freeBagsIncluded ?? null
+        };
         return { passenger: pax, seatNumber, eTicketNumber, isCheckedIn, fareAmount, totalAmount, bagInfo };
       });
       const isTicketed = passengerSeats.some(ps => ps.eTicketNumber != null);
@@ -149,6 +165,7 @@ export class ManageBookingDetailComponent implements OnInit {
         this.bookingRef.set(order.bookingReference);
         this.order.set(order);
         this.loading.set(false);
+        this.loadBagPolicies(order);
       },
       error: (err: { status?: number; message?: string }) => {
         this.loading.set(false);
@@ -159,6 +176,23 @@ export class ManageBookingDetailComponent implements OnInit {
         this.errorMessage.set(err?.message ?? 'Unable to retrieve booking.');
       }
     });
+  }
+
+  private loadBagPolicies(order: Order): void {
+    const policies = new Map<string, BagPolicy>();
+    let remaining = order.flightSegments.length;
+    if (remaining === 0) return;
+    for (const seg of order.flightSegments) {
+      this.retailApi.getBagOffers(seg.segmentId, seg.cabinCode as 'F' | 'J' | 'W' | 'Y').subscribe({
+        next: (resp) => {
+          if (resp.policy) policies.set(seg.segmentId, resp.policy);
+          if (--remaining === 0) this.bagPolicies.set(new Map(policies));
+        },
+        error: () => {
+          if (--remaining === 0) this.bagPolicies.set(new Map(policies));
+        }
+      });
+    }
   }
 
   findTicketByNumber(eTicketNumber: string): Ticket | null {
