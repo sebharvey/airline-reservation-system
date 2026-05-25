@@ -51,6 +51,9 @@ public sealed class CancelOrderHandler
 
         // Parse order data
         var orderData = order.OrderData ?? default;
+
+        if (HasAnySegmentDeparted(orderData))
+            throw new InvalidOperationException("Cancellation is not permitted after departure.");
         var eTickets = ExtractETickets(orderData);
         var bookingType = ExtractBookingType(orderData);
         var (totalPaid, cancellationFee, isRefundable) = ExtractFareConditions(orderData);
@@ -116,6 +119,32 @@ public sealed class CancelOrderHandler
             RefundInitiated = refundableAmount > 0,
             PointsReinstated = pointsReinstated
         };
+    }
+
+    private static bool HasAnySegmentDeparted(JsonElement data)
+    {
+        if (data.Equals(default)) return false;
+        try
+        {
+            if (!data.TryGetProperty("orderItems", out var items)) return false;
+            foreach (var item in items.EnumerateArray())
+            {
+                if (!item.TryGetProperty("productType", out var pt) ||
+                    !string.Equals(pt.GetString(), "FLIGHT", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!item.TryGetProperty("departureDate", out var dd)) continue;
+                var dateStr = dd.GetString() ?? "";
+                if (string.IsNullOrEmpty(dateStr)) continue;
+                var timeStr = item.TryGetProperty("departureTime", out var dt) ? dt.GetString() ?? "00:00" : "00:00";
+                if (!timeStr.Contains(':')) timeStr = "00:00";
+                if (DateTime.TryParse($"{dateStr}T{timeStr}:00Z",
+                        null, System.Globalization.DateTimeStyles.RoundtripKind, out var departure)
+                    && DateTime.UtcNow >= departure)
+                    return true;
+            }
+        }
+        catch { }
+        return false;
     }
 
     private static List<string> ExtractETickets(JsonElement data)

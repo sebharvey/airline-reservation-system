@@ -281,6 +281,12 @@
   border: 1.5px solid rgba(234, 179, 8, 0.35);
 }
 
+.badge-complete {
+  background: rgba(100, 116, 139, 0.1);
+  color: #475569;
+  border: 1.5px solid rgba(100, 116, 139, 0.3);
+}
+
 .badge-default {
   background: var(--bg-light);
   color: var(--text-muted);
@@ -369,6 +375,12 @@
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.strip-complete {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 .bp-aircraft {
@@ -584,6 +596,16 @@
 .btn-add-bags:hover {
   background: var(--grad-start);
   color: #ffffff;
+}
+
+.bp-card-footer--flown {
+  background: var(--bg-light);
+}
+
+.flown-notice {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* ── Passenger Grid ── */

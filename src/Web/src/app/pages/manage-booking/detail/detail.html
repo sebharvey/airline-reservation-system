@@ -90,9 +90,13 @@
               <span class="bp-pill bp-mono">{{ sd.segment.bookingClass }}</span>
             </div>
             <div class="bp-strip-right">
-              <span class="bp-strip-badge" [ngClass]="sd.isTicketed ? 'strip-ticketed' : 'strip-pending'">
-                {{ sd.isTicketed ? 'Ticketed' : 'Pending' }}
-              </span>
+              @if (sd.isFlown) {
+                <span class="bp-strip-badge strip-complete">&#10003; Complete</span>
+              } @else {
+                <span class="bp-strip-badge" [ngClass]="sd.isTicketed ? 'strip-ticketed' : 'strip-pending'">
+                  {{ sd.isTicketed ? 'Ticketed' : 'Pending' }}
+                </span>
+              }
               @if (sd.checkedInCount > 0) {
                 <span class="bp-strip-badge strip-checked-in">
                   &#10003; {{ sd.checkedInCount }}/{{ sd.passengerSeats.length }}
@@ -163,7 +167,11 @@
           </div>
 
           <!-- Segment actions footer -->
-          @if (canAddBagsForSegment()) {
+          @if (sd.isFlown) {
+            <div class="bp-card-footer bp-card-footer--flown">
+              <span class="flown-notice">&#9992; This flight has departed — changes are no longer available</span>
+            </div>
+          } @else if (canAddBagsForSegment()) {
             <div class="bp-card-footer">
               <button type="button" class="btn-change-seat" (click)="navigateToSeatForSegment(sd.segment.segmentId)">
                 &#128186; Change seat

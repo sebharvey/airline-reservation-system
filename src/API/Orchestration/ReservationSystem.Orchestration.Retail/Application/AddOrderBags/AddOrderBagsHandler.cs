@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 
@@ -46,6 +47,9 @@ public sealed class AddOrderBagsHandler
 
         if (order.OrderStatus != "Confirmed" && order.OrderStatus != "Changed")
             throw new InvalidOperationException($"Order is not mutable. Status: {order.OrderStatus}");
+
+        if (HasAnySegmentDeparted(order.OrderData ?? default))
+            throw new InvalidOperationException("Bag purchases are not permitted after departure.");
 
         var currency = order.CurrencyCode;
 
@@ -137,6 +141,32 @@ public sealed class AddOrderBagsHandler
             TotalBagAmount = totalBagAmount,
             PaymentId = paymentId
         };
+    }
+
+    private static bool HasAnySegmentDeparted(JsonElement data)
+    {
+        if (data.Equals(default)) return false;
+        try
+        {
+            if (!data.TryGetProperty("orderItems", out var items)) return false;
+            foreach (var item in items.EnumerateArray())
+            {
+                if (!item.TryGetProperty("productType", out var pt) ||
+                    !string.Equals(pt.GetString(), "FLIGHT", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!item.TryGetProperty("departureDate", out var dd)) continue;
+                var dateStr = dd.GetString() ?? "";
+                if (string.IsNullOrEmpty(dateStr)) continue;
+                var timeStr = item.TryGetProperty("departureTime", out var dt) ? dt.GetString() ?? "00:00" : "00:00";
+                if (!timeStr.Contains(':')) timeStr = "00:00";
+                if (DateTime.TryParse($"{dateStr}T{timeStr}:00Z",
+                        null, System.Globalization.DateTimeStyles.RoundtripKind, out var departure)
+                    && DateTime.UtcNow >= departure)
+                    return true;
+            }
+        }
+        catch { }
+        return false;
     }
 
     private sealed class ValidatedBagItem

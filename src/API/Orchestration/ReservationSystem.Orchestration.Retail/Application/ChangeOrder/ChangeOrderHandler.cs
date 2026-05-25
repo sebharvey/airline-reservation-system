@@ -55,6 +55,10 @@ public sealed class ChangeOrderHandler
             throw new InvalidOperationException($"Order is not mutable. Status: {order.OrderStatus}");
 
         var orderData = order.OrderData ?? default;
+
+        if (HasAnySegmentDeparted(orderData))
+            throw new InvalidOperationException("Flight change is not permitted after departure.");
+
         var bookingType = ExtractBookingType(orderData);
 
         // Check fare allows change
@@ -231,6 +235,32 @@ public sealed class ChangeOrderHandler
             PaymentId = changePaymentId,
             NewETicketNumbers = newTickets.Select(t => t.ETicketNumber).ToList()
         };
+    }
+
+    private static bool HasAnySegmentDeparted(JsonElement data)
+    {
+        if (data.Equals(default)) return false;
+        try
+        {
+            if (!data.TryGetProperty("orderItems", out var items)) return false;
+            foreach (var item in items.EnumerateArray())
+            {
+                if (!item.TryGetProperty("productType", out var pt) ||
+                    !string.Equals(pt.GetString(), "FLIGHT", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!item.TryGetProperty("departureDate", out var dd)) continue;
+                var dateStr = dd.GetString() ?? "";
+                if (string.IsNullOrEmpty(dateStr)) continue;
+                var timeStr = item.TryGetProperty("departureTime", out var dt) ? dt.GetString() ?? "00:00" : "00:00";
+                if (!timeStr.Contains(':')) timeStr = "00:00";
+                if (DateTime.TryParse($"{dateStr}T{timeStr}:00Z",
+                        null, System.Globalization.DateTimeStyles.RoundtripKind, out var departure)
+                    && DateTime.UtcNow >= departure)
+                    return true;
+            }
+        }
+        catch { }
+        return false;
     }
 
     private static bool IsChangeable(JsonElement data)

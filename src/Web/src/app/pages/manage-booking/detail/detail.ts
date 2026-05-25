@@ -20,6 +20,7 @@ interface SegmentDisplay {
   passengerSeats: PassengerSeatInfo[];
   isTicketed: boolean;
   checkedInCount: number;
+  isFlown: boolean;
 }
 
 @Component({
@@ -53,19 +54,26 @@ export class ManageBookingDetailComponent implements OnInit {
   givenName = signal('');
   surname = signal('');
 
+  readonly isAnySegmentDeparted = computed(() => {
+    const o = this.order();
+    if (!o) return false;
+    const now = new Date();
+    return o.flightSegments.some(seg => seg.departureDateTime && new Date(seg.departureDateTime) < now);
+  });
+
   readonly canChangeFlight = computed(() => {
     const o = this.order();
-    return o ? o.orderItems.some(i => i.isChangeable) : false;
+    return o ? o.orderItems.some(i => i.isChangeable) && !this.isAnySegmentDeparted() : false;
   });
 
   readonly canCancel = computed(() => {
     const o = this.order();
-    return o ? o.orderItems.some(i => i.isRefundable) : false;
+    return o ? o.orderItems.some(i => i.isRefundable) && !this.isAnySegmentDeparted() : false;
   });
 
   readonly canAddBagsForSegment = computed(() => {
     const o = this.order();
-    return o ? o.orderStatus === 'Confirmed' : false;
+    return o ? o.orderStatus === 'Confirmed' && !this.isAnySegmentDeparted() : false;
   });
 
   readonly segmentDisplays = computed((): SegmentDisplay[] => {
@@ -117,7 +125,8 @@ export class ManageBookingDetailComponent implements OnInit {
       });
       const isTicketed = passengerSeats.some(ps => ps.eTicketNumber != null);
       const checkedInCount = passengerSeats.filter(ps => ps.isCheckedIn).length;
-      return { segment: seg, passengerSeats, isTicketed, checkedInCount };
+      const isFlown = !!seg.departureDateTime && new Date(seg.departureDateTime) < new Date();
+      return { segment: seg, passengerSeats, isTicketed, checkedInCount, isFlown };
     });
   });
 
@@ -261,6 +270,7 @@ export class ManageBookingDetailComponent implements OnInit {
       case 'Confirmed': return 'badge-confirmed';
       case 'Cancelled': return 'badge-cancelled';
       case 'Changed': return 'badge-changed';
+      case 'Complete': return 'badge-complete';
       default: return 'badge-default';
     }
   }
