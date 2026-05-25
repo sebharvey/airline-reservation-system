@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "apex-air-db": {
-      "type": "sse",
-      "url": "http://localhost:5100/mcp",
+      "type": "http",
+      "url": "http://localhost:7071/api/mcp",
       "headers": {
-        "x-api-key": "YOUR_API_KEY_HERE"
+        "x-functions-key": "YOUR_FUNCTION_KEY_HERE"
       }
     }
   }
