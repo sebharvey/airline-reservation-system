@@ -9,9 +9,12 @@ public sealed class PaymentDetailDto
     public string? CardLast4 { get; init; }
     public string CurrencyCode { get; init; } = string.Empty;
     public decimal Amount { get; init; }
+    public decimal? AuthorisedAmount { get; init; }
+    public decimal? SettledAmount { get; init; }
     public string Status { get; init; } = string.Empty;
     public DateTime? AuthorisedAt { get; init; }
     public DateTime? SettledAt { get; init; }
+    public string? Description { get; init; }
 }
 
 public sealed class PaymentEventDto
