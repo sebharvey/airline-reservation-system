@@ -150,6 +150,37 @@ public sealed class UpdateOrderSeatsHandler
         await _paymentServiceClient.SettleAsync(paymentId, totalSeatAmount, ct);
         try { await _paymentServiceClient.UpdateBookingReferenceAsync(paymentId, bookingReference, ct); } catch { }
 
+        // 5a. Record payment in the order — appends it to the payments array
+        var seatSettledAt = DateTime.UtcNow;
+        var seatCardLast4 = command.Payment.CardNumber.Length >= 4 ? command.Payment.CardNumber[^4..] : string.Empty;
+        try
+        {
+            await _orderServiceClient.UpdateOrderPaymentsAsync(
+                bookingReference,
+                new[]
+                {
+                    new
+                    {
+                        paymentReference = paymentId,
+                        description      = $"Seat ancillary — {bookingReference}",
+                        method           = command.Payment.Method,
+                        cardLast4        = seatCardLast4,
+                        cardType         = "CreditCard",
+                        authorisedAmount = totalSeatAmount,
+                        settledAmount    = totalSeatAmount,
+                        currency,
+                        status           = "Settled",
+                        authorisedAt     = seatSettledAt.ToString("O"),
+                        settledAt        = seatSettledAt.ToString("O")
+                    }
+                },
+                ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[UpdateOrderSeats] Payment record update failed for {BookingReference}", bookingReference);
+        }
+
         // 6. Update seat assignments in Order MS (paid and any free selections together)
         var seatsPayload = command.SeatSelections.Select(s =>
         {
