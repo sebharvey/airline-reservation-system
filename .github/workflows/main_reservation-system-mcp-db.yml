@@ -1,17 +1,21 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy dotnet core project to Azure Function App - reservation-system-mcp-db
+name: Build and deploy - MCP Database Tool
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+    paths:
+      - 'src/API/Mcp/ReservationSystem.Mcp.Db/**'
+      - 'src/API/Shared/**'
+      - 'src/API/ReservationSystem.sln'
+      - '.github/workflows/main_reservation-system-mcp-db.yml'
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
-  DOTNET_VERSION: '8.0.x' # set this to the dotnet version to use
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Mcp/ReservationSystem.Mcp.Db'
+  DOTNET_VERSION: '8.0.x'
 
 jobs:
   build-and-deploy:
@@ -33,9 +37,19 @@ jobs:
         shell: bash
         run: |
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet build --configuration Release --output ./output
+          dotnet build --configuration Release
+          dotnet test --no-build --configuration Release
+          dotnet publish --no-build --configuration Release --output ./output
           popd
-      
+
+      - name: 'Check for vulnerable NuGet packages'
+        shell: bash
+        run: |
+          if dotnet list '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}' package --vulnerable --include-transitive 2>&1 | grep -qEi '(Critical|High)'; then
+            echo '::error::Critical or High severity vulnerable NuGet packages detected — update affected packages before deploying'
+            exit 1
+          fi
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -50,4 +64,3 @@ jobs:
           app-name: 'reservation-system-mcp-db'
           slot-name: 'Production'
           package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-          
