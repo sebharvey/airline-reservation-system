@@ -50,6 +50,14 @@ All services expose the following standard endpoints relative to their base URL:
 
 ---
 
+## Developer tools
+
+| Service | How to run | Notes |
+|---------|-----------|-------|
+| Database MCP | `func start` in `src/API/Tools/ReservationSystem.Tools.DatabaseMcp` | Local only — Azure Functions host, listens on `http://localhost:7071`. Requires `ConnectionStrings:Database` in `local.settings.json`. Secured by Azure Function host key (`x-functions-key`). |
+
+---
+
 ## Configuration keys
 
 Each orchestration API reads downstream base URLs from Azure App Settings. The keys follow the pattern `<ServiceName>:BaseUrl`. If a key is absent the `BaseAddress` is `null` and the service client will throw on first use.

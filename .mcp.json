@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "apex-air-db": {
+      "type": "http",
+      "url": "http://localhost:7071/api/mcp",
+      "headers": {
+        "x-functions-key": "${APEX_AIR_DB_MCP_KEY}"
+      }
+    }
+  }
+}
