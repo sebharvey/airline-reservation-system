@@ -4,7 +4,7 @@
       "type": "http",
       "url": "http://localhost:7071/api/mcp",
       "headers": {
-        "x-functions-key": "YOUR_FUNCTION_KEY_HERE"
+        "x-functions-key": "${APEX_AIR_DB_MCP_KEY}"
       }
     }
   }
