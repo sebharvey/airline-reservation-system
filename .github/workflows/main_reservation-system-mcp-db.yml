@@ -7,14 +7,14 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src/API/Mcp/ReservationSystem.Mcp.Db/**'
+      - 'src/API/Tools/ReservationSystem.Tools.DatabaseMcp/**'
       - 'src/API/Shared/**'
       - 'src/API/ReservationSystem.sln'
       - '.github/workflows/main_reservation-system-mcp-db.yml'
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Mcp/ReservationSystem.Mcp.Db'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Tools/ReservationSystem.Tools.DatabaseMcp'
   DOTNET_VERSION: '8.0.x'
 
 jobs:
