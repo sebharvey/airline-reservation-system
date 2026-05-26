@@ -12,7 +12,6 @@ on:
       - 'src/API/Shared/**'
       - 'src/API/ReservationSystem.sln'
       - '.github/workflows/main_reservation-system-mcp-db.yml'
-  workflow_dispatch:
 
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'src/API/Tools/ReservationSystem.Tools.DatabaseMcp'
