@@ -2,10 +2,10 @@
 """
 PostToolUse dispatcher for Apex Air architectural guardrails.
 
-Hook 4 — Post-write build validation.
-After any .cs file is written, locates the owning .csproj by walking up
-the directory tree and runs `dotnet build` on that project only.
-Compiler errors are written to stdout so Claude can self-correct.
+Hook 4 — Post-write/edit build validation.
+After any .cs file is written or edited, locates the owning .csproj by walking
+up the directory tree and runs `dotnet build` on that project only.
+Compiler errors are returned as additionalContext so Claude can self-correct.
 """
 
 import json
@@ -27,6 +27,10 @@ def _audit(message: str) -> None:
     os.makedirs(os.path.dirname(AUDIT_LOG), exist_ok=True)
     with open(AUDIT_LOG, "a") as fh:
         fh.write(f"[{ts}] BUILD — {message}\n")
+
+
+def _feedback(context: str) -> None:
+    print(json.dumps({"additionalContext": context}))
 
 
 def _find_csproj(start_dir: str) -> str | None:
@@ -54,7 +58,7 @@ def _run_build(csproj_path: str) -> None:
     except subprocess.TimeoutExpired:
         msg = f"BUILD TIMEOUT: dotnet build for {csproj_path} exceeded {BUILD_TIMEOUT}s."
         _audit(msg)
-        print(msg)
+        _feedback(msg)
         return
     except FileNotFoundError:
         # dotnet SDK not installed in this environment — skip silently.
@@ -63,7 +67,7 @@ def _run_build(csproj_path: str) -> None:
     if result.returncode != 0:
         output = (result.stdout + result.stderr).strip()
         _audit(f"build failed: {csproj_path}")
-        print(
+        _feedback(
             f"BUILD FAILED for {csproj_path}:\n\n{output}\n\n"
             "Please review the compiler errors above and correct the file."
         )
@@ -83,7 +87,7 @@ def main() -> None:
     tool_name: str = payload.get("tool_name", "")
     tool_input: dict = payload.get("tool_input", {})
 
-    if tool_name != "Write":
+    if tool_name not in ("Write", "Edit"):
         sys.exit(0)
 
     file_path: str = tool_input.get("file_path", tool_input.get("path", ""))
