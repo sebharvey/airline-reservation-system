@@ -176,7 +176,7 @@ isFirstAdult(index: number): boolean {
       const surname = pick(lastNames);
       const gender = pick(genders);
       const dob = f.type === 'ADT' ? randomDob(16, 65) : randomDob(2, 15);
-      const base: PassengerForm = { ...f, givenName: given, surname, gender, dob };
+      const base: PassengerForm = { ...f, givenName: given, surname, gender, dob, wheelchairRequested: Math.random() < 0.3 };
       if (this.isFirstAdult(i)) {
         base.email = `${given.toLowerCase()}.${surname.toLowerCase()}@example.com`;
         base.phone = `+44 7700 9${randInt(10000, 99999)}`;
