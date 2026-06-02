@@ -11,6 +11,7 @@ interface EditForm {
   email: string | null;
   phone: string | null;
   docs: PassengerTravelDocument[];
+  isVip: boolean;
 }
 
 interface SsrEditForm {
@@ -49,7 +50,7 @@ export class OrderDetailComponent implements OnInit {
   copied = signal(false);
   copiedText = signal<string | null>(null);
   editingPaxId = signal<string | null>(null);
-  editForm = signal<EditForm>({ givenName: '', surname: '', dob: null, email: null, phone: null, docs: [] });
+  editForm = signal<EditForm>({ givenName: '', surname: '', dob: null, email: null, phone: null, docs: [], isVip: false });
   editSaving = signal(false);
   editError = signal('');
 
@@ -362,7 +363,12 @@ export class OrderDetailComponent implements OnInit {
       email: pax.contacts?.email ?? null,
       phone: pax.contacts?.phone ?? null,
       docs: pax.docs.map(d => ({ ...d })),
+      isVip: pax.isVip ?? false,
     });
+  }
+
+  toggleEditVip(): void {
+    this.editForm.update(f => ({ ...f, isVip: !f.isVip }));
   }
 
   cancelEdit(): void {
@@ -460,6 +466,7 @@ export class OrderDetailComponent implements OnInit {
       dob: form.dob,
       contacts: { email: form.email, phone: form.phone },
       docs: form.docs,
+      isVip: form.isVip || undefined,
     };
     const updatedPassengers = this.passengers().map(p =>
       p.passengerId === pax.passengerId ? updated : p

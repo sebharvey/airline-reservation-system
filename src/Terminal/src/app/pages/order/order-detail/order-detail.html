@@ -105,7 +105,12 @@
           <button class="pax-card-compact" (click)="openPaxModal(pax)">
             <div class="pax-avatar pax-avatar-sm">{{ pax.givenName[0] }}</div>
             <div class="pax-compact-info">
-              <span class="pax-compact-name">{{ pax | passengerName }}</span>
+              <span class="pax-compact-name">
+                {{ pax | passengerName }}
+                @if (pax.isVip) {
+                  <span class="vip-badge">VIP</span>
+                }
+              </span>
               <span class="pax-compact-type">{{ passengerTypeLabel(pax.type) }}</span>
             </div>
             <span class="pax-chevron">›</span>
@@ -911,6 +916,9 @@
         <div class="pax-avatar">{{ pax.givenName[0] }}</div>
         <span class="modal-title">{{ pax | passengerName }}</span>
         <span class="pax-type-badge">{{ passengerTypeLabel(pax.type) }}</span>
+        @if (pax.isVip) {
+          <span class="vip-badge">VIP</span>
+        }
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         @if (editingPaxId() !== pax.passengerId) {
@@ -944,6 +952,15 @@
               <label class="field-label">Phone</label>
               <input class="edit-input" type="tel" [value]="editForm().phone ?? ''" (input)="updateEditField('phone', $any($event.target).value)" />
             </div>
+          </div>
+          <div class="vip-toggle-row" style="margin-top:10px">
+            <label class="vip-toggle-label">
+              <input type="checkbox" class="vip-checkbox" [checked]="editForm().isVip" (change)="toggleEditVip()" />
+              <span class="vip-label-text">VIP passenger</span>
+              @if (editForm().isVip) {
+                <span class="vip-badge-inline">VIP</span>
+              }
+            </label>
           </div>
           @if (editError()) {
             <div class="edit-error" style="margin-top:10px">{{ editError() }}</div>

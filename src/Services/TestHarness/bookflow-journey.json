@@ -360,7 +360,8 @@
               "email": "__RAND_EMAIL__",
               "phone": "__RAND_PHONE__"
             },
-            "docs": []
+            "docs": [],
+            "isVip": true
           },
           {
             "__PAX_MIN__": 2,
