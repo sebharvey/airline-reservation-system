@@ -103,7 +103,7 @@ public sealed class RebookOrderHandler
             // Append an IROPS-REBOOK note recording the cancelled and replacement segment details
             var toFlightDescriptions = toFlights is { Count: > 0 }
                 ? string.Join(" / ", toFlights.Select(f =>
-                    $"{f["flightNumber"]?.GetValue<string>()} on {f["departureDate"]?.GetValue<string>()}"))
+                    $"{f?["flightNumber"]?.GetValue<string>()} on {f?["departureDate"]?.GetValue<string>()}"))
                 : "replacement flight";
 
             var noteMessage = $"Segment rebooked: {fromFlightNumber ?? "unknown"} on {fromDepartureDate ?? "unknown"} → {toFlightDescriptions}";
