@@ -406,6 +406,19 @@ dotnet test src/API/Tests/ReservationSystem.Tests.csproj \
 
 ---
 
+## Test maintenance obligation
+
+Any change to application code must include a test validation step before the commit is made:
+
+1. **Search for affected tests.** Grep `src/API/Tests/` for the class names, method names, and request/response field names touched by your change.
+2. **Fix broken tests in the same commit.** If a code change makes an existing test fail, update the test alongside the code — never commit code that breaks a passing test.
+3. **Add tests for new behaviour.** If your change introduces a new code path, return value, or business rule, add a unit or integration test that exercises it.
+4. **Run tests locally before pushing.** Use `dotnet test` to verify the full test suite is green before opening or updating a pull request. See the [Running the tests](#running-the-tests) section.
+
+This obligation applies to all changes: bug fixes, refactors, new features, and documentation-adjacent code changes alike.
+
+---
+
 ## Checklist for a new integration test suite
 
 Before committing a new test file, confirm all of the following:
