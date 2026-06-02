@@ -154,14 +154,15 @@ public sealed class NdcOrderCreateHandler
 
     private static object BuildPassengerNode(NdcOrderCreatePassenger p, int passengerIndex)
     {
-        // Convert NDC PaxID (e.g. "PAX1", "PAX-2") to a positive integer for Delivery MS compatibility.
-        var numericId = ParsePaxIdToInt(p.PaxId, passengerIndex);
+        // Normalise NDC PaxID (e.g. "PAX1", "PAX-2", "1") to the canonical "PAX-n" string,
+        // matching the format the Web app uses and expected by ConfirmOrderHandler.
+        var passengerId = $"PAX-{ParsePaxIdToInt(p.PaxId, passengerIndex)}";
 
         if (p.Email is not null || p.Phone is not null)
         {
             return new
             {
-                passengerId = numericId,
+                passengerId,
                 type        = p.Ptc,
                 givenName   = p.GivenName,
                 surname     = p.Surname,
@@ -174,7 +175,7 @@ public sealed class NdcOrderCreateHandler
 
         return new
         {
-            passengerId = numericId,
+            passengerId,
             type        = p.Ptc,
             givenName   = p.GivenName,
             surname     = p.Surname,
