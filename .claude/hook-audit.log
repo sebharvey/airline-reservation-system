@@ -11,3 +11,5 @@
 [2026-06-02T18:25:55.553919+00:00] BUILD — dotnet build triggered for /home/user/airline-reservation-system/src/API/Tests/ReservationSystem.Tests.Microservices.Order/ReservationSystem.Tests.Microservices.Order.csproj
 [2026-06-02T18:26:10.936517+00:00] BUILD — dotnet build triggered for /home/user/airline-reservation-system/src/API/Tests/ReservationSystem.Tests.Microservices.Schedule/ReservationSystem.Tests.Microservices.Schedule.csproj
 [2026-06-02T18:26:36.662606+00:00] BUILD — dotnet build triggered for /home/user/airline-reservation-system/src/API/Tests/ReservationSystem.Tests.Orchestration.Retail/ReservationSystem.Tests.Orchestration.Retail.csproj
+[2026-06-02T18:55:52.898166+00:00] BUILD — dotnet build triggered for /home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/ReservationSystem.Microservices.Order.csproj
+[2026-06-02T18:56:00.923979+00:00] BUILD — dotnet build triggered for /home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/ReservationSystem.Microservices.Order.csproj
