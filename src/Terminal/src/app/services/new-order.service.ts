@@ -98,6 +98,7 @@ export interface BasketPassenger {
   loyaltyNumber: string | null;
   contacts: { email: string | null; phone: string | null } | null;
   docs: unknown[];
+  isVip?: boolean;
 }
 
 export interface BasketFlight {

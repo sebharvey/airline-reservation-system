@@ -2217,3 +2217,40 @@ col.col-action     { width: 80px;  }
   word-break: normal;
   overflow-wrap: normal;
 }
+
+/* VIP badge */
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(210, 153, 34, 0.18);
+  color: #d29922;
+  border: 1px solid rgba(210, 153, 34, 0.35);
+  text-transform: uppercase;
+  margin-left: 5px;
+}
+
+.vip-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(210, 153, 34, 0.18);
+  color: #d29922;
+  border: 1px solid rgba(210, 153, 34, 0.35);
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+/* VIP toggle row */
+.vip-toggle-row { display: flex; align-items: center; }
+.vip-toggle-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.82rem; color: var(--text-muted); user-select: none; }
+.vip-checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: #d29922; }
+.vip-label-text { color: var(--text); }
