@@ -205,6 +205,64 @@
       </div>
     }
 
+    <!-- ── Dynamic pricing ───────────────────────────────────────────────── -->
+    @if (cabinPriceCharts().length > 0) {
+      <p class="section-title">Dynamic pricing — fare per pax vs seats sold</p>
+      <div class="price-charts-row">
+        @for (chart of cabinPriceCharts(); track chart.cabinCode) {
+          <div class="price-chart-card">
+
+            <div class="price-chart-header">
+              <span class="cabin-badge" [class]="cabinClass(chart.cabinCode)">{{ chart.cabinCode }}</span>
+              <span class="price-chart-title">{{ chart.cabinLabel }}</span>
+              <span class="price-increase-badge">+{{ chart.priceIncrease }}%</span>
+            </div>
+
+            <div class="price-chart-meta">
+              <span>{{ formatAmount(chart.minFare, chart.currency) }}</span>
+              <span class="muted">→</span>
+              <span class="fw-semibold">{{ formatAmount(chart.maxFare, chart.currency) }}</span>
+              <span class="muted">per pax &nbsp;·&nbsp; {{ chart.seatsSold }} sold</span>
+            </div>
+
+            <svg class="chart-svg" [attr.viewBox]="'0 0 280 160'" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient [attr.id]="'priceGrad' + chart.cabinCode" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   [attr.stop-color]="cabinColor(chart.cabinCode)" stop-opacity="0.28"/>
+                  <stop offset="100%" [attr.stop-color]="cabinColor(chart.cabinCode)" stop-opacity="0.02"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Grid lines -->
+              @for (t of chart.yTicks; track $index) {
+                <line class="chart-grid" [attr.x1]="chart.xMin" [attr.y1]="t.pos" [attr.x2]="chart.xMax" [attr.y2]="t.pos"/>
+              }
+
+              <!-- X axis baseline -->
+              <line class="chart-axis" [attr.x1]="chart.xMin" [attr.y1]="chart.xAxisY" [attr.x2]="chart.xMax" [attr.y2]="chart.xAxisY"/>
+
+              <!-- Area fill under staircase -->
+              <path [attr.d]="chart.areaPath" [attr.fill]="'url(#priceGrad' + chart.cabinCode + ')'"/>
+
+              <!-- Staircase price line -->
+              <path [attr.d]="chart.stepPath" fill="none" [attr.stroke]="cabinColor(chart.cabinCode)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+
+              <!-- Y axis labels -->
+              @for (t of chart.yTicks; track $index) {
+                <text class="chart-label chart-label-y" [attr.x]="chart.xMin - 4" [attr.y]="t.pos + 4">{{ t.label }}</text>
+              }
+
+              <!-- X axis labels (seats sold) -->
+              @for (t of chart.xTicks; track $index) {
+                <text class="chart-label chart-label-x" [attr.x]="t.pos" [attr.y]="chart.xAxisY + 14">{{ t.label }}</text>
+              }
+            </svg>
+
+          </div>
+        }
+      </div>
+    }
+
     <!-- ── Revenue summary ──────────────────────────────────────────────── -->
     <p class="section-title">Revenue summary</p>
     <div class="stats-strip">
