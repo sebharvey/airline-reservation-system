@@ -4,6 +4,7 @@ using Xunit;
 using ReservationSystem.Microservices.Order.Application.CreateOrder;
 using ReservationSystem.Microservices.Order.Domain.Entities;
 using ReservationSystem.Microservices.Order.Domain.Repositories;
+using OrderEntity = ReservationSystem.Microservices.Order.Domain.Entities.Order;
 
 namespace ReservationSystem.Tests.Microservices.Order.Application;
 
@@ -34,7 +35,7 @@ public sealed class CreateOrderHandlerTests
             .ReturnsAsync(basket);
 
         _orderRepository
-            .Setup(r => r.CreateAsync(It.IsAny<Domain.Entities.Order>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.CreateAsync(It.IsAny<OrderEntity>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -47,7 +48,7 @@ public sealed class CreateOrderHandlerTests
         Assert.Equal("Draft", result.OrderStatus);
 
         _orderRepository.Verify(
-            r => r.CreateAsync(It.IsAny<Domain.Entities.Order>(), It.IsAny<CancellationToken>()),
+            r => r.CreateAsync(It.IsAny<OrderEntity>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -63,7 +64,7 @@ public sealed class CreateOrderHandlerTests
             .ReturnsAsync((Basket?)null);
 
         _orderRepository
-            .Setup(r => r.CreateAsync(It.IsAny<Domain.Entities.Order>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.CreateAsync(It.IsAny<OrderEntity>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         // Act
