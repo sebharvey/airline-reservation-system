@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Xunit;
 using ReservationSystem.Microservices.Schedule.Application.ImportSchedules;
 using ReservationSystem.Microservices.Schedule.Domain.Entities;
 using ReservationSystem.Microservices.Schedule.Domain.Repositories;
