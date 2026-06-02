@@ -975,6 +975,12 @@
       } @else {
         <div class="modal-section">
           <div class="field-grid">
+            @if (pax.isVip) {
+              <div class="field-row">
+                <span class="field-label">Status</span>
+                <span class="field-value"><span class="vip-badge" style="margin-left:0">VIP</span></span>
+              </div>
+            }
             <div class="field-row">
               <span class="field-label">Date of birth</span>
               <span class="field-value">{{ formatDate(pax.dob) }}</span>
