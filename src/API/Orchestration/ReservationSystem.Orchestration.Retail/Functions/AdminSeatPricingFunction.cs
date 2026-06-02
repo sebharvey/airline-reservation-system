@@ -83,7 +83,7 @@ public sealed class AdminSeatPricingFunction
         var (request, error) = await req.TryDeserializeBodyAsync<CreateSeatPricingRequestDto>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        var (result, status, errorBody) = await _seatServiceClient.CreateSeatPricingAsync(request, cancellationToken);
+        var (result, status, errorBody) = await _seatServiceClient.CreateSeatPricingAsync(request!, cancellationToken);
 
         if (status == HttpStatusCode.Conflict)
             return await RelayErrorAsync(req, HttpStatusCode.Conflict, errorBody);
@@ -117,7 +117,7 @@ public sealed class AdminSeatPricingFunction
         var (request, error) = await req.TryDeserializeBodyAsync<UpdateSeatPricingRequestDto>(_logger, cancellationToken);
         if (error is not null) return error;
 
-        var (result, status, errorBody) = await _seatServiceClient.UpdateSeatPricingAsync(seatPricingId, request, cancellationToken);
+        var (result, status, errorBody) = await _seatServiceClient.UpdateSeatPricingAsync(seatPricingId, request!, cancellationToken);
 
         if (status == HttpStatusCode.NotFound)
             return req.CreateResponse(HttpStatusCode.NotFound);
