@@ -32,6 +32,7 @@ interface PassengerForm {
   email: string;
   phone: string;
   loyaltyNumber: string;
+  isVip: boolean;
 }
 
 interface FlightGroup {
@@ -377,6 +378,14 @@ export class NewOrderComponent {
     });
   }
 
+  togglePassengerVip(index: number): void {
+    this.passengerForms.update(forms => {
+      const updated = [...forms];
+      updated[index] = { ...updated[index], isVip: !updated[index].isVip };
+      return updated;
+    });
+  }
+
   async savePassengers(): Promise<void> {
     if (!this.passengersValid()) {
       this.error.set('Please fill in first and last name for all passengers.');
@@ -398,6 +407,7 @@ export class NewOrderComponent {
           ? { email: f.email.trim() || null, phone: f.phone.trim() || null }
           : null,
       docs: [],
+      isVip: f.isVip || undefined,
     }));
 
     this.loading.set(true);
@@ -1013,6 +1023,7 @@ export class NewOrderComponent {
         email: '',
         phone: '',
         loyaltyNumber: '',
+        isVip: false,
       });
 
     for (let i = 0; i < this.adults(); i++) addPax('ADT');

@@ -37,6 +37,7 @@ export interface OrderPassenger {
   contacts: PassengerContacts | null;
   docs: PassengerTravelDocument[];
   loyaltyNumber: string | null;
+  isVip?: boolean;
 }
 
 export interface FlightSegment {
