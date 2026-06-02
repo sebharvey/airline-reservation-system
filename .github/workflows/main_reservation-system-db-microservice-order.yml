@@ -9,6 +9,7 @@ on:
     branches: [ main ]
     paths:
       - 'src/API/Microservices/ReservationSystem.Microservices.Order/**'
+      - 'src/API/Tests/ReservationSystem.Tests.Microservices.Order/**'
       - 'src/API/Shared/**'
       - 'src/API/ReservationSystem.sln'
       - '.github/workflows/main_reservation-system-db-microservice-order.yml'
@@ -33,14 +34,17 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: 'Resolve Project Dependencies Using Dotnet'
+      - name: 'Build and test'
         shell: bash
         run: |
-          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          dotnet build --configuration Release
-          dotnet test --no-build --configuration Release
-          dotnet publish --no-build --configuration Release --output ./output
-          popd
+          dotnet build 'src/API/Microservices/ReservationSystem.Microservices.Order/ReservationSystem.Microservices.Order.csproj' --configuration Release
+          dotnet build 'src/API/Tests/ReservationSystem.Tests.Microservices.Order/ReservationSystem.Tests.Microservices.Order.csproj' --configuration Release
+          dotnet test 'src/API/Tests/ReservationSystem.Tests.Microservices.Order/ReservationSystem.Tests.Microservices.Order.csproj' --no-build --configuration Release
+
+      - name: 'Publish'
+        shell: bash
+        run: |
+          dotnet publish './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}' --no-build --configuration Release --output './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
       - name: 'Check for vulnerable NuGet packages'
         shell: bash
