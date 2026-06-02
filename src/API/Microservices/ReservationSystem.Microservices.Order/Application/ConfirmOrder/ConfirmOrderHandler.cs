@@ -188,15 +188,19 @@ public sealed class ConfirmOrderHandler
             flightOrderItems.Add(item);
         }
 
-        // Clone passengers and add integer paxId alongside the legacy passengerId string.
+        // Clone passengers and ensure paxId (integer) is present.
+        // passengerId may be stored as an integer (new format) or a "PAX-n" string (legacy).
         var passengersWithPaxId = new JsonArray();
         foreach (var pax in passengersNode)
         {
             if (pax is not JsonObject paxObj) { passengersWithPaxId.Add(pax?.DeepClone()); continue; }
             var cloned = paxObj.DeepClone().AsObject();
-            if (cloned["passengerId"]?.GetValue<string>() is { } pid)
+            var pidNode = cloned["passengerId"];
+            if (pidNode is not null)
             {
-                var paxId = ExtractPaxId(pid);
+                int? paxId = pidNode.GetValueKind() == JsonValueKind.Number
+                    ? pidNode.GetValue<int>()
+                    : ExtractPaxId(pidNode.GetValue<string>());
                 if (paxId.HasValue) cloned["paxId"] = paxId.Value;
             }
             passengersWithPaxId.Add(cloned);
@@ -246,9 +250,12 @@ public sealed class ConfirmOrderHandler
                 // This ensures GetAdminOrderDetailHandler can always read a tax value for paid seats.
                 if (seatItem["tax"] is null)
                     seatItem["tax"] = JsonValue.Create(0m);
-                if (seatItem["passengerId"]?.GetValue<string>() is { } seatPid)
+                var seatPidNode = seatItem["passengerId"];
+                if (seatPidNode is not null)
                 {
-                    var seatPaxId = ExtractPaxId(seatPid);
+                    int? seatPaxId = seatPidNode.GetValueKind() == JsonValueKind.Number
+                        ? seatPidNode.GetValue<int>()
+                        : ExtractPaxId(seatPidNode.GetValue<string>());
                     if (seatPaxId.HasValue) seatItem["paxId"] = seatPaxId.Value;
                 }
                 flightOrderItems.Add(seatItem);
@@ -259,12 +266,12 @@ public sealed class ConfirmOrderHandler
             foreach (var bag in bags)
             {
                 if (bag is not JsonObject bagObj) continue;
-                var bagPassengerId = bagObj["passengerId"]?.GetValue<string>();
+                var bagPidNode = bagObj["passengerId"];
                 var bagItem = new JsonObject
                 {
                     ["productType"]    = "BAG",
                     ["status"]         = itemStatus,
-                    ["passengerId"]    = bagPassengerId,
+                    ["passengerId"]    = bagPidNode?.DeepClone(),
                     ["segmentId"]      = bagObj["segmentId"]?.GetValue<string>(),
                     ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
                     ["bagOfferId"]     = bagObj["bagOfferId"]?.DeepClone(),
@@ -272,7 +279,11 @@ public sealed class ConfirmOrderHandler
                     ["tax"]            = bagObj["tax"]?.DeepClone(),
                     ["currency"]       = bagObj["currency"]?.DeepClone(),
                 };
-                var bagPaxId = ExtractPaxId(bagPassengerId);
+                int? bagPaxId = bagPidNode is not null
+                    ? bagPidNode.GetValueKind() == JsonValueKind.Number
+                        ? bagPidNode.GetValue<int>()
+                        : ExtractPaxId(bagPidNode.GetValue<string>())
+                    : null;
                 if (bagPaxId.HasValue) bagItem["paxId"] = bagPaxId.Value;
                 flightOrderItems.Add(bagItem);
             }
@@ -300,9 +311,12 @@ public sealed class ConfirmOrderHandler
                 var productItem = new JsonObject { ["productType"] = "PRODUCT", ["status"] = itemStatus };
                 foreach (var prop in productObj)
                     productItem[prop.Key] = prop.Value?.DeepClone();
-                if (productItem["passengerId"]?.GetValue<string>() is { } productPid)
+                var productPidNode = productItem["passengerId"];
+                if (productPidNode is not null)
                 {
-                    var productPaxId = ExtractPaxId(productPid);
+                    int? productPaxId = productPidNode.GetValueKind() == JsonValueKind.Number
+                        ? productPidNode.GetValue<int>()
+                        : ExtractPaxId(productPidNode.GetValue<string>());
                     if (productPaxId.HasValue) productItem["paxId"] = productPaxId.Value;
                 }
                 flightOrderItems.Add(productItem);
