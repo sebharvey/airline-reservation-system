@@ -80,6 +80,11 @@ public sealed class UpdateOrderPassengersHandler
                 if (update["docs"] is JsonNode docs)
                     pax["docs"] = docs.DeepClone();
 
+                if (update["isVip"] is JsonNode isVip)
+                    pax["isVip"] = isVip.DeepClone();
+                else
+                    pax.Remove("isVip");
+
                 break;
             }
         }
