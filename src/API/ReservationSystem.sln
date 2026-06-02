@@ -34,6 +34,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Microserv
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Tools.DatabaseMcp", "Tools/ReservationSystem.Tools.DatabaseMcp/ReservationSystem.Tools.DatabaseMcp.csproj", "{D5E6F7A8-B9C0-1234-5678-90ABCDEF0123}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Tests.Microservices.Offer", "Tests/ReservationSystem.Tests.Microservices.Offer/ReservationSystem.Tests.Microservices.Offer.csproj", "{11111111-1111-1111-1111-000000000001}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Tests.Microservices.Order", "Tests/ReservationSystem.Tests.Microservices.Order/ReservationSystem.Tests.Microservices.Order.csproj", "{11111111-1111-1111-1111-000000000002}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Tests.Microservices.Schedule", "Tests/ReservationSystem.Tests.Microservices.Schedule/ReservationSystem.Tests.Microservices.Schedule.csproj", "{11111111-1111-1111-1111-000000000003}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservationSystem.Tests.Orchestration.Retail", "Tests/ReservationSystem.Tests.Orchestration.Retail/ReservationSystem.Tests.Orchestration.Retail.csproj", "{11111111-1111-1111-1111-000000000004}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -104,6 +112,22 @@ Global
 		{D5E6F7A8-B9C0-1234-5678-90ABCDEF0123}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D5E6F7A8-B9C0-1234-5678-90ABCDEF0123}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D5E6F7A8-B9C0-1234-5678-90ABCDEF0123}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11111111-1111-1111-1111-000000000001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11111111-1111-1111-1111-000000000001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11111111-1111-1111-1111-000000000001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11111111-1111-1111-1111-000000000001}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11111111-1111-1111-1111-000000000002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11111111-1111-1111-1111-000000000002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11111111-1111-1111-1111-000000000002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11111111-1111-1111-1111-000000000002}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11111111-1111-1111-1111-000000000003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11111111-1111-1111-1111-000000000003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11111111-1111-1111-1111-000000000003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11111111-1111-1111-1111-000000000003}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11111111-1111-1111-1111-000000000004}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11111111-1111-1111-1111-000000000004}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11111111-1111-1111-1111-000000000004}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11111111-1111-1111-1111-000000000004}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
