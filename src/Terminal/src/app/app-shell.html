@@ -99,6 +99,7 @@
       <div class="debug-modal-header">
         <span class="debug-modal-title">🔍 API Debug <span class="debug-modal-count">{{ httpDebug.entries().length }} request{{ httpDebug.entries().length === 1 ? '' : 's' }}</span></span>
         <div class="debug-modal-actions">
+          <button class="debug-action-btn" (click)="copyAllHttpLog()" [disabled]="httpDebug.entries().length === 0" title="Copy all requests to clipboard">{{ httpDebugAllCopied() ? '✓ Copied' : 'Copy all' }}</button>
           <button class="debug-action-btn" (click)="clearHttpLog()" title="Clear log">Clear</button>
           <button class="debug-modal-close" (click)="closeHttpDebug()" aria-label="Close">✕</button>
         </div>

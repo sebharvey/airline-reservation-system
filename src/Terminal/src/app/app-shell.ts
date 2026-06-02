@@ -36,6 +36,7 @@ export class AppShell {
   readonly httpDebugOpen = signal(false);
   readonly httpDebugSelectedId = signal<number | null>(null);
   readonly httpDebugCopied = signal(false);
+  readonly httpDebugAllCopied = signal(false);
   readonly httpDebugTab = signal<'request' | 'response'>('request');
   readonly httpDebugSelected = computed<HttpLogEntry | null>(() => {
     const id = this.httpDebugSelectedId();
@@ -148,6 +149,30 @@ export class AppShell {
     navigator.clipboard.writeText(JSON.stringify(payload, null, 2)).then(() => {
       this.httpDebugCopied.set(true);
       setTimeout(() => this.httpDebugCopied.set(false), 2000);
+    });
+  }
+
+  copyAllHttpLog(): void {
+    const entries = this.httpDebug.entries();
+    if (entries.length === 0) return;
+    const payload = entries.map(entry => ({
+      timestamp: entry.timestamp,
+      method: entry.method,
+      url: entry.url,
+      request: {
+        headers: entry.requestHeaders,
+        body: entry.requestBody
+      },
+      response: {
+        status: entry.responseStatus,
+        headers: entry.responseHeaders,
+        body: entry.responseBody
+      },
+      durationMs: entry.durationMs
+    }));
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2)).then(() => {
+      this.httpDebugAllCopied.set(true);
+      setTimeout(() => this.httpDebugAllCopied.set(false), 2000);
     });
   }
 
