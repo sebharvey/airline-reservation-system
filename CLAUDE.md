@@ -114,6 +114,7 @@ Apex Air is a Modern Airline Retailing platform implementing IATA ONE Order and 
 10. **URI paths use kebab-case; query parameters use camelCase.**
 11. **API versioning is URI-path-only:** `/v1/`, `/v2/`.
 12. **`createdAt`/`updatedAt` are database-generated** — never written by application code, never accepted in request bodies.
+13. **Tests must be validated and updated with every code change.** Before committing any change to application code, search `src/API/Tests/` for tests that exercise the modified code path. If existing tests would be broken by the change, fix them in the same commit. If the change introduces new behaviour, add tests for it. Never leave tests in a failing state.
 
 ---
 
