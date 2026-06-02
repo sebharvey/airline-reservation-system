@@ -108,7 +108,7 @@ public sealed class SearchFlightsHandlerTests
             Segments = [new SegmentItemDto { Origin = "LHR", Destination = "CDG", Flights = [] }]
         };
 
-        mockHttp
+        var searchMock = mockHttp
             .When(HttpMethod.Post, "*/api/v1/search")
             .Respond(HttpStatusCode.OK, JsonContent.Create(emptyResult, options: JsonOptions));
 
@@ -124,7 +124,7 @@ public sealed class SearchFlightsHandlerTests
         Assert.NotNull(result);
         Assert.Empty(result.Itineraries);
         // Only one search call should have been made (no connecting legs attempted)
-        Assert.Equal(1, mockHttp.GetMatchCount(mockHttp.When(HttpMethod.Post, "*/api/v1/search")));
+        Assert.Equal(1, mockHttp.GetMatchCount(searchMock));
     }
 
     /// <summary>
