@@ -541,7 +541,60 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinning { animation: spin 0.7s linear infinite; }
 
+/* ── Dynamic pricing charts ───────────────────────────────────────────────── */
+.price-charts-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.price-chart-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px 10px;
+  flex: 1 1 240px;
+  max-width: 340px;
+  overflow: hidden;
+}
+
+.price-chart-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.price-chart-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.price-increase-badge {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #3fb950;
+  background: rgba(63, 185, 80, 0.12);
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.price-chart-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--text);
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 900px) {
   .cabin-chart-card { max-width: 100%; }
   .charts-row { grid-template-columns: 1fr; }
+  .price-chart-card { max-width: 100%; }
 }

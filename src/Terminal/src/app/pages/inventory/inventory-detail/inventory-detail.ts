@@ -70,6 +70,23 @@ interface PerfSummary {
   currency: string;
 }
 
+interface CabinPriceChartData {
+  cabinCode: string;
+  cabinLabel: string;
+  currency: string;
+  seatsSold: number;
+  minFare: number;
+  maxFare: number;
+  priceIncrease: number;
+  stepPath: string;
+  areaPath: string;
+  yTicks: ChartTick[];
+  xTicks: ChartTick[];
+  xAxisY: number;
+  xMin: number;
+  xMax: number;
+}
+
 @Component({
   selector: 'app-inventory-detail',
   templateUrl: './inventory-detail.html',
@@ -96,8 +113,9 @@ export class InventoryDetailComponent implements OnInit {
   performanceError = signal('');
 
   // ── Chart geometry constants ───────────────────────────────────────────────
-  readonly #REV  = { VW: 600, VH: 200, L: 56, R: 20, T: 15, B: 45 };
-  readonly #ORD  = { VW: 600, VH: 180, L: 40, R: 20, T: 15, B: 40 };
+  readonly #REV   = { VW: 600, VH: 200, L: 56, R: 20, T: 15, B: 45 };
+  readonly #ORD   = { VW: 600, VH: 180, L: 40, R: 20, T: 15, B: 40 };
+  readonly #PRICE = { VW: 280, VH: 160, L: 56, R: 12, T: 12, B: 36 };
 
   // ── Derived order data ─────────────────────────────────────────────────────
   cabinRows = computed(() => {
@@ -271,6 +289,93 @@ export class InventoryDetailComponent implements OnInit {
     return { orderBars, paxBars, yTicks, xLabels, xAxisY: bottom, xMin: L, xMax: L + PW };
   });
 
+  // ── Dynamic pricing chart ─────────────────────────────────────────────────
+  cabinPriceCharts = computed<CabinPriceChartData[]>(() => {
+    const d = this.data();
+    if (!d?.orders?.length) return [];
+
+    const { VW, VH, L, R, T, B } = this.#PRICE;
+    const PW = VW - L - R;
+    const PH = VH - T - B;
+    const btm = T + PH;
+
+    const labels: Record<string, string> = {
+      F: 'First', J: 'Business', W: 'Premium Economy', Y: 'Economy',
+    };
+    const currency = d.orders.find(o => o.currency)?.currency ?? 'GBP';
+
+    const byGabin = new Map<string, { fare: number; pax: number }[]>();
+    for (const row of d.orders) {
+      if (!row.baseFareAmount || row.paxCount <= 0) continue;
+      const key = row.cabinCode.toUpperCase();
+      const perPaxFare = row.baseFareAmount / row.paxCount;
+      const arr = byGabin.get(key) ?? [];
+      arr.push({ fare: perPaxFare, pax: row.paxCount });
+      byGabin.set(key, arr);
+    }
+
+    const charts: CabinPriceChartData[] = [];
+
+    for (const [code, label] of Object.entries(labels)) {
+      const entries = byGabin.get(code);
+      if (!entries || entries.length < 2) continue;
+
+      const sorted = [...entries].sort((a, b) => a.fare - b.fare);
+      const totalSold = sorted.reduce((s, e) => s + e.pax, 0);
+      const fares = sorted.map(e => e.fare);
+      const minFare = Math.min(...fares);
+      const maxFare = Math.max(...fares);
+      if (maxFare === minFare) continue;
+
+      const px = (seats: number) => L + (seats / Math.max(totalSold, 1)) * PW;
+      const py = (fare: number)  => T + (1 - (fare - minFare) / (maxFare - minFare)) * PH;
+
+      let cumSeats = 0;
+      const pathParts: string[] = [];
+      for (let i = 0; i < sorted.length; i++) {
+        const { fare, pax } = sorted[i];
+        if (i === 0) {
+          pathParts.push(`M ${px(0).toFixed(1)},${py(fare).toFixed(1)}`);
+        } else {
+          pathParts.push(`V ${py(fare).toFixed(1)}`);
+        }
+        cumSeats += pax;
+        pathParts.push(`H ${px(cumSeats).toFixed(1)}`);
+      }
+      const stepPath = pathParts.join(' ');
+      const areaPath = `${stepPath} V ${btm.toFixed(1)} H ${px(0).toFixed(1)} Z`;
+
+      const yTicks: ChartTick[] = [minFare, (minFare + maxFare) / 2, maxFare].map(v => ({
+        pos:   py(v),
+        label: this.#shortAmount(v, currency),
+      }));
+
+      const xTicks: ChartTick[] = [0, Math.round(totalSold / 2), totalSold].map(v => ({
+        pos:   px(v),
+        label: v.toString(),
+      }));
+
+      charts.push({
+        cabinCode: code,
+        cabinLabel: label,
+        currency,
+        seatsSold: totalSold,
+        minFare,
+        maxFare,
+        priceIncrease: Math.round(((maxFare - minFare) / minFare) * 100),
+        stepPath,
+        areaPath,
+        yTicks,
+        xTicks,
+        xAxisY: btm,
+        xMin: L,
+        xMax: L + PW,
+      });
+    }
+
+    return charts;
+  });
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   async ngOnInit(): Promise<void> {
     const inventoryId = this.#route.snapshot.paramMap.get('inventoryId') ?? '';
@@ -333,6 +438,15 @@ export class InventoryDetailComponent implements OnInit {
     if (status === 'Active') return 'badge-active';
     if (status === 'Ticketing Closed') return 'badge-warning';
     return 'badge-inactive';
+  }
+
+  cabinColor(code: string): string {
+    switch (code) {
+      case 'F': return '#d29922';
+      case 'J': return '#6366f1';
+      case 'W': return '#58a6ff';
+      default:  return '#3fb950';
+    }
   }
 
   cabinClass(code: string): string {
