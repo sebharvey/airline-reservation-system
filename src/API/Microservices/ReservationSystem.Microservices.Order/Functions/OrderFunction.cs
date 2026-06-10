@@ -704,7 +704,7 @@ public sealed class OrderFunction
     [OpenApiOperation(operationId: "CheckIn", tags: new[] { "Orders" }, Summary = "Write check-in status onto the orderItems for a departure airport")]
     [OpenApiParameter(name: "bookingRef", In = ParameterLocation.Path, Required = true, Type = typeof(string), Description = "The booking reference")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(object), Required = true,
-        Description = "{ departureAirport, checkedInAt, passengers: [{ passengerId, ticketNumber, status, message }] }")]
+        Description = "{ departureAirport, checkedInAt, passengers: [{ paxId, ticketNumber, status, message }] }")]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(CheckInResponse), Description = "OK")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.NotFound, Description = "Not Found")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = "Bad Request")]
@@ -728,12 +728,11 @@ public sealed class OrderFunction
         var passengers = new List<UpdateOrderCheckInPassenger>();
         foreach (var p in paxEl.EnumerateArray())
         {
-            var passengerId = p.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() ?? "" : "";
             var paxId = p.TryGetProperty("paxId", out var paxIdEl) && paxIdEl.ValueKind == JsonValueKind.Number ? paxIdEl.GetInt32() : 0;
             var ticketNumber = p.TryGetProperty("ticketNumber", out var tnEl) ? tnEl.GetString() ?? "" : "";
             var status = p.TryGetProperty("status", out var stEl) ? stEl.GetString() ?? "CheckedIn" : "CheckedIn";
             var message = p.TryGetProperty("message", out var msgEl) ? msgEl.GetString() ?? "" : "";
-            passengers.Add(new UpdateOrderCheckInPassenger(passengerId, paxId, ticketNumber, status, message));
+            passengers.Add(new UpdateOrderCheckInPassenger(paxId, ticketNumber, status, message));
         }
 
         List<UpdateOrderCheckInNote>? additionalNotes = null;
