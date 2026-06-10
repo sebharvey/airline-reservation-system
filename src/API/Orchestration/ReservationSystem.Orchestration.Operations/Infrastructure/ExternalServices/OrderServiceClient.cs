@@ -333,6 +333,9 @@ public sealed class OrderCheckInPassenger
     [JsonPropertyName("passengerId")]
     public string PassengerId { get; init; } = string.Empty;
 
+    [JsonPropertyName("paxId")]
+    public int PaxId { get; init; }
+
     [JsonPropertyName("ticketNumber")]
     public string TicketNumber { get; init; } = string.Empty;
 

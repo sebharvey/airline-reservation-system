@@ -91,13 +91,13 @@ public sealed class UpdateOrderCheckInHandler
         var passengersDataList = orderJson["dataLists"]?["passengers"] as JsonArray;
         foreach (var pax in command.Passengers)
         {
-            string paxLabel = pax.PassengerId;
+            string paxLabel = $"PAX-{pax.PaxId}";
             if (passengersDataList != null)
             {
                 foreach (var node in passengersDataList)
                 {
                     if (node is JsonObject paxNode &&
-                        string.Equals(paxNode["passengerId"]?.GetValue<string>(), pax.PassengerId, StringComparison.Ordinal))
+                        paxNode["paxId"]?.GetValue<int>() == pax.PaxId)
                     {
                         var given = paxNode["givenName"]?.GetValue<string>() ?? "";
                         var surname = paxNode["surname"]?.GetValue<string>() ?? "";

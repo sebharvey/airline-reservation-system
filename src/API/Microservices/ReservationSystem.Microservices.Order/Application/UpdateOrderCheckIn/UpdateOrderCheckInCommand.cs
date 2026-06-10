@@ -2,6 +2,7 @@ namespace ReservationSystem.Microservices.Order.Application.UpdateOrderCheckIn;
 
 public sealed record UpdateOrderCheckInPassenger(
     string PassengerId,
+    int PaxId,
     string TicketNumber,
     string Status,
     string Message);
