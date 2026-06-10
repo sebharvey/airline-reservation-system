@@ -64,7 +64,7 @@ public sealed class OciCheckInHandler
 
         var paxIdByTicket = tickets.ToDictionary(
             t => t.TicketNumber,
-            t => t.PassengerId,
+            t => t.PaxId,
             StringComparer.OrdinalIgnoreCase);
 
         if (tickets.Count == 0)
@@ -77,7 +77,7 @@ public sealed class OciCheckInHandler
         var watchlistMatches = await _watchlistService.CheckAsync(
             tickets.Select(t =>
             {
-                paxIdToInfo.TryGetValue(t.PassengerId, out var info);
+                paxIdToInfo.TryGetValue(t.PaxId, out var info);
                 return (t.PassengerId, t.TicketNumber, t.GivenName, t.Surname, (string?)t.DocNumber, (string?)info?.Dob);
             }),
             ct);
@@ -197,7 +197,7 @@ public sealed class OciCheckInHandler
             return new OrderCheckInPassenger
             {
                 PassengerId  = t.PassengerId,
-                PaxId        = CheckInHelper.ExtractPaxIdInt(t.PassengerId) ?? 0,
+                PaxId        = t.PaxId,
                 TicketNumber = t.TicketNumber,
                 Status       = status,
                 Message      = message
@@ -206,8 +206,8 @@ public sealed class OciCheckInHandler
     }
 
     private static List<OciCheckInTicket> BuildCheckInTickets(
-        Dictionary<string, string> ticketToPaxId,
-        Dictionary<string, PaxInfo> paxIdToInfo)
+        Dictionary<string, int> ticketToPaxId,
+        Dictionary<int, PaxInfo> paxIdToInfo)
     {
         return ticketToPaxId.Select(kvp =>
         {
@@ -215,7 +215,8 @@ public sealed class OciCheckInHandler
             return new OciCheckInTicket
             {
                 TicketNumber      = kvp.Key,
-                PassengerId       = kvp.Value,
+                PassengerId       = $"PAX-{kvp.Value}",
+                PaxId             = kvp.Value,
                 GivenName         = info?.GivenName ?? "",
                 Surname           = info?.Surname ?? "",
                 DocNationality    = info?.DocNationality,

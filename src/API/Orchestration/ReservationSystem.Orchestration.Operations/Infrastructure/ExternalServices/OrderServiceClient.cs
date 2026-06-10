@@ -315,6 +315,7 @@ public sealed class OrderServiceClient
 public sealed class PassengerDocUpdate
 {
     public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
     public IReadOnlyList<PassengerDoc> Docs { get; init; } = [];
 }
 
