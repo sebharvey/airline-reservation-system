@@ -53,10 +53,20 @@ public sealed class UpdateOrderBagsHandler
             {
                 if (bag is not JsonObject bagObj) continue;
                 var bagPassengerId = bagObj["passengerId"]?.GetValue<string>();
+
+                // Prefer the integer paxId; fall back to parsing the legacy passengerId string
+                int? paxId = null;
+                if (bagObj["paxId"] is JsonValue paxIdVal && paxIdVal.TryGetValue<int>(out var directPaxId))
+                    paxId = directPaxId;
+                else if (bagPassengerId is not null &&
+                         bagPassengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
+                         int.TryParse(bagPassengerId[4..], out var parsedPaxId))
+                    paxId = parsedPaxId;
+
                 var bagItem = new JsonObject
                 {
                     ["productType"]    = "BAG",
-                    ["passengerId"]    = bagPassengerId,
+                    ["passengerId"]    = paxId.HasValue ? $"PAX-{paxId.Value}" : bagPassengerId,
                     ["segmentId"]      = bagObj["segmentId"]?.GetValue<string>(),
                     ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
                     ["bagOfferId"]     = bagObj["bagOfferId"]?.DeepClone(),
@@ -65,10 +75,8 @@ public sealed class UpdateOrderBagsHandler
                     ["currency"]       = bagObj["currency"]?.DeepClone(),
                     ["paymentReference"] = bagObj["paymentReference"]?.GetValue<string>(),
                 };
-                if (bagPassengerId is not null &&
-                    bagPassengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
-                    int.TryParse(bagPassengerId[4..], out var paxId))
-                    bagItem["paxId"] = paxId;
+                if (paxId.HasValue)
+                    bagItem["paxId"] = paxId.Value;
                 newBagItems.Add(bagItem);
             }
         }
