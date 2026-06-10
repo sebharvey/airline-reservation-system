@@ -124,7 +124,8 @@ public static class CheckInHelper
         }).ToList();
 
     /// <summary>
-    /// Parses order JSON to build passengerId→eTicketNumber lookup (reverse of ParseOrderLookups).
+    /// Parses order JSON to build paxId→eTicketNumber lookup (reverse of ParseOrderLookups).
+    /// Prefers the integer paxId field; falls back to the legacy passengerId string for older order data.
     /// Used by the OLCI retrieve step to map passengers to their ticket numbers.
     /// </summary>
     public static Dictionary<string, string> ParsePaxToTicketMap(JsonElement? orderData)
@@ -134,10 +135,15 @@ public static class CheckInHelper
         if (!el.TryGetProperty("eTickets", out var eTickets) || eTickets.ValueKind != JsonValueKind.Array) return map;
         foreach (var et in eTickets.EnumerateArray())
         {
-            var paxId     = et.TryGetProperty("passengerId",   out var pEl) ? pEl.GetString() : null;
+            string? key;
+            if (et.TryGetProperty("paxId", out var piEl) && piEl.ValueKind == JsonValueKind.Number)
+                key = $"PAX-{piEl.GetInt32()}";
+            else
+                key = et.TryGetProperty("passengerId", out var pEl) ? pEl.GetString() : null;
+
             var ticketNum = et.TryGetProperty("eTicketNumber", out var tEl) ? tEl.GetString() : null;
-            if (paxId is not null && ticketNum is not null)
-                map[paxId] = ticketNum;
+            if (key is not null && ticketNum is not null)
+                map[key] = ticketNum;
         }
         return map;
     }
