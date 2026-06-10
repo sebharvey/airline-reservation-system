@@ -94,6 +94,9 @@ public sealed class UpdateOrderPassengersHandlerTests
         _orderRepository
             .Setup(r => r.GetByBookingReferenceAsync("ABC123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(order);
+        _orderRepository
+            .Setup(r => r.UpdateAsync(It.IsAny<OrderEntity>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var passengersData = """
             {
@@ -112,8 +115,12 @@ public sealed class UpdateOrderPassengersHandlerTests
 
         var result = await _handler.HandleAsync(command);
 
-        // Handler returns the original order unchanged; no UpdateAsync call made
-        Assert.Equal(order, result);
-        _orderRepository.Verify(r => r.UpdateAsync(It.IsAny<OrderEntity>(), It.IsAny<CancellationToken>()), Times.Never);
+        // paxId absent from payload → passenger skipped; docs remain empty.
+        // Handler still reconstitutes and persists (no early-exit for no-op merges).
+        Assert.NotNull(result);
+        var doc = JsonDocument.Parse(result.OrderData);
+        var pax = doc.RootElement.GetProperty("dataLists").GetProperty("passengers")[0];
+        Assert.Equal(0, pax.GetProperty("docs").GetArrayLength());
+        _orderRepository.Verify(r => r.UpdateAsync(It.IsAny<OrderEntity>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
