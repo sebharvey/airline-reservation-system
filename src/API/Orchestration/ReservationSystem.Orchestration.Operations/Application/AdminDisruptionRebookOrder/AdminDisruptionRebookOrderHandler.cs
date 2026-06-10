@@ -193,7 +193,7 @@ public sealed class AdminDisruptionRebookOrderHandler
             CancelledETicketNumbers = ticketsToVoid,
             Passengers = order.Passengers.Select(pax => new ReissuePassengerDto
             {
-                PassengerId = pax.PassengerId,
+                PaxId = pax.PaxId,
                 GivenName = pax.GivenName,
                 Surname = pax.Surname,
                 PassengerTypeCode = pax.PassengerType
@@ -234,13 +234,13 @@ public sealed class AdminDisruptionRebookOrderHandler
         {
             var passengers = order.Passengers.Select(pax =>
             {
-                var newTicket = reissueResponse.Tickets.FirstOrDefault(t => t.PassengerId == pax.PassengerId);
+                var newTicket = reissueResponse.Tickets.FirstOrDefault(t => t.PaxId == pax.PaxId);
                 if (newTicket is null)
-                    _logger.LogWarning("No reissued ticket for passenger {PassengerId} on {BookingRef} leg {FlightNumber}",
-                        pax.PassengerId, order.BookingReference, replacementLeg.FlightNumber);
+                    _logger.LogWarning("No reissued ticket for passenger {PaxId} on {BookingRef} leg {FlightNumber}",
+                        pax.PaxId, order.BookingReference, replacementLeg.FlightNumber);
                 return new RebookManifestPassengerDto
                 {
-                    PassengerId = pax.PassengerId,
+                    PaxId = pax.PaxId,
                     ETicketNumber = newTicket?.ETicketNumber ?? string.Empty
                 };
             }).ToList();

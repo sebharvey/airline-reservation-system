@@ -16,7 +16,7 @@ public sealed record RebookManifestCommand(
     TimeOnly ToDepartureTime,
     TimeOnly ToArrivalTime,
     string ToCabinCode,
-    IReadOnlyList<(string PassengerId, string ETicketNumber)> Passengers);
+    IReadOnlyList<(int PaxId, string ETicketNumber)> Passengers);
 
 public sealed class RebookManifestHandler
 {
@@ -40,21 +40,21 @@ public sealed class RebookManifestHandler
 
         var passengerRebooks = new Dictionary<int, ManifestPassengerRebook>();
 
-        foreach (var (passengerId, eTicketNumber) in command.Passengers)
+        foreach (var (paxId, eTicketNumber) in command.Passengers)
         {
             var ticket = tickets.LastOrDefault(t =>
-                t.PassengerId == ParsePassengerId(passengerId)
+                t.PassengerId == paxId
                 && !t.IsVoided);
 
             if (ticket is null)
             {
                 _logger.LogWarning(
-                    "No active ticket found for passenger {PassengerId} in booking {BookingRef} — manifest entry will not be rebooked",
-                    passengerId, command.BookingReference);
+                    "No active ticket found for passenger {PaxId} in booking {BookingRef} — manifest entry will not be rebooked",
+                    paxId, command.BookingReference);
                 continue;
             }
 
-            passengerRebooks[ParsePassengerId(passengerId)] = new ManifestPassengerRebook(ticket.TicketId, eTicketNumber);
+            passengerRebooks[paxId] = new ManifestPassengerRebook(ticket.TicketId, eTicketNumber);
         }
 
         if (passengerRebooks.Count == 0)
@@ -80,12 +80,4 @@ public sealed class RebookManifestHandler
             ct);
     }
 
-    // Converts "PAX-1" → 1; falls back to 0 for unrecognised formats
-    private static int ParsePassengerId(string passengerId)
-    {
-        var raw = passengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase)
-            ? passengerId[4..]
-            : passengerId;
-        return int.TryParse(raw, out var n) ? n : 0;
-    }
 }

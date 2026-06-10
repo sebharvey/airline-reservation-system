@@ -21,7 +21,7 @@ public sealed class WriteManifestRequest
 
 public sealed class ManifestEntryRequest
 {
-    [JsonPropertyName("passengerId")]   public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("passengerId")]   public int PaxId { get; init; }
     [JsonPropertyName("givenName")]     public string GivenName { get; init; } = string.Empty;
     [JsonPropertyName("surname")]       public string Surname { get; init; } = string.Empty;
     [JsonPropertyName("eTicketNumber")] public string ETicketNumber { get; init; } = string.Empty;

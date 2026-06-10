@@ -53,14 +53,14 @@ public sealed class WriteManifestHandler
             }
 
             var ticket = tickets.FirstOrDefault(t =>
-                t.PassengerId == ParsePassengerId(entry.PassengerId) &&
+                t.PassengerId == entry.PaxId &&
                 !t.IsVoided);
 
             if (ticket is null)
             {
                 _logger.LogWarning(
-                    "No active ticket found for passenger {PassengerId} in booking {BookingRef}",
-                    entry.PassengerId, request.BookingReference);
+                    "No active ticket found for passenger {PaxId} in booking {BookingRef}",
+                    entry.PaxId, request.BookingReference);
                 skipped++;
                 continue;
             }
@@ -82,7 +82,7 @@ public sealed class WriteManifestHandler
                 cabinCode:       entry.CabinCode,
                 bookingReference: request.BookingReference,
                 eTicketNumber:   entry.ETicketNumber,
-                passengerId:     ParsePassengerId(entry.PassengerId),
+                passengerId:     entry.PaxId,
                 segmentId:       request.SegmentId,
                 givenName:       entry.GivenName,
                 surname:         entry.Surname,
@@ -114,12 +114,4 @@ public sealed class WriteManifestHandler
         _               => "U"
     };
 
-    // Converts "PAX-1" → 1; falls back to 0 for unrecognised formats
-    private static int ParsePassengerId(string passengerId)
-    {
-        var raw = passengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase)
-            ? passengerId[4..]
-            : passengerId;
-        return int.TryParse(raw, out var n) ? n : 0;
-    }
 }

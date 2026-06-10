@@ -223,9 +223,8 @@ public sealed class IssuedTicket
     [JsonPropertyName("eTicketNumber")]
     public string ETicketNumber { get; init; } = string.Empty;
 
-    [JsonConverter(typeof(PassengerIdAsStringConverter))]
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("segmentIds")]
     public List<string> SegmentIds { get; init; } = [];
@@ -234,7 +233,7 @@ public sealed class IssuedTicket
 public sealed class TicketPassenger
 {
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("givenName")]
     public string GivenName { get; init; } = string.Empty;
@@ -372,7 +371,7 @@ public sealed class TicketSegment
 public sealed class SegmentSsrCode
 {
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("code")]
     public string Code { get; init; } = string.Empty;
@@ -387,7 +386,7 @@ public sealed class SegmentSsrCode
 public sealed class SeatAssignmentItem
 {
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("seatNumber")]
     public string SeatNumber { get; init; } = string.Empty;
@@ -495,7 +494,7 @@ public sealed class AdminManifestEntry
 public sealed class ManifestPassengerEntry
 {
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("givenName")]
     public string GivenName { get; init; } = string.Empty;

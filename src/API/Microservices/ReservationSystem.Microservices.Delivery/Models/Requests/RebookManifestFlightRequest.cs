@@ -38,7 +38,7 @@ public sealed class RebookManifestFlightRequest
 public sealed class RebookManifestPassengerRequest
 {
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("eTicketNumber")]
     public string ETicketNumber { get; init; } = string.Empty;

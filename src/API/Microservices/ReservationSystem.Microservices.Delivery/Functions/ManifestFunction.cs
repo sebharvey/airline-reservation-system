@@ -329,7 +329,7 @@ public sealed class ManifestFunction
             ToDepartureTime:   toDepartureTime,
             ToArrivalTime:     toArrivalTime,
             ToCabinCode:       request.ToCabinCode,
-            Passengers:        request.Passengers.Select(p => (p.PassengerId, p.ETicketNumber)).ToList());
+            Passengers:        request.Passengers.Select(p => (p.PaxId, p.ETicketNumber)).ToList());
 
         var updated = await _rebookHandler.HandleAsync(command, cancellationToken);
 

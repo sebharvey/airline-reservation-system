@@ -74,7 +74,7 @@ public sealed class RebookManifestRequest
 public sealed class RebookManifestPassengerDto
 {
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("eTicketNumber")]
     public string ETicketNumber { get; init; } = string.Empty;
@@ -113,7 +113,7 @@ public sealed class ReissueTicketsRequest
 public sealed class ReissuePassengerDto
 {
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("givenName")]
     public string GivenName { get; init; } = string.Empty;
@@ -163,9 +163,8 @@ public sealed class ReissuedTicketDto
     [JsonPropertyName("eTicketNumber")]
     public string ETicketNumber { get; init; } = string.Empty;
 
-    [JsonConverter(typeof(PassengerIdAsStringConverter))]
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 }
 
 public sealed class WriteManifestRequest
@@ -192,7 +191,7 @@ public sealed class WriteManifestRequest
 public sealed class WriteManifestEntryDto
 {
     [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    public int PaxId { get; init; }
 
     [JsonPropertyName("givenName")]
     public string GivenName { get; init; } = string.Empty;

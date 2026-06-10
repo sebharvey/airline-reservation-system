@@ -223,7 +223,7 @@ public sealed class OrderServiceClient
                 {
                     passengers.Add(new AffectedOrderPassengerDto
                     {
-                        PassengerId   = pax.TryGetProperty("passengerId",    out var pid)   ? pid.GetString()   ?? "" : "",
+                        PaxId         = pax.TryGetProperty("paxId",          out var pxId)  && pxId.ValueKind == JsonValueKind.Number ? pxId.GetInt32() : 0,
                         GivenName     = pax.TryGetProperty("givenName",      out var gn)    ? gn.GetString()    ?? "" : "",
                         Surname       = pax.TryGetProperty("surname",        out var sn)    ? sn.GetString()    ?? "" : "",
                         PassengerType = pax.TryGetProperty("passengerType",  out var ptype) ? ptype.GetString() ?? "ADT" : "ADT"

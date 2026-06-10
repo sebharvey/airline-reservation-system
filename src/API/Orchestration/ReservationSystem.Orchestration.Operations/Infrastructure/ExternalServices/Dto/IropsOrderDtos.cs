@@ -76,8 +76,8 @@ public sealed class AffectedOrderSegmentDto
 
 public sealed class AffectedOrderPassengerDto
 {
-    [JsonPropertyName("passengerId")]
-    public string PassengerId { get; init; } = string.Empty;
+    [JsonPropertyName("paxId")]
+    public int PaxId { get; init; }
 
     [JsonPropertyName("givenName")]
     public string GivenName { get; init; } = string.Empty;
