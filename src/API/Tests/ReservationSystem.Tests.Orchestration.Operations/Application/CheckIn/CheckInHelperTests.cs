@@ -83,6 +83,40 @@ public sealed class CheckInHelperTests
     }
 
     [Fact]
+    public void ParsePaxToTicketMap_PaxIdInteger_DerivesPaxNKey()
+    {
+        var orderData = ParseOrderData("""
+            {
+              "eTickets": [
+                { "paxId": 1, "eTicketNumber": "932-0000000001" },
+                { "paxId": 2, "eTicketNumber": "932-0000000002" }
+              ]
+            }
+            """);
+
+        var result = CheckInHelper.ParsePaxToTicketMap(orderData);
+
+        Assert.Equal("932-0000000001", result["PAX-1"]);
+        Assert.Equal("932-0000000002", result["PAX-2"]);
+    }
+
+    [Fact]
+    public void ParsePaxToTicketMap_LegacyPassengerIdString_StillMapped()
+    {
+        var orderData = ParseOrderData("""
+            {
+              "eTickets": [
+                { "passengerId": "PAX-3", "eTicketNumber": "932-0000000003" }
+              ]
+            }
+            """);
+
+        var result = CheckInHelper.ParsePaxToTicketMap(orderData);
+
+        Assert.Equal("932-0000000003", result["PAX-3"]);
+    }
+
+    [Fact]
     public void BuildTimaticNotes_UsesPaxIdIntegerDirectly()
     {
         var ticketToPaxId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
