@@ -249,7 +249,10 @@ public sealed class GetOrderHandler
                         // ── Seat items ────────────────────────────────────────
                         if (string.Equals(productType, "SEAT", StringComparison.OrdinalIgnoreCase))
                         {
-                            var paxId  = item.TryGetProperty("passengerId", out var spid) ? spid.GetString() ?? "" : "";
+                            // Prefer the integer paxId; fall back to the legacy passengerId string
+                            var paxId  = item.TryGetProperty("paxId", out var spaxEl) && spaxEl.ValueKind == JsonValueKind.Number
+                                ? $"PAX-{spaxEl.GetInt32()}"
+                                : item.TryGetProperty("passengerId", out var spid) ? spid.GetString() ?? "" : "";
                             var segId  = item.TryGetProperty("segmentId",   out var ssid) ? ssid.GetString() ?? "" : "";
                             var seatNum = item.TryGetProperty("seatNumber", out var sn)   ? sn.GetString()   ?? "" : "";
                             var price  = item.TryGetProperty("price",       out var pr)   ? pr.GetDecimal()       : 0m;
