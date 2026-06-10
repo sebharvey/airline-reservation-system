@@ -8,7 +8,7 @@ namespace ReservationSystem.Microservices.Order.Application.UpdateOrderPassenger
 /// <summary>
 /// Handles the <see cref="UpdateOrderPassengersCommand"/>.
 /// Merges passenger contact and personal detail updates into the order's
-/// dataLists.passengers array, matching by passengerId.
+/// dataLists.passengers array, matching by paxId.
 /// </summary>
 public sealed class UpdateOrderPassengersHandler
 {
@@ -59,14 +59,14 @@ public sealed class UpdateOrderPassengersHandler
             var update = updateItem?.AsObject();
             if (update is null) continue;
 
-            var passengerId = update["passengerId"]?.GetValue<string>();
-            if (passengerId is null) continue;
+            var paxId = update["paxId"]?.GetValue<int>();
+            if (paxId is null) continue;
 
             for (var i = 0; i < passengersNode.Count; i++)
             {
                 var pax = passengersNode[i]?.AsObject();
                 if (pax is null) continue;
-                if (pax["passengerId"]?.GetValue<string>() != passengerId) continue;
+                if (pax["paxId"]?.GetValue<int>() != paxId) continue;
 
                 foreach (var field in new[] { "givenName", "surname", "dob" })
                 {
