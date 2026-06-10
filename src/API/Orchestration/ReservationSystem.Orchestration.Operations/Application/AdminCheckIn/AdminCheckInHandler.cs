@@ -89,6 +89,7 @@ public sealed class AdminCheckInHandler
             passengerUpdates.Add(new PassengerDocUpdate
             {
                 PassengerId = passengerId,
+                PaxId       = CheckInHelper.ExtractPaxIdInt(passengerId) ?? 0,
                 Docs =
                 [
                     new PassengerDoc

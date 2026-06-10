@@ -66,6 +66,7 @@ public sealed class OciPaxHandler
             passengerUpdates.Add(new PassengerDocUpdate
             {
                 PassengerId = passengerId,
+                PaxId       = CheckInHelper.ExtractPaxIdInt(passengerId) ?? 0,
                 Docs =
                 [
                     new PassengerDoc
