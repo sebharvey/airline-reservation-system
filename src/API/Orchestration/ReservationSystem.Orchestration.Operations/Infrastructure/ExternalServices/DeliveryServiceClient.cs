@@ -277,6 +277,9 @@ public sealed class OciCheckInTicket
     [JsonPropertyName("passengerId")]
     public string PassengerId { get; init; } = string.Empty;
 
+    [JsonIgnore]
+    public int PaxId { get; init; }
+
     [JsonPropertyName("givenName")]
     public string GivenName { get; init; } = string.Empty;
 

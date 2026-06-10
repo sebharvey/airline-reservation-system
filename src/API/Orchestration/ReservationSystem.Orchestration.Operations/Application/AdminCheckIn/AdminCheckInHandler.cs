@@ -77,7 +77,7 @@ public sealed class AdminCheckInHandler
         var passengerUpdates = new List<PassengerDocUpdate>();
         foreach (var pax in command.Passengers)
         {
-            if (!ticketToPaxId.TryGetValue(pax.TicketNumber, out var passengerId))
+            if (!ticketToPaxId.TryGetValue(pax.TicketNumber, out var paxId))
             {
                 _logger.LogWarning(
                     "Admin check-in: ticket {TicketNumber} not found on booking {BookingReference}",
@@ -88,8 +88,8 @@ public sealed class AdminCheckInHandler
 
             passengerUpdates.Add(new PassengerDocUpdate
             {
-                PassengerId = passengerId,
-                PaxId       = CheckInHelper.ExtractPaxIdInt(passengerId) ?? 0,
+                PassengerId = $"PAX-{paxId}",
+                PaxId       = paxId,
                 Docs =
                 [
                     new PassengerDoc
@@ -118,12 +118,13 @@ public sealed class AdminCheckInHandler
 
         var checkInTickets = command.Passengers.Select(pax =>
         {
-            ticketToPaxId.TryGetValue(pax.TicketNumber, out var paxId);
-            paxIdToInfo.TryGetValue(paxId ?? string.Empty, out var info);
+            ticketToPaxId.TryGetValue(pax.TicketNumber, out var paxIdInt);
+            paxIdToInfo.TryGetValue(paxIdInt, out var info);
             return new OciCheckInTicket
             {
                 TicketNumber      = pax.TicketNumber,
-                PassengerId       = paxId ?? string.Empty,
+                PassengerId       = paxIdInt > 0 ? $"PAX-{paxIdInt}" : string.Empty,
+                PaxId             = paxIdInt,
                 GivenName         = info?.GivenName ?? string.Empty,
                 Surname           = info?.Surname ?? string.Empty,
                 DocNationality    = pax.TravelDocument.Nationality,
@@ -138,7 +139,7 @@ public sealed class AdminCheckInHandler
         var watchlistMatches = await _watchlistService.CheckAsync(
             checkInTickets.Select(t =>
             {
-                paxIdToInfo.TryGetValue(t.PassengerId, out var info);
+                paxIdToInfo.TryGetValue(t.PaxId, out var info);
                 return (t.PassengerId, t.TicketNumber, t.GivenName, t.Surname, (string?)t.DocNumber, (string?)info?.Dob);
             }),
             ct);
@@ -268,7 +269,7 @@ public sealed class AdminCheckInHandler
         IReadOnlyList<AdminCheckInPassenger> passengers,
         IReadOnlyDictionary<string, string>? ticketToName,
         string? overrideReason,
-        IReadOnlyDictionary<string, string>? ticketToPaxId = null,
+        IReadOnlyDictionary<string, int>? ticketToPaxId = null,
         int? segmentId = null)
     {
         var reason    = string.IsNullOrWhiteSpace(overrideReason) ? "No reason provided" : overrideReason;
@@ -279,17 +280,17 @@ public sealed class AdminCheckInHandler
                 && ticketToName.TryGetValue(p.TicketNumber, out var name)
                 && !string.IsNullOrWhiteSpace(name)
                     ? name : null;
-            var subject  = paxName is not null
+            var subject = paxName is not null
                 ? $"{paxName} (ticket {p.TicketNumber})"
                 : $"ticket {p.TicketNumber}";
-            var paxIdStr = ticketToPaxId is not null
-                && ticketToPaxId.TryGetValue(p.TicketNumber, out var pid) ? pid : null;
+            var paxId = ticketToPaxId is not null
+                && ticketToPaxId.TryGetValue(p.TicketNumber, out var pid) ? (int?)pid : null;
             return new OrderTimaticNote
             {
                 DateTime  = timestamp,
                 Type      = "OCI",
                 Message   = $"Timatic override by agent for {subject}: {reason}",
-                PaxId     = CheckInHelper.ExtractPaxIdInt(paxIdStr),
+                PaxId     = paxId,
                 SegmentId = segmentId
             };
         }).ToList();

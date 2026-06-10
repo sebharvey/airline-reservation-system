@@ -19,17 +19,20 @@ public sealed record PaxInfo(
 public static class CheckInHelper
 {
     /// <summary>
-    /// Parses order JSON to build ticket→passengerId and passengerId→passenger-info lookup maps.
+    /// Parses order JSON to build ticket→paxId and paxId→passenger-info lookup maps.
     /// Reads dataLists.passengers (name + first travel doc) and eTickets.
     /// </summary>
-    public static (Dictionary<string, string> TicketToPaxId, Dictionary<string, PaxInfo> PaxIdToInfo)
+    public static (Dictionary<string, int> TicketToPaxId, Dictionary<int, PaxInfo> PaxIdToInfo)
         ParseOrderLookups(JsonElement? orderData)
     {
-        var ticketToPaxId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var paxIdToInfo = new Dictionary<string, PaxInfo>(StringComparer.OrdinalIgnoreCase);
+        var ticketToPaxId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var paxIdToInfo = new Dictionary<int, PaxInfo>();
 
         if (orderData is not JsonElement el || el.ValueKind != JsonValueKind.Object)
             return (ticketToPaxId, paxIdToInfo);
+
+        // Built while iterating passengers; used below to resolve eTickets passengerId strings.
+        var stringToPaxId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         if (el.TryGetProperty("dataLists", out var dl) &&
             dl.TryGetProperty("passengers", out var paxArr) &&
@@ -37,8 +40,12 @@ public static class CheckInHelper
         {
             foreach (var pax in paxArr.EnumerateArray())
             {
+                if (!pax.TryGetProperty("paxId", out var paxIdEl) || paxIdEl.ValueKind != JsonValueKind.Number)
+                    continue;
+                var paxId = paxIdEl.GetInt32();
+
                 var pid = pax.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() : null;
-                if (pid is null) continue;
+                if (pid is not null) stringToPaxId[pid] = paxId;
 
                 var gn  = pax.TryGetProperty("givenName", out var gnEl) ? gnEl.GetString() ?? "" : "";
                 var sn  = pax.TryGetProperty("surname",   out var snEl) ? snEl.GetString() ?? "" : "";
@@ -56,7 +63,7 @@ public static class CheckInHelper
                     docExpiryDate    = doc.TryGetProperty("expiryDate",     out var ed)  ? ed.GetString()  : null;
                 }
 
-                paxIdToInfo[pid] = new PaxInfo(gn, sn, dob, docNationality, docNumber, docIssuingCountry, docExpiryDate);
+                paxIdToInfo[paxId] = new PaxInfo(gn, sn, dob, docNationality, docNumber, docIssuingCountry, docExpiryDate);
             }
         }
 
@@ -66,8 +73,8 @@ public static class CheckInHelper
             foreach (var et in eTickets.EnumerateArray())
             {
                 var ticketNum = et.TryGetProperty("eTicketNumber", out var tnEl) ? tnEl.GetString() : null;
-                var paxId     = et.TryGetProperty("passengerId",   out var pidEl) ? pidEl.GetString() : null;
-                if (ticketNum is not null && paxId is not null)
+                var pidStr    = et.TryGetProperty("passengerId",   out var pidEl) ? pidEl.GetString() : null;
+                if (ticketNum is not null && pidStr is not null && stringToPaxId.TryGetValue(pidStr, out var paxId))
                     ticketToPaxId[ticketNum] = paxId;
             }
         }
@@ -81,7 +88,7 @@ public static class CheckInHelper
     public static List<OrderTimaticNote> BuildTimaticNotes(
         IReadOnlyList<OciTimaticNote> notes,
         IReadOnlyDictionary<string, string>? ticketToName = null,
-        IReadOnlyDictionary<string, string>? ticketToPaxId = null,
+        IReadOnlyDictionary<string, int>? ticketToPaxId = null,
         int? segmentId = null)
         => notes.Select(n =>
         {
@@ -104,14 +111,14 @@ public static class CheckInHelper
             var message = string.IsNullOrWhiteSpace(n.Detail)
                 ? $"{checkLabel} {statusText} for {subject}"
                 : $"{checkLabel} {statusText} for {subject}: {n.Detail}";
-            var paxIdStr = ticketToPaxId is not null
-                && ticketToPaxId.TryGetValue(n.TicketNumber, out var pid) ? pid : null;
+            var paxId = ticketToPaxId is not null
+                && ticketToPaxId.TryGetValue(n.TicketNumber, out var pid) ? (int?)pid : null;
             return new OrderTimaticNote
             {
                 DateTime  = n.Timestamp,
                 Type      = "OCI",
                 Message   = message,
-                PaxId     = ExtractPaxIdInt(paxIdStr),
+                PaxId     = paxId,
                 SegmentId = segmentId
             };
         }).ToList();

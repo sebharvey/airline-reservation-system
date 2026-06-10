@@ -53,7 +53,7 @@ public sealed class OciPaxHandler
 
         foreach (var paxRequest in command.Passengers)
         {
-            if (!ticketToPaxId.TryGetValue(paxRequest.TicketNumber, out var passengerId))
+            if (!ticketToPaxId.TryGetValue(paxRequest.TicketNumber, out var paxId))
             {
                 _logger.LogWarning(
                     "OCI pax: ticket {TicketNumber} not found on booking {BookingReference}",
@@ -65,8 +65,8 @@ public sealed class OciPaxHandler
 
             passengerUpdates.Add(new PassengerDocUpdate
             {
-                PassengerId = passengerId,
-                PaxId       = CheckInHelper.ExtractPaxIdInt(passengerId) ?? 0,
+                PassengerId = $"PAX-{paxId}",
+                PaxId       = paxId,
                 Docs =
                 [
                     new PassengerDoc
