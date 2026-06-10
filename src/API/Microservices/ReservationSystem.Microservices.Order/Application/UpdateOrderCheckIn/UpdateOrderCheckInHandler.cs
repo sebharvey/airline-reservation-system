@@ -54,10 +54,11 @@ public sealed class UpdateOrderCheckInHandler
         {
             passengerNodes.Add(new JsonObject
             {
-                ["passengerId"] = $"PAX-{pax.PaxId}",
+                ["paxId"]        = pax.PaxId,
+                ["passengerId"]  = $"PAX-{pax.PaxId}",
                 ["ticketNumber"] = pax.TicketNumber,
-                ["status"] = pax.Status,
-                ["message"] = pax.Message
+                ["status"]       = pax.Status,
+                ["message"]      = pax.Message
             });
         }
 
