@@ -197,6 +197,7 @@ public sealed class OciCheckInHandler
             return new OrderCheckInPassenger
             {
                 PassengerId  = t.PassengerId,
+                PaxId        = CheckInHelper.ExtractPaxIdInt(t.PassengerId) ?? 0,
                 TicketNumber = t.TicketNumber,
                 Status       = status,
                 Message      = message

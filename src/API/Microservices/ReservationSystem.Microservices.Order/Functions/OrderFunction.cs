@@ -729,10 +729,11 @@ public sealed class OrderFunction
         foreach (var p in paxEl.EnumerateArray())
         {
             var passengerId = p.TryGetProperty("passengerId", out var pidEl) ? pidEl.GetString() ?? "" : "";
+            var paxId = p.TryGetProperty("paxId", out var paxIdEl) && paxIdEl.ValueKind == JsonValueKind.Number ? paxIdEl.GetInt32() : 0;
             var ticketNumber = p.TryGetProperty("ticketNumber", out var tnEl) ? tnEl.GetString() ?? "" : "";
             var status = p.TryGetProperty("status", out var stEl) ? stEl.GetString() ?? "CheckedIn" : "CheckedIn";
             var message = p.TryGetProperty("message", out var msgEl) ? msgEl.GetString() ?? "" : "";
-            passengers.Add(new UpdateOrderCheckInPassenger(passengerId, ticketNumber, status, message));
+            passengers.Add(new UpdateOrderCheckInPassenger(passengerId, paxId, ticketNumber, status, message));
         }
 
         List<UpdateOrderCheckInNote>? additionalNotes = null;
