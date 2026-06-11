@@ -134,16 +134,15 @@ public sealed class GetIropsOrdersHandler
             {
                 foreach (var pax in paxArr.EnumerateArray())
                 {
-                    // Prefer the integer paxId; fall back to the legacy passengerId string for older order data.
-                    string passengerId;
-                    if (pax.TryGetProperty("paxId", out var paxIdEl) && paxIdEl.ValueKind == JsonValueKind.Number)
-                        passengerId = $"PAX-{paxIdEl.GetInt32()}";
-                    else
-                        passengerId = pax.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "";
+                    // paxId is required; passengers without it are skipped.
+                    if (!pax.TryGetProperty("paxId", out var paxIdEl) || paxIdEl.ValueKind != JsonValueKind.Number)
+                        continue;
+
+                    var paxId = paxIdEl.GetInt32();
 
                     passengers.Add(new
                     {
-                        passengerId,
+                        passengerId = $"PAX-{paxId}",
                         givenName = pax.TryGetProperty("givenName", out var gn) ? gn.GetString() ?? "" : "",
                         surname = pax.TryGetProperty("surname", out var sn) ? sn.GetString() ?? "" : "",
                         passengerType = pax.TryGetProperty("passengerType", out var ptype)
