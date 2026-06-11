@@ -60,9 +60,9 @@ public sealed class UpdateOrderBagsHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_BagWithLegacyPassengerId_ParsesPaxIdFromString()
+    public async Task HandleAsync_BagWithoutPaxId_StoresNoPaxId()
     {
-        // Legacy format: caller sends passengerId "PAX-1" string — paxId is derived from it.
+        // paxId is always expected going forward; bags missing paxId are stored without it.
         var order = MakeConfirmedOrder("""{"orderItems":[]}""");
         SetupRepository(order);
 
@@ -79,8 +79,7 @@ public sealed class UpdateOrderBagsHandlerTests
         var bag = doc.RootElement.GetProperty("orderItems").EnumerateArray()
             .Single(i => i.GetProperty("productType").GetString() == "BAG");
 
-        Assert.Equal(1, bag.GetProperty("paxId").GetInt32());
-        Assert.Equal("PAX-1", bag.GetProperty("passengerId").GetString());
+        Assert.False(bag.TryGetProperty("paxId", out _));
     }
 
     [Fact]

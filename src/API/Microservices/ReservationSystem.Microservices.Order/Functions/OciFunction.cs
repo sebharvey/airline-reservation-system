@@ -80,15 +80,16 @@ public sealed class OciFunction
                 return await req.NotFoundAsync($"No order found for booking reference {bookingRef} and surname {surname}.");
 
             // Validate all passengers have e-ticket numbers before check-in can proceed
-            var ticketedPaxIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var ticketedPaxIds = new HashSet<int>();
             if (doc.RootElement.TryGetProperty("eTickets", out var eTickets))
             {
                 foreach (var et in eTickets.EnumerateArray())
                 {
-                    if (et.TryGetProperty("passengerId", out var ePid) &&
+                    if (et.TryGetProperty("paxId", out var ePaxId) &&
+                        ePaxId.ValueKind == JsonValueKind.Number &&
                         et.TryGetProperty("eTicketNumber", out var eTn) &&
                         !string.IsNullOrWhiteSpace(eTn.GetString()))
-                        ticketedPaxIds.Add(ePid.GetString()!);
+                        ticketedPaxIds.Add(ePaxId.GetInt32());
                 }
             }
 
@@ -97,8 +98,9 @@ public sealed class OciFunction
             {
                 foreach (var pax in paxList.EnumerateArray())
                 {
-                    if (pax.TryGetProperty("passengerId", out var pPid) &&
-                        !ticketedPaxIds.Contains(pPid.GetString() ?? ""))
+                    if (pax.TryGetProperty("paxId", out var paxIdEl) &&
+                        paxIdEl.ValueKind == JsonValueKind.Number &&
+                        !ticketedPaxIds.Contains(paxIdEl.GetInt32()))
                         return await req.UnprocessableEntityAsync(
                             $"Booking {bookingRef} has not been fully ticketed. Check-in is unavailable until all passengers have an e-ticket number.");
                 }
