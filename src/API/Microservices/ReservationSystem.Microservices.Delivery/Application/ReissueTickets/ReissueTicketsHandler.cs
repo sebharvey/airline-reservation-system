@@ -23,7 +23,7 @@ public sealed class ReissueTicketsHandler
 
     public async Task<ReissueTicketsResponse> HandleAsync(ReissueTicketsRequest request, CancellationToken cancellationToken = default)
     {
-        // Void old tickets. Collect them keyed by PassengerId so the retained coupons and
+        // Void old tickets. Collect them keyed by PaxId so the retained coupons and
         // originalIssue data can be merged into the replacement ticket for each passenger.
         var oldTicketsByPassenger = new Dictionary<int, (string ETicketNumber, Ticket Ticket)?>();
 
@@ -52,7 +52,7 @@ public sealed class ReissueTicketsHandler
 
         foreach (var passenger in request.Passengers)
         {
-            oldTicketsByPassenger.TryGetValue(passenger.PassengerId, out var oldEntry);
+            oldTicketsByPassenger.TryGetValue(passenger.PaxId, out var oldEntry);
 
             var ticketData = BuildReissueTicketData(
                 passenger,
@@ -64,7 +64,7 @@ public sealed class ReissueTicketsHandler
 
             var ticket = Ticket.Create(
                 request.BookingReference,
-                passenger.PassengerId,
+                passenger.PaxId,
                 ticketData);
 
             await _ticketRepository.CreateAsync(ticket, cancellationToken);
@@ -217,7 +217,7 @@ public sealed class ReissueTicketsHandler
         return segments.Select((segment, index) =>
         {
             var seatAssignment = segment.SeatAssignments?
-                .FirstOrDefault(s => s.PassengerId == passenger.PassengerId);
+                .FirstOrDefault(s => s.PaxId == passenger.PaxId);
 
             var marketingCarrier = ExtractCarrierCode(segment.FlightNumber);
             var operatingFlightNumber = segment.OperatingFlightNumber ?? segment.FlightNumber;

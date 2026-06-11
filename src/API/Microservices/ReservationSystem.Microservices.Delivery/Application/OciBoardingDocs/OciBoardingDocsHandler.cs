@@ -8,7 +8,7 @@ public sealed record OciBoardingDocsCommand(string DepartureAirport, IReadOnlyLi
 
 public sealed record BoardingCard(
     string TicketNumber,
-    int PassengerId,
+    int PaxId,
     string GivenName,
     string Surname,
     string FlightNumber,
@@ -60,7 +60,7 @@ public sealed class OciBoardingDocsHandler
 
                 boardingCards.Add(new BoardingCard(
                     TicketNumber: DeliveryMapper.FormatETicketNumber(ticket.TicketNumber),
-                    PassengerId: ticket.PassengerId,
+                    PaxId: ticket.PassengerId,
                     GivenName: givenName,
                     Surname: surname,
                     FlightNumber: coupon.FlightNumber,

@@ -9,7 +9,7 @@ public sealed record OciCheckInBaggageItem(int BagNumber, decimal? WeightKg);
 
 public sealed record OciCheckInTicket(
     string TicketNumber,
-    string PassengerId,
+    int PaxId,
     string GivenName,
     string Surname,
     string? DocNationality = null,

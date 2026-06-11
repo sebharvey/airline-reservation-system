@@ -59,8 +59,8 @@ public sealed class WriteManifestHandler
             if (ticket is null)
             {
                 _logger.LogWarning(
-                    "No active ticket found for passenger {PassengerId} in booking {BookingRef}",
-                    entry.PassengerId, request.BookingReference);
+                    "No active ticket found for passenger {PaxId} in booking {BookingRef}",
+                    entry.PaxId, request.BookingReference);
                 skipped++;
                 continue;
             }

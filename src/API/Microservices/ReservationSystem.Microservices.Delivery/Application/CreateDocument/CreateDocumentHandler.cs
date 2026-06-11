@@ -28,7 +28,7 @@ public sealed class CreateDocumentHandler
 
         var document = Document.Create(
             request.DocumentType, request.BookingReference,
-            request.ETicketNumber, request.PassengerId, request.SegmentRef,
+            request.ETicketNumber, $"PAX-{request.PaxId}", request.SegmentRef,
             request.PaymentReference, request.Amount, request.CurrencyCode,
             documentDataJson);
 

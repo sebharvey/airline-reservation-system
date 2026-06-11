@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using ReservationSystem.Microservices.Delivery.Models.Converters;
 
 namespace ReservationSystem.Microservices.Delivery.Models.Requests;
 
@@ -37,6 +38,10 @@ public sealed class RebookManifestFlightRequest
 
 public sealed class RebookManifestPassengerRequest
 {
+    [JsonConverter(typeof(PassengerIdJsonConverter))]
+    [JsonPropertyName("paxId")]
+    public int PaxId { get; init; }
+
     [JsonPropertyName("passengerId")]
     public string PassengerId { get; init; } = string.Empty;
 

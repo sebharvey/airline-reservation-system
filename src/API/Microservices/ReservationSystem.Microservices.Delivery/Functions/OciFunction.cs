@@ -68,7 +68,9 @@ public sealed class OciFunction
         {
             var ticketNumber = t.TryGetProperty("ticketNumber", out var tn) ? tn.GetString() : null;
             if (string.IsNullOrWhiteSpace(ticketNumber)) continue;
-            var passengerId = t.TryGetProperty("passengerId", out var pid) ? pid.GetString() ?? "" : "";
+            var paxId = t.TryGetProperty("paxId", out var pid) && pid.ValueKind == JsonValueKind.Number
+                ? pid.GetInt32()
+                : 0;
             var givenName = t.TryGetProperty("givenName", out var gn) ? gn.GetString() ?? "" : "";
             var surname = t.TryGetProperty("surname", out var sn) ? sn.GetString() ?? "" : "";
 
@@ -93,7 +95,7 @@ public sealed class OciFunction
             }
 
             tickets.Add(new OciCheckInTicket(
-                ticketNumber, passengerId, givenName, surname,
+                ticketNumber, paxId, givenName, surname,
                 docNationality, docNumber, docIssuingCountry, docExpiryDate, baggage));
         }
 
@@ -224,7 +226,7 @@ public sealed class OciFunction
                 boardingCards = result.BoardingCards.Select(c => new
                 {
                     ticketNumber = c.TicketNumber,
-                    passengerId = c.PassengerId,
+                    passengerId = c.PaxId,
                     givenName = c.GivenName,
                     surname = c.Surname,
                     flightNumber = c.FlightNumber,

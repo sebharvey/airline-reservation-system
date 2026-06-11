@@ -52,8 +52,8 @@ public sealed class IssueTicketsHandler
 
             ticketSummaries.Add(DeliveryMapper.ToTicketSummary(ticket, segmentIds));
             _logger.LogInformation(
-                "Issued ticket {TicketNumber} for {PassengerId} covering {SegmentCount} segment(s)",
-                ticket.TicketNumber, passenger.PassengerId, request.Segments.Count);
+                "Issued ticket {TicketNumber} for {PaxId} covering {SegmentCount} segment(s)",
+                ticket.TicketNumber, passenger.PaxId, request.Segments.Count);
         }
 
         return new IssueTicketsResponse { Tickets = ticketSummaries };
@@ -72,7 +72,7 @@ public sealed class IssueTicketsHandler
 
         var ticket = Ticket.Create(
             bookingReference,
-            passenger.PassengerId,
+            passenger.PaxId,
             ticketData);
 
         await _ticketRepository.CreateAsync(ticket, cancellationToken);
@@ -117,7 +117,7 @@ public sealed class IssueTicketsHandler
         {
             var couponNumber = index + 1;
             var seatAssignment = segment.SeatAssignments?
-                .FirstOrDefault(s => s.PassengerId == passenger.PassengerId);
+                .FirstOrDefault(s => s.PaxId == passenger.PaxId);
 
             var marketingCarrier = ExtractCarrierCode(segment.FlightNumber);
             var operatingFlightNumber = segment.OperatingFlightNumber ?? segment.FlightNumber;
@@ -160,7 +160,7 @@ public sealed class IssueTicketsHandler
 
         var ssrCodes = segments
             .SelectMany(s => s.SsrCodes ?? [])
-            .Where(s => s.PassengerId == passenger.PassengerId)
+            .Where(s => s.PaxId == passenger.PaxId)
             .Select(s => new { code = s.Code, description = s.Description, segmentRef = s.SegmentRef })
             .ToList();
 
