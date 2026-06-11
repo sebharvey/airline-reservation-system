@@ -66,16 +66,17 @@ public sealed class GetIropsOrdersHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_PassengerWithoutPaxId_FallsBackToLegacyPassengerId()
+    public async Task HandleAsync_PassengerWithoutPaxId_IsSkipped()
     {
-        // Older order data has no paxId — the legacy passengerId string is passed through.
+        // Passengers without the integer paxId are excluded from the IROPS projection.
         var order = MakeConfirmedOrder(MakeOrderData(
             """[{ "passengerId": "PAX-1", "givenName": "Ada", "surname": "Lovelace", "passengerType": "ADT" }]"""));
         SetupRepository(order);
 
         var result = await _handler.HandleAsync(new GetIropsOrdersQuery("AA101", "2026-07-01", null));
 
-        var pax = GetSinglePassenger(result);
-        Assert.Equal("PAX-1", pax.GetProperty("passengerId").GetString());
+        var json = JsonSerializer.Serialize(Assert.Single(result));
+        using var doc = JsonDocument.Parse(json);
+        Assert.Empty(doc.RootElement.GetProperty("passengers").EnumerateArray());
     }
 }
