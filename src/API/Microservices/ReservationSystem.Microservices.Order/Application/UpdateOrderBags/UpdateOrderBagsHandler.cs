@@ -52,21 +52,15 @@ public sealed class UpdateOrderBagsHandler
             foreach (var bag in bagsArray)
             {
                 if (bag is not JsonObject bagObj) continue;
-                var bagPassengerId = bagObj["passengerId"]?.GetValue<string>();
 
-                // Prefer the integer paxId; fall back to parsing the legacy passengerId string
-                int? paxId = null;
-                if (bagObj["paxId"] is JsonValue paxIdVal && paxIdVal.TryGetValue<int>(out var directPaxId))
-                    paxId = directPaxId;
-                else if (bagPassengerId is not null &&
-                         bagPassengerId.StartsWith("PAX-", StringComparison.OrdinalIgnoreCase) &&
-                         int.TryParse(bagPassengerId[4..], out var parsedPaxId))
-                    paxId = parsedPaxId;
+                var paxId = bagObj["paxId"] is JsonValue paxIdVal && paxIdVal.TryGetValue<int>(out var rawPaxId)
+                    ? rawPaxId
+                    : (int?)null;
 
                 var bagItem = new JsonObject
                 {
                     ["productType"]    = "BAG",
-                    ["passengerId"]    = paxId.HasValue ? $"PAX-{paxId.Value}" : bagPassengerId,
+                    ["passengerId"]    = paxId.HasValue ? $"PAX-{paxId.Value}" : null,
                     ["segmentId"]      = bagObj["segmentId"]?.GetValue<string>(),
                     ["additionalBags"] = bagObj["additionalBags"]?.DeepClone(),
                     ["bagOfferId"]     = bagObj["bagOfferId"]?.DeepClone(),
