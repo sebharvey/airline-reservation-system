@@ -950,6 +950,7 @@ public sealed class ConfirmBasketHandler
 
                     return new ManifestPassengerEntry
                     {
+                        PaxId         = ExtractPaxIdFromString(pax.PassengerId) ?? 0,
                         PassengerId   = pax.PassengerId,
                         GivenName     = pax.GivenName,
                         Surname       = pax.Surname,
