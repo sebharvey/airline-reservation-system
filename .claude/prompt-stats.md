@@ -128,3 +128,54 @@ Token terms:
 - Tools invoked: none
 
 ---
+## 2026-07-02T14:17:41+00:00 — session `6c280d79` — 1,551 out / 1,075,462 total
+
+**Prompt**
+
+> Stop hook feedback:
+> [~/.claude/stop-hook-git-check.sh]: There are uncommitted changes in the repository. Please commit and push these changes to the remote branch.
+
+**Model:** `claude-opus-4-8`
+
+**Tokens**
+
+| Metric | Tokens |
+|--------|-------:|
+| Output (generation) | 1,551 |
+| Input (new) | 13 |
+| Cache creation | 1,929 |
+| Cache read (reused) | 1,071,969 |
+| **Total** | **1,075,462** |
+| Peak context window | 153,916 |
+
+**Context used**
+
+- Assistant steps (inference calls): 7
+- Tools invoked: Bash ×3
+
+---
+## 2026-07-02T14:19:36+00:00 — session `6c280d79` — 1,366 out / 774,427 total
+
+**Prompt**
+
+> why did .claude/prompt-stats.md not update?
+
+**Model:** `claude-opus-4-8`
+
+**Tokens**
+
+| Metric | Tokens |
+|--------|-------:|
+| Output (generation) | 1,366 |
+| Input (new) | 268 |
+| Cache creation | 2,013 |
+| Cache read (reused) | 770,780 |
+| **Total** | **774,427** |
+| Peak context window | 155,345 |
+
+**Context used**
+
+- Assistant steps (inference calls): 5
+- Tools invoked: Bash ×2
+
+---
