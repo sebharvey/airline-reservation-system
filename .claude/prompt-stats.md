@@ -75,3 +75,2167 @@ Token terms:
 - Tools invoked: Bash ×2
 
 ---
+## 2026-07-02T16:26:25+00:00 — session `f09f9327` — 271,953 out / 33,129,402 total
+
+**Prompt**
+
+> does not bring back any pax still, following the latest commit:
+> 
+> 
+> 
+> [
+>   {
+>     "timestamp": "2026-07-02T14:45:13.487Z",
+>     "method": "GET",
+>     "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net/api/v1/admin/inventory/324dcb40-4bbc-4d82-ab06-2dd1d414823a/inventory-orders",
+>     "request": {
+>       "headers": {
+>         "Authorization": "Bearer ***"
+>       },
+>       "body": null
+>     },
+>     "response": {
+>       "status": 200,
+>       "headers": {
+>         "content-type": "application/json"
+>       },
+>       "body": {
+>         "inventoryId": "324dcb40-4bbc-4d82-ab06-2dd1d414823a",
+>         "flightNumber": "AX006",
+>         "departureDate": "2026-07-02",
+>         "departureTime": "19:00",
+>         "arrivalTime": "07:00",
+>         "origin": "JFK",
+>         "destination": "LHR",
+>         "aircraftType": "B789",
+>         "status": "Active",
+>         "cabins": {
+>           "f": null,
+>           "j": {
+>             "totalSeats": 15,
+>             "seatsSold": 0,
+>             "seatsAvailable": 15,
+>             "seatsHeld": 0
+>           },
+>           "w": {
+>             "totalSeats": 28,
+>             "seatsSold": 2,
+>             "seatsAvailable": 26,
+>             "seatsHeld": 0
+>           },
+>           "y": {
+>             "totalSeats": 108,
+>             "seatsSold": 5,
+>             "seatsAvailable": 103,
+>             "seatsHeld": 0
+>           }
+>         },
+>         "orders": [
+>           {
+>             "orderId": "68848a27-3321-4178-9e3e-49ff6156041c",
+>             "bookingReference": "Y7WWF0",
+>             "currency": "GBP",
+>             "cabinCode": "W",
+>             "paxCount": 2,
+>             "fareFamily": "Flex",
+>             "fareBasisCode": "WFLEXGB",
+>             "baseFareAmount": 499,
+>             "taxAmount": 52,
+>             "totalFareAmount": 551,
+>             "ancillaries": [
+>               {
+>                 "productType": "Seat",
+>                 "description": "Seat 12H",
+>                 "amount": 50
+>               },
+>               {
+>                 "productType": "Seat",
+>                 "description": "Seat 14D",
+>                 "amount": 50
+>               }
+>             ]
+>           },
+>           {
+>             "orderId": "44ce276a-56d6-40ff-9fa8-6b7a3f0ddffc",
+>             "bookingReference": "JFIO18",
+>             "currency": "GBP",
+>             "cabinCode": "Y",
+>             "paxCount": 5,
+>             "fareFamily": "Non-Flex",
+>             "fareBasisCode": "YLOWGB",
+>             "baseFareAmount": 89,
+>             "taxAmount": 33,
+>             "totalFareAmount": 122,
+>             "ancillaries": []
+>           }
+>         ]
+>       }
+>     },
+>     "durationMs": 6717
+>   },
+>   {
+>     "timestamp": "2026-07-02T14:45:11.135Z",
+>     "method": "GET",
+>     "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net/api/v1/admin/flights/324dcb40-4bbc-4d82-ab06-2dd1d414823a/seatmap?flightNumber=AX006&aircraftType=B789",
+>     "request": {
+>       "headers": {
+>         "Authorization": "Bearer ***"
+>       },
+>       "body": null
+>     },
+>     "response": {
+>       "status": 200,
+>       "headers": {
+>         "content-type": "application/json"
+>       },
+>       "body": {
+>         "flightId": "324dcb40-4bbc-4d82-ab06-2dd1d414823a",
+>         "flightNumber": "AX006",
+>         "aircraftType": "B789",
+>         "cabins": [
+>           {
+>             "cabinCode": "J",
+>             "cabinName": "Business Class",
+>             "columns": [
+>               "A",
+>               "D",
+>               "K"
+>             ],
+>             "layout": "1-1-1",
+>             "startRow": 1,
+>             "endRow": 5,
+>             "seats": [
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTFB",
+>                 "seatNumber": "1A",
+>                 "column": "A",
+>                 "rowNumber": 1,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTFE",
+>                 "seatNumber": "1D",
+>                 "column": "D",
+>                 "rowNumber": 1,
+>                 "position": "Middle",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTFL",
+>                 "seatNumber": "1K",
+>                 "column": "K",
+>                 "rowNumber": 1,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTJB",
+>                 "seatNumber": "2A",
+>                 "column": "A",
+>                 "rowNumber": 2,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTJE",
+>                 "seatNumber": "2D",
+>                 "column": "D",
+>                 "rowNumber": 2,
+>                 "position": "Middle",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTJL",
+>                 "seatNumber": "2K",
+>                 "column": "K",
+>                 "rowNumber": 2,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTNB",
+>                 "seatNumber": "3A",
+>                 "column": "A",
+>                 "rowNumber": 3,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTNE",
+>                 "seatNumber": "3D",
+>                 "column": "D",
+>                 "rowNumber": 3,
+>                 "position": "Middle",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTNL",
+>                 "seatNumber": "3K",
+>                 "column": "K",
+>                 "rowNumber": 3,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTRB",
+>                 "seatNumber": "4A",
+>                 "column": "A",
+>                 "rowNumber": 4,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTRE",
+>                 "seatNumber": "4D",
+>                 "column": "D",
+>                 "rowNumber": 4,
+>                 "position": "Middle",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTRL",
+>                 "seatNumber": "4K",
+>                 "column": "K",
+>                 "rowNumber": 4,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTVB",
+>                 "seatNumber": "5A",
+>                 "column": "A",
+>                 "rowNumber": 5,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTVE",
+>                 "seatNumber": "5D",
+>                 "column": "D",
+>                 "rowNumber": 5,
+>                 "position": "Middle",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1KLTVL",
+>                 "seatNumber": "5K",
+>                 "column": "K",
+>                 "rowNumber": 5,
+>                 "position": "Window",
+>                 "cabinCode": "J",
+>                 "price": 0,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               }
+>             ]
+>           },
+>           {
+>             "cabinCode": "W",
+>             "cabinName": "Premium Economy",
+>             "columns": [
+>               "A",
+>               "B",
+>               "D",
+>               "E",
+>               "F",
+>               "H",
+>               "K"
+>             ],
+>             "layout": "2-3-2",
+>             "startRow": 11,
+>             "endRow": 14,
+>             "seats": [
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTExQQ==",
+>                 "seatNumber": "11A",
+>                 "column": "A",
+>                 "rowNumber": 11,
+>                 "position": "Window",
+>                 "cabinCode": "W",
+>                 "price": 79,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTExQg==",
+>                 "seatNumber": "11B",
+>                 "column": "B",
+>                 "rowNumber": 11,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTExRA==",
+>                 "seatNumber": "11D",
+>                 "column": "D",
+>                 "rowNumber": 11,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTExRQ==",
+>                 "seatNumber": "11E",
+>                 "column": "E",
+>                 "rowNumber": 11,
+>                 "position": "Middle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTExRg==",
+>                 "seatNumber": "11F",
+>                 "column": "F",
+>                 "rowNumber": 11,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTExSA==",
+>                 "seatNumber": "11H",
+>                 "column": "H",
+>                 "rowNumber": 11,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTExSw==",
+>                 "seatNumber": "11K",
+>                 "column": "K",
+>                 "rowNumber": 11,
+>                 "position": "Window",
+>                 "cabinCode": "W",
+>                 "price": 79,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEyQQ==",
+>                 "seatNumber": "12A",
+>                 "column": "A",
+>                 "rowNumber": 12,
+>                 "position": "Window",
+>                 "cabinCode": "W",
+>                 "price": 79,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEyQg==",
+>                 "seatNumber": "12B",
+>                 "column": "B",
+>                 "rowNumber": 12,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEyRA==",
+>                 "seatNumber": "12D",
+>                 "column": "D",
+>                 "rowNumber": 12,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEyRQ==",
+>                 "seatNumber": "12E",
+>                 "column": "E",
+>                 "rowNumber": 12,
+>                 "position": "Middle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEyRg==",
+>                 "seatNumber": "12F",
+>                 "column": "F",
+>                 "rowNumber": 12,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEySA==",
+>                 "seatNumber": "12H",
+>                 "column": "H",
+>                 "rowNumber": 12,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEySw==",
+>                 "seatNumber": "12K",
+>                 "column": "K",
+>                 "rowNumber": 12,
+>                 "position": "Window",
+>                 "cabinCode": "W",
+>                 "price": 79,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEzQQ==",
+>                 "seatNumber": "13A",
+>                 "column": "A",
+>                 "rowNumber": 13,
+>                 "position": "Window",
+>                 "cabinCode": "W",
+>                 "price": 79,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEzQg==",
+>                 "seatNumber": "13B",
+>                 "column": "B",
+>                 "rowNumber": 13,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEzRA==",
+>                 "seatNumber": "13D",
+>                 "column": "D",
+>                 "rowNumber": 13,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEzRQ==",
+>                 "seatNumber": "13E",
+>                 "column": "E",
+>                 "rowNumber": 13,
+>                 "position": "Middle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEzRg==",
+>                 "seatNumber": "13F",
+>                 "column": "F",
+>                 "rowNumber": 13,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEzSA==",
+>                 "seatNumber": "13H",
+>                 "column": "H",
+>                 "rowNumber": 13,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTEzSw==",
+>                 "seatNumber": "13K",
+>                 "column": "K",
+>                 "rowNumber": 13,
+>                 "position": "Window",
+>                 "cabinCode": "W",
+>                 "price": 79,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTE0QQ==",
+>                 "seatNumber": "14A",
+>                 "column": "A",
+>                 "rowNumber": 14,
+>                 "position": "Window",
+>                 "cabinCode": "W",
+>                 "price": 79,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTE0Qg==",
+>                 "seatNumber": "14B",
+>                 "column": "B",
+>                 "rowNumber": 14,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTE0RA==",
+>                 "seatNumber": "14D",
+>                 "column": "D",
+>                 "rowNumber": 14,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTE0RQ==",
+>                 "seatNumber": "14E",
+>                 "column": "E",
+>                 "rowNumber": 14,
+>                 "position": "Middle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTE0Rg==",
+>                 "seatNumber": "14F",
+>                 "column": "F",
+>                 "rowNumber": 14,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTE0SA==",
+>                 "seatNumber": "14H",
+>                 "column": "H",
+>                 "rowNumber": 14,
+>                 "position": "Aisle",
+>                 "cabinCode": "W",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1XLTE0Sw==",
+>                 "seatNumber": "14K",
+>                 "column": "K",
+>                 "rowNumber": 14,
+>                 "position": "Window",
+>                 "cabinCode": "W",
+>                 "price": 79,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               }
+>             ]
+>           },
+>           {
+>             "cabinCode": "Y",
+>             "cabinName": "Economy",
+>             "columns": [
+>               "A",
+>               "B",
+>               "C",
+>               "D",
+>               "E",
+>               "F",
+>               "G",
+>               "H",
+>               "K"
+>             ],
+>             "layout": "3-3-3",
+>             "startRow": 21,
+>             "endRow": 32,
+>             "seats": [
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxQQ==",
+>                 "seatNumber": "21A",
+>                 "column": "A",
+>                 "rowNumber": 21,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxQg==",
+>                 "seatNumber": "21B",
+>                 "column": "B",
+>                 "rowNumber": 21,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxQw==",
+>                 "seatNumber": "21C",
+>                 "column": "C",
+>                 "rowNumber": 21,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxRA==",
+>                 "seatNumber": "21D",
+>                 "column": "D",
+>                 "rowNumber": 21,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxRQ==",
+>                 "seatNumber": "21E",
+>                 "column": "E",
+>                 "rowNumber": 21,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxRg==",
+>                 "seatNumber": "21F",
+>                 "column": "F",
+>                 "rowNumber": 21,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxRw==",
+>                 "seatNumber": "21G",
+>                 "column": "G",
+>                 "rowNumber": 21,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxSA==",
+>                 "seatNumber": "21H",
+>                 "column": "H",
+>                 "rowNumber": 21,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIxSw==",
+>                 "seatNumber": "21K",
+>                 "column": "K",
+>                 "rowNumber": 21,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "ExtraLegroom",
+>                   "BulkheadForward"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIyQQ==",
+>                 "seatNumber": "22A",
+>                 "column": "A",
+>                 "rowNumber": 22,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIyQg==",
+>                 "seatNumber": "22B",
+>                 "column": "B",
+>                 "rowNumber": 22,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIyQw==",
+>                 "seatNumber": "22C",
+>                 "column": "C",
+>                 "rowNumber": 22,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIyRA==",
+>                 "seatNumber": "22D",
+>                 "column": "D",
+>                 "rowNumber": 22,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIyRQ==",
+>                 "seatNumber": "22E",
+>                 "column": "E",
+>                 "rowNumber": 22,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIyRg==",
+>                 "seatNumber": "22F",
+>                 "column": "F",
+>                 "rowNumber": 22,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIyRw==",
+>                 "seatNumber": "22G",
+>                 "column": "G",
+>                 "rowNumber": 22,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIySA==",
+>                 "seatNumber": "22H",
+>                 "column": "H",
+>                 "rowNumber": 22,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIySw==",
+>                 "seatNumber": "22K",
+>                 "column": "K",
+>                 "rowNumber": 22,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzQQ==",
+>                 "seatNumber": "23A",
+>                 "column": "A",
+>                 "rowNumber": 23,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzQg==",
+>                 "seatNumber": "23B",
+>                 "column": "B",
+>                 "rowNumber": 23,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzQw==",
+>                 "seatNumber": "23C",
+>                 "column": "C",
+>                 "rowNumber": 23,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzRA==",
+>                 "seatNumber": "23D",
+>                 "column": "D",
+>                 "rowNumber": 23,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzRQ==",
+>                 "seatNumber": "23E",
+>                 "column": "E",
+>                 "rowNumber": 23,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzRg==",
+>                 "seatNumber": "23F",
+>                 "column": "F",
+>                 "rowNumber": 23,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzRw==",
+>                 "seatNumber": "23G",
+>                 "column": "G",
+>                 "rowNumber": 23,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzSA==",
+>                 "seatNumber": "23H",
+>                 "column": "H",
+>                 "rowNumber": 23,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTIzSw==",
+>                 "seatNumber": "23K",
+>                 "column": "K",
+>                 "rowNumber": 23,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0QQ==",
+>                 "seatNumber": "24A",
+>                 "column": "A",
+>                 "rowNumber": 24,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0Qg==",
+>                 "seatNumber": "24B",
+>                 "column": "B",
+>                 "rowNumber": 24,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0Qw==",
+>                 "seatNumber": "24C",
+>                 "column": "C",
+>                 "rowNumber": 24,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0RA==",
+>                 "seatNumber": "24D",
+>                 "column": "D",
+>                 "rowNumber": 24,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0RQ==",
+>                 "seatNumber": "24E",
+>                 "column": "E",
+>                 "rowNumber": 24,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0Rg==",
+>                 "seatNumber": "24F",
+>                 "column": "F",
+>                 "rowNumber": 24,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0Rw==",
+>                 "seatNumber": "24G",
+>                 "column": "G",
+>                 "rowNumber": 24,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0SA==",
+>                 "seatNumber": "24H",
+>                 "column": "H",
+>                 "rowNumber": 24,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI0Sw==",
+>                 "seatNumber": "24K",
+>                 "column": "K",
+>                 "rowNumber": 24,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1QQ==",
+>                 "seatNumber": "25A",
+>                 "column": "A",
+>                 "rowNumber": 25,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1Qg==",
+>                 "seatNumber": "25B",
+>                 "column": "B",
+>                 "rowNumber": 25,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1Qw==",
+>                 "seatNumber": "25C",
+>                 "column": "C",
+>                 "rowNumber": 25,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1RA==",
+>                 "seatNumber": "25D",
+>                 "column": "D",
+>                 "rowNumber": 25,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1RQ==",
+>                 "seatNumber": "25E",
+>                 "column": "E",
+>                 "rowNumber": 25,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1Rg==",
+>                 "seatNumber": "25F",
+>                 "column": "F",
+>                 "rowNumber": 25,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1Rw==",
+>                 "seatNumber": "25G",
+>                 "column": "G",
+>                 "rowNumber": 25,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1SA==",
+>                 "seatNumber": "25H",
+>                 "column": "H",
+>                 "rowNumber": 25,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI1Sw==",
+>                 "seatNumber": "25K",
+>                 "column": "K",
+>                 "rowNumber": 25,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2QQ==",
+>                 "seatNumber": "26A",
+>                 "column": "A",
+>                 "rowNumber": 26,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2Qg==",
+>                 "seatNumber": "26B",
+>                 "column": "B",
+>                 "rowNumber": 26,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2Qw==",
+>                 "seatNumber": "26C",
+>                 "column": "C",
+>                 "rowNumber": 26,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2RA==",
+>                 "seatNumber": "26D",
+>                 "column": "D",
+>                 "rowNumber": 26,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2RQ==",
+>                 "seatNumber": "26E",
+>                 "column": "E",
+>                 "rowNumber": 26,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2Rg==",
+>                 "seatNumber": "26F",
+>                 "column": "F",
+>                 "rowNumber": 26,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2Rw==",
+>                 "seatNumber": "26G",
+>                 "column": "G",
+>                 "rowNumber": 26,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2SA==",
+>                 "seatNumber": "26H",
+>                 "column": "H",
+>                 "rowNumber": 26,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI2Sw==",
+>                 "seatNumber": "26K",
+>                 "column": "K",
+>                 "rowNumber": 26,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3QQ==",
+>                 "seatNumber": "27A",
+>                 "column": "A",
+>                 "rowNumber": 27,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3Qg==",
+>                 "seatNumber": "27B",
+>                 "column": "B",
+>                 "rowNumber": 27,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3Qw==",
+>                 "seatNumber": "27C",
+>                 "column": "C",
+>                 "rowNumber": 27,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3RA==",
+>                 "seatNumber": "27D",
+>                 "column": "D",
+>                 "rowNumber": 27,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3RQ==",
+>                 "seatNumber": "27E",
+>                 "column": "E",
+>                 "rowNumber": 27,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3Rg==",
+>                 "seatNumber": "27F",
+>                 "column": "F",
+>                 "rowNumber": 27,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3Rw==",
+>                 "seatNumber": "27G",
+>                 "column": "G",
+>                 "rowNumber": 27,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3SA==",
+>                 "seatNumber": "27H",
+>                 "column": "H",
+>                 "rowNumber": 27,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI3Sw==",
+>                 "seatNumber": "27K",
+>                 "column": "K",
+>                 "rowNumber": 27,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4QQ==",
+>                 "seatNumber": "28A",
+>                 "column": "A",
+>                 "rowNumber": 28,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4Qg==",
+>                 "seatNumber": "28B",
+>                 "column": "B",
+>                 "rowNumber": 28,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4Qw==",
+>                 "seatNumber": "28C",
+>                 "column": "C",
+>                 "rowNumber": 28,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4RA==",
+>                 "seatNumber": "28D",
+>                 "column": "D",
+>                 "rowNumber": 28,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4RQ==",
+>                 "seatNumber": "28E",
+>                 "column": "E",
+>                 "rowNumber": 28,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4Rg==",
+>                 "seatNumber": "28F",
+>                 "column": "F",
+>                 "rowNumber": 28,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4Rw==",
+>                 "seatNumber": "28G",
+>                 "column": "G",
+>                 "rowNumber": 28,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4SA==",
+>                 "seatNumber": "28H",
+>                 "column": "H",
+>                 "rowNumber": 28,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI4Sw==",
+>                 "seatNumber": "28K",
+>                 "column": "K",
+>                 "rowNumber": 28,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5QQ==",
+>                 "seatNumber": "29A",
+>                 "column": "A",
+>                 "rowNumber": 29,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5Qg==",
+>                 "seatNumber": "29B",
+>                 "column": "B",
+>                 "rowNumber": 29,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5Qw==",
+>                 "seatNumber": "29C",
+>                 "column": "C",
+>                 "rowNumber": 29,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5RA==",
+>                 "seatNumber": "29D",
+>                 "column": "D",
+>                 "rowNumber": 29,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5RQ==",
+>                 "seatNumber": "29E",
+>                 "column": "E",
+>                 "rowNumber": 29,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5Rg==",
+>                 "seatNumber": "29F",
+>                 "column": "F",
+>                 "rowNumber": 29,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5Rw==",
+>                 "seatNumber": "29G",
+>                 "column": "G",
+>                 "rowNumber": 29,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5SA==",
+>                 "seatNumber": "29H",
+>                 "column": "H",
+>                 "rowNumber": 29,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTI5Sw==",
+>                 "seatNumber": "29K",
+>                 "column": "K",
+>                 "rowNumber": 29,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwQQ==",
+>                 "seatNumber": "30A",
+>                 "column": "A",
+>                 "rowNumber": 30,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwQg==",
+>                 "seatNumber": "30B",
+>                 "column": "B",
+>                 "rowNumber": 30,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwQw==",
+>                 "seatNumber": "30C",
+>                 "column": "C",
+>                 "rowNumber": 30,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwRA==",
+>                 "seatNumber": "30D",
+>                 "column": "D",
+>                 "rowNumber": 30,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwRQ==",
+>                 "seatNumber": "30E",
+>                 "column": "E",
+>                 "rowNumber": 30,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwRg==",
+>                 "seatNumber": "30F",
+>                 "column": "F",
+>                 "rowNumber": 30,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwRw==",
+>                 "seatNumber": "30G",
+>                 "column": "G",
+>                 "rowNumber": 30,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwSA==",
+>                 "seatNumber": "30H",
+>                 "column": "H",
+>                 "rowNumber": 30,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMwSw==",
+>                 "seatNumber": "30K",
+>                 "column": "K",
+>                 "rowNumber": 30,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxQQ==",
+>                 "seatNumber": "31A",
+>                 "column": "A",
+>                 "rowNumber": 31,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxQg==",
+>                 "seatNumber": "31B",
+>                 "column": "B",
+>                 "rowNumber": 31,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxQw==",
+>                 "seatNumber": "31C",
+>                 "column": "C",
+>                 "rowNumber": 31,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxRA==",
+>                 "seatNumber": "31D",
+>                 "column": "D",
+>                 "rowNumber": 31,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxRQ==",
+>                 "seatNumber": "31E",
+>                 "column": "E",
+>                 "rowNumber": 31,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxRg==",
+>                 "seatNumber": "31F",
+>                 "column": "F",
+>                 "rowNumber": 31,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxRw==",
+>                 "seatNumber": "31G",
+>                 "column": "G",
+>                 "rowNumber": 31,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxSA==",
+>                 "seatNumber": "31H",
+>                 "column": "H",
+>                 "rowNumber": 31,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMxSw==",
+>                 "seatNumber": "31K",
+>                 "column": "K",
+>                 "rowNumber": 31,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": []
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMyQQ==",
+>                 "seatNumber": "32A",
+>                 "column": "A",
+>                 "rowNumber": 32,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMyQg==",
+>                 "seatNumber": "32B",
+>                 "column": "B",
+>                 "rowNumber": 32,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMyQw==",
+>                 "seatNumber": "32C",
+>                 "column": "C",
+>                 "rowNumber": 32,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMyRA==",
+>                 "seatNumber": "32D",
+>                 "column": "D",
+>                 "rowNumber": 32,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMyRQ==",
+>                 "seatNumber": "32E",
+>                 "column": "E",
+>                 "rowNumber": 32,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMyRg==",
+>                 "seatNumber": "32F",
+>                 "column": "F",
+>                 "rowNumber": 32,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMyRw==",
+>                 "seatNumber": "32G",
+>                 "column": "G",
+>                 "rowNumber": 32,
+>                 "position": "Aisle",
+>                 "cabinCode": "Y",
+>                 "price": 50,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMySA==",
+>                 "seatNumber": "32H",
+>                 "column": "H",
+>                 "rowNumber": 32,
+>                 "position": "Middle",
+>                 "cabinCode": "Y",
+>                 "price": 20,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               },
+>               {
+>                 "seatOfferId": "QVgwMDYtMjAyNi0wNy0wMi1ZLTMySw==",
+>                 "seatNumber": "32K",
+>                 "column": "K",
+>                 "rowNumber": 32,
+>                 "position": "Window",
+>                 "cabinCode": "Y",
+>                 "price": 70,
+>                 "currency": "GBP",
+>                 "availability": "available",
+>                 "attributes": [
+>                   "BulkheadAft"
+>                 ]
+>               }
+>             ]
+>           }
+>         ]
+>       }
+>     },
+>     "durationMs": 4366
+>   },
+>   {
+>     "timestamp": "2026-07-02T14:45:10.672Z",
+>     "method": "GET",
+>     "url": "https://reservation-system-db-api-retail-aqasakbxcje0a6eh.uksouth-01.azurewebsites.net/api/v1/admin/manifest?flightNumber=AX006&departureDate=2026-07-02",
+>     "request": {
+>       "headers": {
+>         "Authorization": "Bearer ***"
+>       },
+>       "body": null
+>     },
+>     "response": {
+>       "status": 200,
+>       "headers": {
+>         "content-type": "application/json"
+>       },
+>       "body": {
+>         "entries": []
+>       }
+>     },
+>     "durationMs": 3903
+>   }
+> ]
+> 
+> 
+> 
+> Please fix
+
+**Model:** `claude-opus-4-8`
+
+**Tokens**
+
+| Metric | Tokens |
+|--------|-------:|
+| Output (generation) | 271,953 |
+| Input (new) | 36,305 |
+| Cache creation | 665,800 |
+| Cache read (reused) | 32,155,344 |
+| **Total** | **33,129,402** |
+| Peak context window | 261,727 |
+
+**Context used**
+
+- Assistant steps (inference calls): 186
+- Tools invoked: Bash ×40, Read ×35, Edit ×7, AskUserQuestion ×3, Grep ×3, Write ×2
+- Files / targets touched:
+  - `manifest` (Grep)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Application/WriteManifest/WriteManifestHandler.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Application/GetManifest/GetManifestHandler.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Functions/AdminManifestFunction.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Infrastructure/Persistence/EfManifestRepository.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Models/Requests/WriteManifestRequest.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Application/ConfirmBasket/ConfirmBasketHandler.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Domain/Entities` (Grep)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Domain/Entities/Ticket.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Application/IssueTickets/IssueTicketsHandler.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Infrastructure/ExternalServices/DeliveryServiceClient.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Application/ConfirmBasket/ConfirmBasketHandler.cs` (Grep)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Models/Converters/PassengerIdJsonConverter.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Infrastructure/ExternalServices/Dto/PassengerIdAsStringConverter.cs` (Read)
+  - `/home/user/airline-reservation-system/src/Database/Migrations/reseed-manifest-from-tickets-and-orders.sql` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/CHANGES.md` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Delivery/Functions/ManifestFunction.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/Application/ConfirmOrder/ConfirmOrderHandler.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Tests/ReservationSystem.Tests.Orchestration.Retail/Infrastructure/DeliveryServiceClientManifestTests.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/Application/GetIropsOrders/GetIropsOrdersHandler.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/Application/UpdateBasketPassengers/UpdateBasketPassengersHandler.cs` (Read)
+  - `/home/user/airline-reservation-system/src/Web/src/app/services/retail-api.service.ts` (Read)
+  - `/home/user/airline-reservation-system/src/Web/src/app/models/order.model.ts` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/Functions/OrderFunction.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/Models/Mappers/OrderMapper.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Infrastructure/ExternalServices/OrderServiceClient.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Infrastructure/ExternalServices/OrderServiceClient.cs` (Edit)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Application/AdminManifest/ManifestReconstruction.cs` (Write)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Functions/AdminManifestFunction.cs` (Edit)
+  - `/home/user/airline-reservation-system/src/API/Microservices/ReservationSystem.Microservices.Order/Infrastructure/Persistence/EfOrderRepository.cs` (Read)
+  - `/home/user/airline-reservation-system/src/API/Tests/ReservationSystem.Tests.Orchestration.Retail/Application/ManifestReconstructionTests.cs` (Write)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Application/AdminManifest/ManifestReconstruction.cs` (Edit)
+  - `/home/user/airline-reservation-system/src/API/../../documentation/design/delivery.md` (Read)
+  - `/home/user/airline-reservation-system/documentation/design/delivery.md` (Edit)
+  - `/home/user/airline-reservation-system/src/API/Orchestration/ReservationSystem.Orchestration.Retail/Application/AdminManifest/ManifestReconstruction.cs` (Read)
+
+---
