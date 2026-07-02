@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ReservationSystem.Shared.Common.Http;
+using ReservationSystem.Orchestration.Retail.Application.AdminManifest;
 using ReservationSystem.Orchestration.Retail.Infrastructure.ExternalServices;
 using System.Net;
 
@@ -62,6 +63,35 @@ public sealed class AdminManifestFunction
         {
             _logger.LogWarning("Manifest retrieval failed for {FlightNumber} {DepartureDate}", flightNumber, departureDateRaw);
             return req.CreateResponse(HttpStatusCode.InternalServerError);
+        }
+
+        // Fallback: the authoritative delivery.Manifest is written at booking confirmation.
+        // Bookings confirmed before that write path existed have no manifest rows, so the flight
+        // shows zero passengers even though confirmed orders exist. When the manifest is empty,
+        // reconstruct the passenger view from confirmed orders on the flight. This is read-only
+        // and best-effort — any failure leaves the (empty) authoritative result untouched.
+        if (result.Entries.Count == 0)
+        {
+            try
+            {
+                var orders = await _orderServiceClient.GetConfirmedOrdersByFlightAsync(
+                    flightNumber, departureDateRaw, cancellationToken);
+
+                var reconstructed = ManifestReconstruction.FromOrders(orders, flightNumber, departureDateRaw);
+                if (reconstructed.Count > 0)
+                {
+                    _logger.LogInformation(
+                        "Manifest for {FlightNumber} {DepartureDate} was empty — reconstructed {Count} entries from confirmed orders",
+                        flightNumber, departureDateRaw, reconstructed.Count);
+                    result = new AdminFlightManifestResult { Entries = reconstructed };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Manifest reconstruction from orders failed for {FlightNumber} {DepartureDate} — returning empty manifest",
+                    flightNumber, departureDateRaw);
+            }
         }
 
         return await req.OkJsonAsync(result);

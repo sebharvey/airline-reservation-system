@@ -243,6 +243,7 @@ The operational source of truth for who is on a given flight. One row per passen
 > **SsrCodes:** Stored as a JSON array (e.g. `["VGML","WCHR"]`) rather than a CSV string, enabling clean serialisation/deserialisation and future query support via SQL Server JSON functions.
 > **Seatmap validation:** The orchestration layer is responsible for validating `SeatNumber` against the active seatmap (via Seat MS) before calling the Delivery MS. The Delivery MS trusts the seat number provided by its caller.
 > **Concurrency:** `Version` is used for optimistic concurrency control — see [api.md — Optimistic Concurrency Control](api.md#optimistic-concurrency-control).
+> **Empty-manifest fallback:** Staff manifest retrieval (`GET /v1/admin/manifest`) is served from `delivery.Manifest`, the authoritative record. Bookings confirmed before the manifest-write path existed have no rows, which would show the flight as empty. When the manifest returns zero entries, the Retail orchestration reconstructs the passenger view read-only from confirmed orders on the flight (Order MS `GET /v1/orders`) so the flight is not shown as empty. The fallback is best-effort and only fires when the authoritative manifest is empty — it never overrides written manifest rows. The durable remedy for affected flights is to backfill `delivery.Manifest` via `src/Database/Migrations/reseed-manifest-from-tickets-and-orders.sql`.
 
 ## Data schema — `delivery.Document`
 

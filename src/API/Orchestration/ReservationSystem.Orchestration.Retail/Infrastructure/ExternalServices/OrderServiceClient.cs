@@ -218,6 +218,24 @@ public sealed class OrderServiceClient
             ?? new List<OrderMsOrderResult>();
     }
 
+    /// <summary>
+    /// Returns all confirmed orders on a flight (Order MS QueryOrders). Used as the source for
+    /// reconstructing a flight manifest when the pre-computed delivery.Manifest is empty
+    /// (e.g. for bookings confirmed before the manifest-write path existed). Returns an empty
+    /// list when there are no matching orders.
+    /// </summary>
+    public async Task<List<OrderMsOrderResult>> GetConfirmedOrdersByFlightAsync(
+        string flightNumber, string departureDate, CancellationToken ct)
+    {
+        var url = $"/api/v1/orders?flightNumber={Uri.EscapeDataString(flightNumber)}" +
+                  $"&departureDate={Uri.EscapeDataString(departureDate)}&status=Confirmed";
+        using var response = await _httpClient.GetAsync(url, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return [];
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<OrderMsQueryOrdersResult>(JsonOptions, ct);
+        return result?.Orders ?? [];
+    }
+
     public async Task UpdateOrderBagsAsync(string bookingReference, string bagsJson, CancellationToken ct)
     {
         using var content = new StringContent(bagsJson, Encoding.UTF8, "application/json");
@@ -460,6 +478,12 @@ public sealed class OrderMsAddOfferResult
 
     [JsonPropertyName("totalAmount")]
     public decimal TotalAmount { get; init; }
+}
+
+public sealed class OrderMsQueryOrdersResult
+{
+    [JsonPropertyName("orders")]
+    public List<OrderMsOrderResult> Orders { get; init; } = [];
 }
 
 public sealed class OrderMsOrderResult
