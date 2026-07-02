@@ -75,3 +75,56 @@ Token terms:
 - Tools invoked: Bash ×2
 
 ---
+## 2026-07-02T14:15:02+00:00 — session `6c280d79` — 1,594 out / 1,064,797 total
+
+**Prompt**
+
+> Stop hook feedback:
+> [~/.claude/stop-hook-git-check.sh]: There are uncommitted changes in the repository. Please commit and push these changes to the remote branch.
+
+**Model:** `claude-opus-4-8`
+
+**Tokens**
+
+| Metric | Tokens |
+|--------|-------:|
+| Output (generation) | 1,594 |
+| Input (new) | 270 |
+| Cache creation | 3,619 |
+| Cache read (reused) | 1,059,314 |
+| **Total** | **1,064,797** |
+| Peak context window | 152,597 |
+
+**Context used**
+
+- Assistant steps (inference calls): 7
+- Tools invoked: Bash ×3
+
+---
+## 2026-07-02T14:17:17+00:00 — session `6c280d79` — 89 out / 152,964 total
+
+**Prompt**
+
+> A pull request was just created for this branch from the Claude Code UI: https://github.com/sebharvey/airline-reservation-system/pull/1323
+> 
+> You don't need to create one. Reference this PR going forward — pushing more commits to this branch will update it.
+
+**Model:** `claude-opus-4-8`
+
+**Tokens**
+
+| Metric | Tokens |
+|--------|-------:|
+| Output (generation) | 89 |
+| Input (new) | 2 |
+| Cache creation | 278 |
+| Cache read (reused) | 152,595 |
+| **Total** | **152,964** |
+| Peak context window | 152,875 |
+
+**Context used**
+
+- Assistant steps (inference calls): 1
+- Tools invoked: none
+
+---
