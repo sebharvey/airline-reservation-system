@@ -494,6 +494,9 @@ public sealed class AdminManifestEntry
 
 public sealed class ManifestPassengerEntry
 {
+    [JsonPropertyName("paxId")]
+    public int PaxId { get; init; }
+
     [JsonPropertyName("passengerId")]
     public string PassengerId { get; init; } = string.Empty;
 
